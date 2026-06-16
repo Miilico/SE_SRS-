@@ -22,6 +22,7 @@ function require_login() {
  * 1 = student
  * 2 = professor
  * 3 = admin
+ * 4=獎助學金單位
  */
 /*
 function require_role(int $role): void {
