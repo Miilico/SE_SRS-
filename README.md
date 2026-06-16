@@ -4,7 +4,7 @@
 
 本專案是一個傳統 PHP 多頁式網站，沒有使用 Laravel、Symfony 等 PHP 框架，也沒有前端建置工具。頁面、表單處理、SQL 查詢、權限檢查大多直接寫在各個 PHP 檔案中。
 
-部署環境推測為 Apache + PHP + MySQL，網址根路徑多處寫死為 `/scholarship/...`。資料庫備份 `scholarship (3).sql` 顯示原環境為 phpMyAdmin 4.6.6、MySQL 5.7.17、PHP 5.6.30。
+部署環境推測為 Apache + PHP + MySQL，網址根路徑多處寫死為 `/scholarship/...`。資料庫備份 `scholarship (3).sql` 
 
 主要功能是獎助學金申請與審核，依使用者角色分成：
 
@@ -13,10 +13,10 @@
 - 管理員：審核帳號、管理獎助單位、公告管理、查看申請結果。
 - 獎助單位：新增獎助學金、查看申請者、審核申請結果。
 
-## 2. 技術棧
+## 2. 環境
 
-- 後端：PHP
-- 資料庫：MySQL
+- 後端：PHP 8.3
+- 資料庫：MariaDB 10.11
 - 資料庫存取：PDO
 - 前端：HTML、CSS、Bootstrap CDN
 - 郵件：PHPMailer，放在 `student/` 目錄
