@@ -20,37 +20,29 @@ try {
 } catch (PDOException $e) {
     die("查詢失敗：" . $e->getMessage());
 }
+$pageTitle = $post['title'];
+$activeNav = "announcement_board.php";
+$siteHeaderMaxWidth = "860px";
+require __DIR__ . "/header.php";
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title><?php echo htmlspecialchars($post['title']); ?></title>
-    <style>
-        .post-container { width: 700px; margin: 50px auto; padding: 30px; border: 1px solid #ddd; background: #fff; line-height: 1.6; }
-        .post-title { font-size: 28px; font-weight: bold; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
-        .post-meta { color: #666; font-size: 14px; margin-bottom: 20px; }
-        .post-content { font-size: 18px; white-space: pre-wrap; } /* 保留換行符號 */
-        .back-btn { display: inline-block; margin-top: 30px; text-decoration: none; color: blue; }
-    </style>
-</head>
-<body>
-    <div class="post-container">
-        <div class="post-title"><?php echo htmlspecialchars($post['title']); ?></div>
-        <div class="post-meta">
+    <article class="card border-0 shadow-sm">
+        <div class="card-body p-4 p-md-5">
+        <h1 class="h3 fw-bold border-bottom pb-3 mb-3"><?php echo htmlspecialchars($post['title']); ?></h1>
+        <div class="text-secondary small mb-4">
             發佈日期：<?php echo $post['ADATE']; ?> <?php echo $post['ATIME']; ?> | 
             管理員：<?php echo htmlspecialchars($post['AID']); ?>
         </div>
-        <div class="post-content"><?php echo htmlspecialchars($post['CONTENT']); ?></div>
+        <div class="fs-5 lh-lg" style="white-space: pre-wrap;"><?php echo htmlspecialchars($post['CONTENT']); ?></div>
 
         <?php if (!empty($files)): ?>
-            <div style="margin-top:24px;">
-                <strong>附件：</strong>
-                <ul>
+            <div class="mt-4">
+                <div class="fw-bold mb-2">附件</div>
+                <ul class="list-group">
                     <?php foreach ($files as $file): ?>
-                        <li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><?php echo htmlspecialchars($file["original_name"]); ?></span>
                             <a href="/scholarship/file_view.php?id=<?php echo urlencode($file["id"]); ?>">
-                                <?php echo htmlspecialchars($file["original_name"]); ?>
+                                下載
                             </a>
                         </li>
                     <?php endforeach; ?>
@@ -58,7 +50,9 @@ try {
             </div>
         <?php endif; ?>
         
-        <a href="announcement_board.php" class="back-btn">← 返回列表</a>
-    </div>
+        <a href="announcement_board.php" class="btn btn-outline-secondary mt-4">返回列表</a>
+        </div>
+    </article>
+</main>
 </body>
 </html>

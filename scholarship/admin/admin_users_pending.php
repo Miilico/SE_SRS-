@@ -1,6 +1,6 @@
 <?php
 $adminHeaderBootstrapOnly = true;
-require __DIR__ . "/header.php";
+require __DIR__ . "/../header.php";
 unset($adminHeaderBootstrapOnly);
 
 // 核准帳號
@@ -36,7 +36,7 @@ $role_map = [
 $pageTitle = "帳號審核";
 $activeNav = "admin_users_pending.php";
 ?>
-<?php require __DIR__ . "/header.php"; ?>
+<?php require __DIR__ . "/../header.php"; ?>
 
   <div class="admin-page-head">
     <div>

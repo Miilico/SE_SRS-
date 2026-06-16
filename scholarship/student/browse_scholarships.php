@@ -1,6 +1,9 @@
 <?php
 // browse_scholarships.php
 require_once __DIR__ . "/../config.php";
+require_once __DIR__ . "/../auth.php";
+
+require_role(1);
 
 // 查詢尚未開始申請的獎學金
 $stmt_not_started = $pdo->query("
@@ -17,18 +20,13 @@ $stmt_open = $pdo->query("
     ORDER BY deadline ASC
 ");
 $open = $stmt_open->fetchAll(PDO::FETCH_ASSOC);
-?>
 
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <title>瀏覽獎助學金 - 獎助學金系統</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-<div class="container mt-5">
-    <h2 class="mb-4 text-dark fw-bold">瀏覽獎助學金</h2>
+$pageTitle = "瀏覽獎助學金";
+$activeNav = "browse_scholarships.php";
+$siteHeaderRequiredRole = 1;
+require __DIR__ . "/../header.php";
+?>
+    <h1 class="h3 mb-4 fw-bold">瀏覽獎助學金</h1>
     <!-- 申請期限中的獎學金 -->
     <div class="card shadow">
         <div class="card-header bg-primary text-white">開放申請中</div>
@@ -96,13 +94,8 @@ $open = $stmt_open->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
-</div>
+<a href="student-dashboard.php" class="btn btn-outline-secondary mt-3">返回主頁</a>
 
-<a href="student-dashboard.php" 
-   class="btn btn-secondary" 
-   style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
-   返回主頁
-</a>
-
+</main>
 </body>
 </html>

@@ -38,89 +38,12 @@ $scholarships = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->prepare("SELECT id, NAME FROM scholarship WHERE provider_id = ?");
 $stmt->execute(array($provider_id));
 $allOptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$pageTitle = "我提供的獎助學金";
+$activeNav = "my_scholarships.php";
+require __DIR__ . "/../header.php";
 ?>
-
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8">
-  <title>我提供的獎助學金</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-  <style>
-    body{
-      font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;
-      margin:24px;
-      background:#f6f7fb
-    }
-    .card{
-      background:#fff;
-      border-radius:14px;
-      padding:16px;
-      box-shadow:0 1px 8px rgba(0,0,0,.06)
-    }
-    .grid{display:grid;gap:14px}
-    .kpi{grid-template-columns:repeat(3,minmax(0,1fr))}
-    .topbar{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      margin-bottom:14px
-    }
-    .tabs a{
-      margin-right:14px;
-      text-decoration:none;
-      color:#111
-    }
-    .tabs a.active{
-      font-weight:700;
-      color:#2563eb
-    }
-    .muted{color:#667085}
-    .btn{
-      display:inline-block;
-      padding:8px 14px;
-      border-radius:999px;
-      background:#2563eb;
-      color:#fff;
-      text-decoration:none;
-      font-size:14px
-    }
-    .topbar {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:14px;
-  background:#fff;       /* 白色背景 */
-  padding:10px 20px;     /* 內距 */
-  box-shadow:0 1px 6px rgba(0,0,0,.1); /* 陰影 */
-  border-radius:8px;     /* 圓角 */
-    }
-
-  </style>
-</head>
-<body>
-
-<!-- ====== Topbar（跟學生頁一致） ====== -->
-<div class="topbar">
-  <div><strong>獎助學金系統｜獎助單位端</strong></div>
-
-  <div class="tabs">
-    <a class="active" href="/scholarship/organization/org-dashboard.php">總覽</a>
-    <a href="/scholarship/organization/my_scholarships.php">瀏覽我提供的獎助學金</a>
-    <a href="/scholarship/organization/view_applicants.php">瀏覽申請資料</a>
-    <a href="/scholarship/organization/add_scholarship.php">新增獎助學金</a>
-    <a href="/scholarship/profile.php">個人檔案</a>
-  </div>
-
-  <div>
-    <?= htmlspecialchars($userName) ?>｜
-    <a href="/scholarship/logout.php">登出</a>
-  </div>
-</div>
-
-<div class="container-sm mt-5">
-    <h2 class="display-5 mb-4 text-primary">🎓 我提供的獎助學金清單</h2>
+    <h1 class="h3 mb-4 fw-bold">我提供的獎助學金清單</h1>
 
     <!-- 選擇獎助學金 -->
     <form method="get" action="" class="mb-4 d-flex gap-2 align-items-center">
@@ -179,8 +102,6 @@ $allOptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
-</div>
-
-
+</main>
 </body>
 </html>

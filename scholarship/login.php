@@ -1,28 +1,12 @@
-<?php require_once __DIR__ . "/config.php"; ?>
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>登入｜獎助學金系統</title>
+<?php
+require_once __DIR__ . "/config.php";
 
-  <!-- Bootstrap 5 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="/scholarship/assets/css/auth.css">
-</head>
-
-<body>
-  <!-- Top Navbar (跟主畫面同感覺：乾淨、細、白底) -->
-  <nav class="navbar navbar-expand-lg bg-white border-bottom">
-    <div class="container">
-      <span class="navbar-brand fw-semibold">
-        <span class="brand-dot"></span>獎助學金系統
-      </span>
-    </div>
-  </nav>
-
-  <!-- Center Card -->
-  <main class="auth-wrap">
+$pageTitle = "登入";
+$activeNav = "login.php";
+$siteHeaderMainClass = "auth-wrap";
+$siteHeaderStylesheets = array("/scholarship/assets/css/auth.css");
+require __DIR__ . "/header.php";
+?>
     <div class="card auth-card">
       <div class="auth-header p-4">
         <div class="d-flex align-items-center justify-content-between">
@@ -68,8 +52,7 @@
         </form>
       </div>
     </div>
-  </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</main>
 </body>
 </html>

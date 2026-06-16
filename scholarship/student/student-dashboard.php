@@ -1,11 +1,8 @@
 <?php
 require_once __DIR__ . "/../config.php";
+require_once __DIR__ . "/../auth.php";
 
-// ====== 基本保護：必須登入 ======
-if (empty($_SESSION["user"]) || empty($_SESSION["user"]["id"])) {
-  header("Location: /scholarship/login.php");
-  exit;
-}
+require_role(1);
 
 // ====== 從 session 取值（✅ 全部用小寫） ======
 $stId     = $_SESSION["user"]["id"];
@@ -123,118 +120,105 @@ $stmt->execute([
   ":rej" => $STATUS_REJECTED
 ]);
 $notis = $stmt->fetchAll();
+$pageTitle = "學生主頁";
+$activeNav = "student-dashboard.php";
+$siteHeaderRequiredRole = 1;
+require __DIR__ . "/../header.php";
 ?>
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8">
-  <title>學生主頁</title>
-  <style>
-    body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;margin:24px;background:#f6f7fb}
-    .card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,.06)}
-    .grid{display:grid;gap:14px}
-    .kpi{grid-template-columns:repeat(3,minmax(0,1fr))}
-    .row{display:grid;grid-template-columns:1fr 1.4fr;gap:14px;margin-top:14px}
-    .muted{color:#667085}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid #eee;text-align:left}
-    .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;background:#f1f5f9}
-    .btn{display:inline-block;padding:6px 12px;border-radius:999px;background:#ff7a00;color:#fff;text-decoration:none;font-size:12px}
-    .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-    .tabs a{margin-right:14px;text-decoration:none;color:#111}
-    .tabs a.active{font-weight:700;color:#2563eb}
-  </style>
-</head>
-<body>
 
-<div class="topbar">
-  <div><strong>獎助學金系統</strong></div>
-  <div class="tabs">
-    <a class="active" href="/scholarship/student/student-dashboard.php">總覽</a>
-    <a href="/scholarship/student/browse_scholarships.php">瀏覽獎助學金</a>
-    <a href="/scholarship/student/apply.php">申請獎助學金</a>
-    <!--<a href="/scholarship/student/apply.php">我的申請</a>-->
-    <a href="/scholarship/profile.php">個人檔案</a>
-    <a href="/scholarship/announcement_board.php">查看公告</a>
-    <a href="/scholarship/ticket_list.php">回報問題</a>
-  </div>
-  <div>
-    <?= htmlspecialchars($userName) ?>｜
-    <a href="/scholarship/logout.php">登出</a>
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body p-4">
+    <h1 class="h3 fw-bold mb-1">歡迎回來，<?= htmlspecialchars($userName) ?></h1>
+    <div class="text-secondary">查看近期申請狀態與需要處理的通知。</div>
   </div>
 </div>
 
-<div class="card">
-  <h2 style="margin:0;">歡迎回來，<?= htmlspecialchars($userName) ?> 👋</h2>
-  <!--<div class="muted" style="margin-top:6px;">（學期/系級資訊之後可接 students 表）</div>-->
+<div class="row g-3 mb-3">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-secondary">審核中案件</div>
+        <div class="display-6 fw-bold"><?= $pending ?></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-secondary">本學期已通過</div>
+        <div class="display-6 fw-bold"><?= $approvedThisYear ?></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-secondary">已發放金額</div>
+        <div class="display-6 fw-bold">NT$ <?= number_format($paid) ?></div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div class="grid kpi" style="margin-top:14px;">
-  <div class="card"><div class="muted">審核中案件</div><h2><?= $pending ?></h2></div>
-  <div class="card"><div class="muted">本學期已通過</div><h2><?= $approvedThisYear ?></h2></div>
-  <div class="card"><div class="muted">已發放金額</div><h2>NT$ <?= number_format($paid) ?></h2></div>
-</div>
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h2 class="h5 fw-bold mb-3">最新通知</h2>
+        <?php if (empty($notis)): ?>
+          <div class="text-secondary">目前沒有需要處理的通知。</div>
+        <?php else: ?>
+          <div class="list-group list-group-flush">
+          <?php foreach ($notis as $n): ?>
+            <div class="list-group-item px-0">
+              <div>
+                <span class="badge rounded-pill text-bg-warning"><?= htmlspecialchars($n["RESULT"]) ?></span>
+                申請編號 <?= htmlspecialchars($n["APNO"]) ?>
+              </div>
+              <div class="text-secondary small mt-1"><?= htmlspecialchars($n["APDATE"]) ?></div>
+            </div>
+          <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
 
-<div class="row">
-  <!-- 最新通知 -->
-  <div class="card">
-    <h3 style="margin-top:0;">最新通知</h3>
-    <?php if (empty($notis)): ?>
-      <div class="muted">目前沒有需要處理的通知。</div>
-    <?php else: ?>
-      <?php foreach ($notis as $n): ?>
-        <div style="padding:10px 0;border-bottom:1px solid #eee;">
-          <div>
-            <span class="badge"><?= htmlspecialchars($n["RESULT"]) ?></span>
-            申請編號 <?= htmlspecialchars($n["APNO"]) ?>
-          </div>
-          <div class="muted" style="margin-top:4px;">
-            <?= htmlspecialchars($n["APDATE"]) ?>
-          </div>
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h2 class="h5 fw-bold mb-3">我的申請</h2>
+        <?php if (empty($apps)): ?>
+          <div class="text-secondary">目前尚無申請紀錄。</div>
+        <?php else: ?>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>獎助學金名稱</th>
+                <th>申請日期</th>
+                <th>申請金額</th>
+                <th>狀態</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($apps as $a): ?>
+              <tr>
+                <td><?= htmlspecialchars(isset($a["SCH_NAME"]) ? $a["SCH_NAME"] : ("APNO ".$a["APNO"])) ?></td>
+                <td><?= htmlspecialchars($a["APDATE"]) ?></td>
+                <td>NT$ <?= number_format((int)$a["AMOUNT"]) ?></td>
+                <td><span class="badge rounded-pill text-bg-light border"><?= htmlspecialchars($a["RESULT"]) ?></span></td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
         </div>
-      <?php endforeach; ?>
-    <?php endif; ?>
-  </div>
-
-  <!-- 我的申請 -->
-  <div class="card">
-    <h3 style="margin-top:0;">我的申請</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>獎助學金名稱</th>
-          <th>申請日期</th>
-          <th>申請金額</th>
-          <th>狀態</th>
-          <!--<th>操作</th>-->
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($apps as $a): ?>
-        <tr>
-          <!--<td>?= htmlspecialchars($a["SCH_NAME"] ?? ("APNO ".$a["APNO"])) ?></td>
-          <td>?= htmlspecialchars($a["APDATE"]) ?></td>
-          <td>NT$ ?= number_format((int)$a["AMOUNT"]) ?></td>
-          <td><span class="badge"><?= htmlspecialchars($a["RESULT"]) ?></span></td>-->
-          <td><?= htmlspecialchars(isset($a["SCH_NAME"]) ? $a["SCH_NAME"] : ("APNO ".$a["APNO"])) ?></td>
-          <td><?= htmlspecialchars($a["APDATE"]) ?></td>
-          <td>NT$ <?= number_format((int)$a["AMOUNT"]) ?></td>
-          <td><span class="badge"><?= htmlspecialchars($a["RESULT"]) ?></span></td>
-
-          <!--<td>
-            ?php if (($a["RESULT"] ?? "") === $STATUS_FIX): ?>
-            ?php if ((isset($a["RESULT"]) ? $a["RESULT"] : "") === $STATUS_FIX): ?>  
-              <a class="btn" href="/scholarship/student/fix.php?apno=<?= urlencode($a["APNO"]) ?>">前往補件</a>
-            ?php else: ?>
-              <a class="btn" href="/scholarship/student/application_detail.php?apno=<?= urlencode($a["APNO"]) ?>">詳細狀態</a>
-            ?php endif; ?>
-          </td>-->
-        </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
+        <?php endif; ?>
+      </div>
+    </div>
   </div>
 </div>
 
+</main>
 </body>
 </html>

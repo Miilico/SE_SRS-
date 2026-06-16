@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . "/../config.php"; // 請確認路徑是否正確
-session_start();
+require_once __DIR__ . "/../auth.php";
 
 // 權限檢查：僅限老師 (Role 2) 或管理員 (Role 3)
 if (!isset($_SESSION["user"]) || !in_array((int)$_SESSION["user"]["role"], [2, 3])) {
@@ -8,6 +8,8 @@ if (!isset($_SESSION["user"]) || !in_array((int)$_SESSION["user"]["role"], [2, 3
 }
 
 $sid = isset($_GET['sid']) ? trim($_GET['sid']) : '';
+$student = null;
+$apps = [];
 
 if ($sid) {
     // 1. 查詢學生基本與學籍資料
@@ -30,43 +32,40 @@ if ($sid) {
         $apps = $stmtApp->fetchAll(PDO::FETCH_ASSOC);
     }
 }
+$pageTitle = "學生資料查詢";
+$activeNav = "tea_dashboard.php";
+$siteHeaderRequiredRole = array(2, 3);
+$siteHeaderMaxWidth = "900px";
+require __DIR__ . "/../header.php";
 ?>
 
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <title>學生資料查詢</title>
-    <style>
-        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background: #f8f9fa; }
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; background: #e2e8f0; }
-    </style>
-</head>
-<body>
-
-<div class="container">
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-4 p-md-5">
     <?php if (!$student): ?>
-        <p>找不到該學生資料 (ID: <?= htmlspecialchars($sid) ?>)，請確認 ID 是否正確且身分為學生。</p>
-        <a href="javascript:history.back()">回上一頁</a>
+        <div class="alert alert-warning">
+            找不到該學生資料 (ID: <?= htmlspecialchars($sid) ?>)，請確認 ID 是否正確且身分為學生。
+        </div>
+        <a class="btn btn-outline-secondary" href="javascript:history.back()">回上一頁</a>
     <?php else: ?>
-        <h2>學生詳細資料</h2>
-        <table>
-            <tr><th>姓名</th><td><?= htmlspecialchars($student['NAME']) ?></td></tr>
-            <tr><th>學號/ID</th><td><?= htmlspecialchars($student['ID']) ?></td></tr>
-           <tr><th>系所</th><td><?= htmlspecialchars(isset($student['DNAME']) ? $student['DNAME'] : '未填寫') ?></td></tr>
-            <tr><th>Email</th><td><?= htmlspecialchars($student['EMAIL']) ?></td></tr>
-            <tr><th>電話</th><td><?= htmlspecialchars($student['TEL']) ?></td></tr>
+        <h1 class="h3 fw-bold mb-4">學生詳細資料</h1>
+        <div class="table-responsive mb-4">
+        <table class="table table-bordered align-middle">
+            <tbody>
+            <tr><th class="table-light" style="width: 180px;">姓名</th><td><?= htmlspecialchars($student['NAME']) ?></td></tr>
+            <tr><th class="table-light">學號/ID</th><td><?= htmlspecialchars($student['ID']) ?></td></tr>
+            <tr><th class="table-light">系所</th><td><?= htmlspecialchars(isset($student['DNAME']) ? $student['DNAME'] : '未填寫') ?></td></tr>
+            <tr><th class="table-light">Email</th><td><?= htmlspecialchars($student['EMAIL']) ?></td></tr>
+            <tr><th class="table-light">電話</th><td><?= htmlspecialchars($student['TEL']) ?></td></tr>
+            </tbody>
         </table>
+        </div>
 
-        <h3 style="margin-top: 30px;">申請紀錄</h3>
+        <h2 class="h5 fw-bold mb-3">申請紀錄</h2>
         <?php if (empty($apps)): ?>
-            <p>該學生尚無申請紀錄。</p>
+            <p class="text-secondary">該學生尚無申請紀錄。</p>
         <?php else: ?>
-            <table>
+            <div class="table-responsive">
+            <table class="table table-hover align-middle">
                 <thead>
                     <tr>
                         <th>日期</th>
@@ -81,16 +80,18 @@ if ($sid) {
                         <td><?= htmlspecialchars($a['APDATE']) ?></td>
                         <td><?= htmlspecialchars($a['SCNAME']) ?></td>
                         <td>NT$ <?= number_format($a['AMOUNT']) ?></td>
-                        <td><span class="badge"><?= htmlspecialchars($a['RESULT']) ?></span></td>
+                        <td><span class="badge rounded-pill text-bg-light border"><?= htmlspecialchars($a['RESULT']) ?></span></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            </div>
         <?php endif; ?>
-        <br>
-        <a href="javascript:history.back()">返回搜尋</a>
+        <a class="btn btn-outline-secondary mt-3" href="javascript:history.back()">返回搜尋</a>
     <?php endif; ?>
+    </div>
 </div>
 
+</main>
 </body>
 </html>

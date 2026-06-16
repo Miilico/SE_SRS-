@@ -48,39 +48,12 @@ if ($scholarship_id) {
     }
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
-?>
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <title>瀏覽申請資料</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- Google Font（字型） -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f4f6f9;
-            font-family: "Segoe UI", "Noto Sans TC", sans-serif;
-        }
-        h2 {
-            color: #0d6efd;
-        }
-        .card {
-            border-radius: 12px;
-        }
-        .card-title {
-            font-weight: 600;
-            color: #0d6efd;
-        }
-        .badge {
-            font-size: 0.9em;
-        }
-    </style>
-</head>
-<body>
-<div class="container-sm mt-5">
-    <h2 class="display-6 mb-4">🎓 瀏覽申請資料</h2>
+$pageTitle = "瀏覽申請資料";
+$activeNav = "view_applicants.php";
+require __DIR__ . "/../header.php";
+?>
+    <h1 class="h3 fw-bold mb-4">瀏覽申請資料</h1>
 
     <!-- 獎學金選單 -->
     <form method="get" action="view_applicants.php" class="mb-4 d-flex gap-2 align-items-center">
@@ -221,12 +194,8 @@ if ($scholarship_id) {
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
-</div>
 
-<div class="text-center mt-4"> 
-    <a href="org-dashboard.php" class="btn btn-secondary" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;"> 返回主頁 </a> 
-</div>
-
+</main>
 </body>
 </html>
 

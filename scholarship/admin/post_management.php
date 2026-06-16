@@ -1,6 +1,6 @@
 <?php
 $adminHeaderBootstrapOnly = true;
-require __DIR__ . "/header.php";
+require __DIR__ . "/../header.php";
 unset($adminHeaderBootstrapOnly);
 
 /*if (!isset($_SESSION['role']) || $_SESSION['role'] != 3) {
@@ -19,7 +19,7 @@ try {
 $pageTitle = "公告管理";
 $activeNav = "post_management.php";
 ?>
-<?php require __DIR__ . "/header.php"; ?>
+<?php require __DIR__ . "/../header.php"; ?>
 
     <div class="admin-page-head">
         <div>

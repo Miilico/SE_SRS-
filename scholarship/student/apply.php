@@ -33,48 +33,14 @@ $teachers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 //$recommendLink = $_GET["recommend_link"] ?? "";
 $recommendLink = isset($_GET["recommend_link"]) ? $_GET["recommend_link"] : "";
 
+
+$pageTitle = "申請獎助學金";
+$activeNav = "apply.php";
+$siteHeaderRequiredRole = 1;
+$siteHeaderMaxWidth = "980px";
+$siteHeaderExtraHead = '<style>.section-title{font-weight:800}.upload-box{border:2px dashed #d7dce5;border-radius:14px;padding:16px;background:#fff}.upload-box:hover{border-color:#2563eb}.muted{color:#667085}</style>';
+require __DIR__ . "/../header.php";
 ?>
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>申請獎助學金</title>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body{background:#f6f7fb}
-    .page-wrap{max-width:980px;margin:24px auto;padding:0 12px}
-    .card{border:0;border-radius:14px;box-shadow:0 1px 10px rgba(0,0,0,.06)}
-    .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-    .tabs a{margin-right:14px;text-decoration:none;color:#111}
-    .tabs a.active{font-weight:700;color:#2563eb}
-    .muted{color:#667085}
-    .section-title{font-weight:800}
-    .upload-box{border:2px dashed #d7dce5;border-radius:14px;padding:16px;background:#fff}
-    .upload-box:hover{border-color:#2563eb}
-    .brand-dot{width:10px;height:10px;border-radius:999px;background:#0d6efd;display:inline-block;margin-right:10px;transform:translateY(1px)}
-  </style>
-</head>
-
-<body>
-<div class="page-wrap">
-
-  <div class="topbar">
-    <div><strong><span class="brand-dot"></span>獎助學金系統</strong></div>
-    <div class="tabs">
-      <a href="/scholarship/student/student-dashboard.php">總覽</a>
-      <a href="/scholarship/student/browse_scholarships.php">瀏覽獎助學金</a>
-      <a href="/scholarship/student/apply.php" class="active">申請獎助學金</a>
-      <!--<a href="/scholarship/student/my-applications.php">我的申請</a>-->
-      <a href="/scholarship/profile.php">個人檔案</a>
-      <a href="/scholarship/announcement_board.php">查看公告</a>
-    </div>
-    <div>
-      <?= htmlspecialchars($userName) ?>｜
-      <a href="/scholarship/logout.php">登出</a>
-    </div>
-  </div>
 
   <div class="card p-4 mb-3">
     <div class="d-flex justify-content-between align-items-start">
@@ -239,7 +205,6 @@ $recommendLink = isset($_GET["recommend_link"]) ? $_GET["recommend_link"] : "";
     </div>
   </form>
 
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</main>
 </body>
 </html>

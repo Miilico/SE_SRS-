@@ -118,17 +118,13 @@ try {
 }
 
 $dashboardUrl = $user ? dashboard_url($user["ROLE"]) : "/scholarship/login.php";
+
+$pageTitle = "個人資料";
+$activeNav = "profile.php";
+$siteHeaderRequireLogin = true;
+$siteHeaderMainClass = "container py-5";
+require __DIR__ . "/header.php";
 ?>
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>個人資料 - 獎助學金系統</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-<main class="container py-5">
     <div class="row justify-content-center">
         <div class="col-12 col-lg-8">
             <div class="card border-0 shadow-sm">
@@ -168,8 +164,7 @@ $dashboardUrl = $user ? dashboard_url($user["ROLE"]) : "/scholarship/login.php";
                         <?php endforeach; ?>
 
                         <div class="d-flex flex-column flex-sm-row gap-2 pt-2">
-                            <a href="profile_edit.php" class="btn btn-primary">修改個人資料</a>
-                            <a href="<?php echo h($dashboardUrl); ?>" class="btn btn-outline-secondary">返回首頁</a>
+                            <a href="profile_edit.php" class="btn btn-primary">修改</a>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -177,6 +172,5 @@ $dashboardUrl = $user ? dashboard_url($user["ROLE"]) : "/scholarship/login.php";
         </div>
     </div>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
