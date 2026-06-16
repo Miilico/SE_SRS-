@@ -8,7 +8,7 @@ $activeNav = "admin_dashboard.php";
 <div class="card">
   <h1 class="admin-page-title">管理員<?= htmlspecialchars($userName) ?>，您好</h1>
   <div class="muted admin-tight-gap">
-    您可以在此管理帳號審核、獎助單位與公告內容
+    您可以在此管理帳號審核、帳號資料與公告內容
   </div>
 </div>
 
@@ -21,9 +21,9 @@ $activeNav = "admin_dashboard.php";
   </div>
 
   <div class="card">
-    <h3>獎助單位管理</h3>
-    <p class="muted">新增、編輯獎助學金單位</p>
-    <a class="btn" href="/scholarship/admin/org_management.php">前往</a>
+    <h3>帳號管理</h3>
+    <p class="muted">新增、編輯學生、教師與獎助單位帳號</p>
+    <a class="btn" href="/scholarship/admin/account_management.php">前往</a>
   </div>
 
   <div class="card">
