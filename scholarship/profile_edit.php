@@ -103,7 +103,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $pdo->commit();
         $_SESSION["user"]["name"] = $_POST["NAME"];
-        $message = $changePassword ? "資料與密碼更新成功！" : "資料更新成功！";
+        $message = "更新成功！";
         $messageType = "success";
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {
