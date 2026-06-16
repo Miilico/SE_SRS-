@@ -353,7 +353,7 @@ application 刪除 -> application_files/recommendations 連動刪除
 - `students.SID` 是 `char(8)`，但註冊驗證允許 ID 最多 10 位，若未來學號超過 8 位會寫入失敗或被截斷。
 - `application.RESULT` 是 `char(3)`，目前狀態值包含 `審查中`、`需補件`、`不通過`、`通過`。在 utf8 下通常可存，但語意上建議改為 enum 或 varchar。
 - `recommendations.content` 設為 NOT NULL，但建立推薦信邀請時程式未填 content，這在嚴格 SQL mode 下可能失敗。備份的 MySQL 5.7 設定可能允許隱含預設空字串。
-- `scholarship.DEADLINE` 與 `start_date` 應使用 `date`；若舊資料庫仍是 `timestamp`，2038 年後的日期會寫入失敗，請執行 `fix_scholarship_dates.sql`。
+- `scholarship.DEADLINE` 與 `start_date` 應使用 `date`；
 - `announcement` schema 欄位是小寫 `id`、`title`，程式有時用大寫 `ID`、`TITLE`。目前在 Windows/MySQL 預設可能可用，但跨環境需確認。
 
 ## 7. 學生端流程
