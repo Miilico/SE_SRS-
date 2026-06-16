@@ -62,9 +62,9 @@ organization/
 admin/
   admin_dashboard.php
   admin_users_pending.php
-  org_management.php
-  org_form.php
-  org_process.php
+  account_management.php
+  account_form.php
+  account_process.php
   post_management.php
   post_info.php
   post_process.php
@@ -489,9 +489,9 @@ scholarship.start_date
 
 - `admin/admin_dashboard.php`
 - `admin/admin_users_pending.php`
-- `admin/org_management.php`
-- `admin/org_form.php`
-- `admin/org_process.php`
+- `admin/account_management.php`
+- `admin/account_form.php`
+- `admin/account_process.php`
 - `admin/post_management.php`
 - `admin/post_info.php`
 - `admin/post_process.php`
@@ -504,17 +504,18 @@ scholarship.start_date
 - 查詢 `users.status = pending` 且 `role = 4` 的獎助單位帳號。
 - 核准後更新為 `active`。
 
-### 獎助單位管理
+### 帳號管理
 
-`admin/org_management.php`：
+`admin/account_management.php`：
 
-- 顯示 role=4 的使用者。
-- 關聯 `organization` 與 `ophone`。
+- 顯示 role!=3 的使用者，不開放管理員帳號操作。
+- 可依學生、教師、獎助單位篩選。
+- 依角色關聯 `students`、`teachers`、`organization` 與 `ophone`。
 
-`admin/org_process.php`：
+`admin/account_process.php`：
 
-- 新增、修改、刪除獎助單位。
-- 新增時會寫入 `users`、`organization`、`ophone`。
+- 新增、修改、刪除非管理員帳號。
+- 新增時會依角色寫入 `users` 與對應擴充表。
 
 ### 公告管理
 

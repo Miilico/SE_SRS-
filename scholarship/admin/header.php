@@ -25,7 +25,7 @@ $userName = isset($_SESSION["user"]["name"]) ? $_SESSION["user"]["name"] : "管�
 $navItems = [
     "admin_dashboard.php" => "總覽",
     "admin_users_pending.php" => "帳號審核",
-    "org_management.php" => "獎助單位管理",
+    "account_management.php" => "帳號管理",
     "post_management.php" => "公告管理",
     "app_management.php" => "申請管理",
 ];
