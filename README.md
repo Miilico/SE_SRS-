@@ -4,7 +4,7 @@
 
 本專案是一個傳統 PHP 多頁式網站，沒有使用 Laravel、Symfony 等 PHP 框架，也沒有前端建置工具。頁面、表單處理、SQL 查詢、權限檢查大多直接寫在各個 PHP 檔案中。
 
-部署環境推測為 Apache + PHP + MySQL，網址根路徑多處寫死為 `/scholarship/...`。
+部署環境推測為 Apache + PHP + MySQL，網址根路徑多處寫死為 `/scholarship/...`。資料庫備份 `scholarship (3).sql` 顯示原環境為 phpMyAdmin 4.6.6、MySQL 5.7.17、PHP 5.6.30。
 
 主要功能是獎助學金申請與審核，依使用者角色分成：
 
@@ -161,54 +161,200 @@ $_SESSION["user"]["stid"]
 6. 教授額外寫入 `teachers`。
 7. 管理員需到 `admin/admin_users_pending.php` 核准，將 `users.status` 改為 `active`。
 
-## 6. 主要資料表與關係
+## 6. 資料庫結構
 
-程式中使用到的主要資料表如下：
+本節依據資料庫備份 `scholarship (3).sql` 更新。資料庫名稱為 `scholarship`，預設字元集多數為 `utf8`。
+
+### 資料表清單
 
 ```text
-users
-students
-teachers
-organization
-ophone
-scholarship
+administrator
+announcement
 application
 application_files
+ophone
+organization
 recommendations
-announcement
+scholarship
+students
+teachers
+users
 ```
 
-推測關係：
+### 欄位摘要
+
+`users`：所有登入帳號主表。
 
 ```text
-users.ID
-  -> students.ID
-  -> teachers.ID
-  -> organization.ID
-
-scholarship.provider_id
-  -> users.ID，通常是 role=4 的獎助單位
-
-application.STID
-  -> students.ID / users.ID
-
-application.SCID
-  -> scholarship.id
-
-application_files.apno
-  -> application.APNO
-
-recommendations.application_id
-  -> application.APNO
-
-recommendations.teacher_id
-  -> teachers.ID / users.ID
-
-announcement.AID
-  -> users.ID，通常是管理員
+ID char(10) PK
+ROLE int
+NAME varchar(20) UNIQUE
+EMAIL varchar(100)
+TEL varchar(10)
+PWD varchar(100)
+status enum('pending','active','','') default 'pending'
+created_at timestamp nullable
 ```
 
-注意：專案內沒有看到 SQL schema 檔案，正式維護前建議從資料庫匯出 schema。
+`administrator`：管理員擴充表。
+
+```text
+ID char(10) PK, FK -> users.ID
+```
+
+`students`：學生擴充表。
+
+```text
+ID char(10) PK, FK -> users.ID
+SID char(8) UNIQUE
+DNAME varchar(10)
+```
+
+`teachers`：教師擴充表。
+
+```text
+ID char(10) PK, FK -> users.ID
+DNAME varchar(10)
+```
+
+`organization`：獎助單位擴充表。
+
+```text
+ID char(10) PK, FK -> users.ID
+ONAME varchar(20) UNIQUE
+CONTACT varchar(10)
+```
+
+`ophone`：獎助單位多電話。
+
+```text
+ID char(10) PK, FK -> organization.ID
+TEL varchar(10) PK
+```
+
+`scholarship`：獎助學金主檔。
+
+```text
+id int PK AUTO_INCREMENT
+NAME varchar(65)
+provider_id char(10) FK -> users.ID
+DEADLINE timestamp
+CONDI varchar(1000)
+AMOUNT int
+start_date timestamp
+```
+
+`application`：學生申請主檔。
+
+```text
+APNO int(10) PK AUTO_INCREMENT
+AUTOBI varchar(1000)
+RANK varchar(11)
+APDATE date
+GRADE int
+AMOUNT int
+RESULT char(3) default '審查中'
+STID char(10) FK -> students.ID
+OID char(10) FK -> organization.ID
+SCID int(10) FK -> scholarship.id
+SCNAME varchar(100)
+IS_POSTED int default 0
+```
+
+`application_files`：申請附件。
+
+```text
+id int PK AUTO_INCREMENT
+apno int FK -> application.APNO
+file_type varchar(50)
+original_name varchar(255)
+path varchar(255)
+```
+
+`recommendations`：推薦信。
+
+```text
+id int PK AUTO_INCREMENT
+content text
+teacher_id char(10) nullable, FK -> users.ID
+teacher_name varchar(100)
+teacher_email varchar(255)
+rec_rel varchar(100)
+created_at datetime default CURRENT_TIMESTAMP
+application_id int FK -> application.APNO
+token varchar(100)
+student_name varchar(100)
+```
+
+`announcement`：公告。
+
+```text
+id int PK AUTO_INCREMENT
+title varchar(100)
+ADATE date
+ATIME time
+CONTENT varchar(1000)
+AID char(10) FK -> administrator.ID
+CATEGORY int default 0
+```
+
+### 外鍵關係
+
+```text
+administrator.ID -> users.ID
+students.ID -> users.ID
+teachers.ID -> users.ID
+organization.ID -> users.ID
+
+ophone.ID -> organization.ID
+
+scholarship.provider_id -> users.ID
+
+application.STID -> students.ID
+application.OID -> organization.ID
+application.SCID -> scholarship.id
+
+application_files.apno -> application.APNO
+
+recommendations.application_id -> application.APNO
+recommendations.teacher_id -> users.ID
+
+announcement.AID -> administrator.ID
+```
+
+### 刪除與更新規則
+
+備份中多數角色擴充表與業務表使用 `ON DELETE CASCADE ON UPDATE CASCADE`：
+
+```text
+users 刪除 -> administrator/students/teachers/organization 連動刪除
+organization 刪除 -> ophone/application 連動刪除
+students 刪除 -> application 連動刪除
+scholarship 刪除 -> application 連動刪除
+application 刪除 -> application_files/recommendations 連動刪除
+```
+
+注意：`announcement.AID` 外鍵指向 `administrator.ID`，因此管理員若只存在於 `users` 但沒有對應 `administrator` 記錄，新增公告會失敗。
+
+### 初始資料概況
+
+備份內含測試/初始資料：
+
+- `users`：學生、老師、獎助單位、管理員帳號。
+- `administrator`：`Z0000000`。
+- `organization`：`S1111111`、`S2222222`、`S3333333`、`S4444444`、`S8888888`、`S9999999`。
+- `scholarship`：id 34 到 44 的獎助學金資料。
+- `announcement`：id 15、16 的公告資料。
+
+### Schema 與程式碼差異注意
+
+- 程式常用大寫欄位名，例如 `ID`、`ROLE`、`NAME`；MySQL 在部分環境大小寫敏感度會受作業系統與設定影響，建議統一 SQL 欄位大小寫。
+- `users.NAME` 在 schema 中是 UNIQUE，代表不能有兩個使用者同名；這可能不符合真實業務需求。
+- `students.SID` 是 `char(8)`，但註冊驗證允許 ID 最多 10 位，若未來學號超過 8 位會寫入失敗或被截斷。
+- `application.RESULT` 是 `char(3)`，目前狀態值包含 `審查中`、`需補件`、`不通過`、`通過`。在 utf8 下通常可存，但語意上建議改為 enum 或 varchar。
+- `recommendations.content` 設為 NOT NULL，但建立推薦信邀請時程式未填 content，這在嚴格 SQL mode 下可能失敗。備份的 MySQL 5.7 設定可能允許隱含預設空字串。
+- `scholarship.DEADLINE` 與 `start_date` 是 timestamp，預設 `0000-00-00 00:00:00`；新版 MySQL 或嚴格模式可能拒絕零日期。
+- `announcement` schema 欄位是小寫 `id`、`title`，程式有時用大寫 `ID`、`TITLE`。目前在 Windows/MySQL 預設可能可用，但跨環境需確認。
 
 ## 7. 學生端流程
 
