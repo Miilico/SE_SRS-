@@ -36,26 +36,37 @@
         <form method="post" action="register_submit.php" class="vstack gap-3">
           <div>
             <label class="form-label fw-semibold">身分</label>
-            <select class="form-select" name="role" required>
+            <select class="form-select" name="role" id="role" required>
               <option value="1">學生</option>
               <option value="2">教授</option>
+              <option value="4">獎助單位</option>
             </select>
-            <div class="form-text">註冊後需管理員審核通過才可登入。</div>
+            <div class="form-text" id="roleHelp">學生與教師註冊後可直接登入；獎助單位需管理員審核通過。</div>
           </div>
 
           <div>
-            <label class="form-label fw-semibold">使用者 ID（學號/教職員編號）</label>
+            <label class="form-label fw-semibold" id="idLabel">使用者 ID（學號/教職員編號）</label>
             <input class="form-control" name="id" maxlength="10" required>
           </div>
 
           <div>
-            <label class="form-label fw-semibold">姓名</label>
+            <label class="form-label fw-semibold" id="nameLabel">姓名</label>
             <input class="form-control" name="name" maxlength="50" required>
           </div>
 
-          <div>
+          <div data-role-section="school">
             <label class="form-label fw-semibold">科系</label>
-            <input class="form-control" name="dept" maxlength="50" required>
+            <input class="form-control" name="dept" maxlength="50">
+          </div>
+
+          <div data-role-section="organization" class="d-none">
+            <label class="form-label fw-semibold">單位聯絡人姓名</label>
+            <input class="form-control" name="contact_person" maxlength="10">
+          </div>
+
+          <div data-role-section="organization" class="d-none">
+            <label class="form-label fw-semibold">其他單位電話（可多筆，請用逗號隔開）</label>
+            <input class="form-control" name="org_phones" maxlength="100" placeholder="例如：02-1234567, 0912345678">
           </div>
 
 	  <div>
@@ -74,7 +85,7 @@
  	  <input
     	  class="form-control"
     	  name="tel"
-    	  maxlength="20"
+    	  maxlength="10"
     	  required
   	  >
 	  </div>
@@ -102,5 +113,35 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function () {
+      var role = document.getElementById("role");
+      var idLabel = document.getElementById("idLabel");
+      var nameLabel = document.getElementById("nameLabel");
+      var deptInput = document.querySelector('input[name="dept"]');
+      var contactInput = document.querySelector('input[name="contact_person"]');
+      var schoolSections = document.querySelectorAll('[data-role-section="school"]');
+      var orgSections = document.querySelectorAll('[data-role-section="organization"]');
+
+      function setSectionVisible(sections, visible) {
+        sections.forEach(function (section) {
+          section.classList.toggle("d-none", !visible);
+        });
+      }
+
+      function syncRoleFields() {
+        var isOrg = role.value === "4";
+        idLabel.textContent = isOrg ? "使用者 ID（單位帳號）" : "使用者 ID（學號/教職員編號）";
+        nameLabel.textContent = isOrg ? "單位名稱" : "姓名";
+        setSectionVisible(schoolSections, !isOrg);
+        setSectionVisible(orgSections, isOrg);
+        deptInput.required = !isOrg;
+        contactInput.required = isOrg;
+      }
+
+      role.addEventListener("change", syncRoleFields);
+      syncRoleFields();
+    })();
+  </script>
 </body>
 </html>
