@@ -2,6 +2,7 @@
 // recommendation.php
 
 require_once __DIR__ . "/../config.php";
+require_once __DIR__ . "/../file_helpers.php";
 
 if (!isset($_GET['token']) || empty($_GET['token'])) {
     die("❌ 無效的連結");
@@ -129,7 +130,11 @@ echo "<p>自傳：" . nl2br(htmlspecialchars($row['AUTOBI'])) . "</p>";-->
               <ul>
                 <?php foreach ($autobiFiles as $f): ?>
                   <li><?= htmlspecialchars($f['original_name']) ?>
-                      <a href="<?= htmlspecialchars($f['path']) ?>" target="_blank">下載</a>
+                      <?php if (strpos($f['path'], '/scholarship/file_view.php?id=') === 0): ?>
+                        <a href="<?= htmlspecialchars($f['path']) ?>" target="_blank">下載</a>
+                      <?php else: ?>
+                        <span class="text-muted">舊附件需重新上傳後才可下載</span>
+                      <?php endif; ?>
                   </li>
                 <?php endforeach; ?>
               </ul>
@@ -142,18 +147,26 @@ echo "<p>自傳：" . nl2br(htmlspecialchars($row['AUTOBI'])) . "</p>";-->
               <ul>
                 <?php foreach ($otherFiles as $f): ?>
                   <li><?= htmlspecialchars($f['original_name']) ?>
-                      <a href="<?= htmlspecialchars($f['path']) ?>" target="_blank">下載</a>
+                      <?php if (strpos($f['path'], '/scholarship/file_view.php?id=') === 0): ?>
+                        <a href="<?= htmlspecialchars($f['path']) ?>" target="_blank">下載</a>
+                      <?php else: ?>
+                        <span class="text-muted">舊附件需重新上傳後才可下載</span>
+                      <?php endif; ?>
                   </li>
                 <?php endforeach; ?>
               </ul>
             <?php endif; ?>
 
             <!-- 推薦信表單 -->
-            <form method="post" action="submit_recommendation.php">
+            <form method="post" action="submit_recommendation.php" enctype="multipart/form-data">
                 <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
                 <div class="mb-3">
                     <label for="content" class="form-label">推薦內容</label>
                     <textarea name="content" id="content" class="form-control" rows="6" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="recommendation_file" class="form-label">推薦信附件（可空）</label>
+                    <input type="file" name="RECOMMENDATION_FILE" id="recommendation_file" class="form-control" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
                 </div>
                 <div class="d-grid mt-4">
                     <button type="submit" class="btn btn-primary btn-lg">送出推薦信</button>

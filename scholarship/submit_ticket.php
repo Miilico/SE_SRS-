@@ -1,8 +1,10 @@
 <?php
 require_once __DIR__ . "/config.php";
 require_once __DIR__ . "/auth.php";
+require_once __DIR__ . "/file_helpers.php";
 
 require_login();
+ensure_application_files_table($pdo);
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     header("Location: /scholarship/ticket_list.php");
@@ -92,6 +94,12 @@ try {
         ":message" => $message
     ]);
 
+    if (!empty($_FILES["TICKET_FILE"]) && $_FILES["TICKET_FILE"]["error"] !== UPLOAD_ERR_NO_FILE) {
+        store_uploaded_file($pdo, $_FILES["TICKET_FILE"], 3, $userId, array(
+            "ticket_id" => $ticketId
+        ));
+    }
+
     if ($isAdmin) {
         $stmt = $pdo->prepare("
             UPDATE tickets
@@ -115,10 +123,10 @@ try {
     $pdo->commit();
     header("Location: /scholarship/ticket.php?id=" . urlencode($ticketId));
     exit;
-} catch (PDOException $e) {
+} catch (Exception $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
     http_response_code(500);
-    exit("資料庫錯誤：" . htmlspecialchars($e->getMessage(), ENT_QUOTES, "UTF-8"));
+    exit("提交失敗：" . htmlspecialchars($e->getMessage(), ENT_QUOTES, "UTF-8"));
 }

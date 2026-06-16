@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . "/config.php";
 require_once __DIR__ . "/auth.php";
+require_once __DIR__ . "/file_helpers.php";
 
 require_login();
 
@@ -12,6 +13,8 @@ $ticketId = isset($_GET["id"]) ? (int)$_GET["id"] : 0;
 $error = isset($_GET["error"]) ? trim($_GET["error"]) : "";
 $ticket = null;
 $messages = [];
+$ticketFiles = [];
+$filesByMessageId = [];
 
 $statusMap = [
     "open" => "已開啟",
@@ -34,6 +37,51 @@ function dashboard_url($role) {
         return "/scholarship/admin/admin_dashboard.php";
     }
     return "/scholarship/organization/org-dashboard.php";
+}
+
+function build_ticket_file_map($messages, $files) {
+    $filesByMessageId = [];
+
+    foreach ($messages as $message) {
+        $filesByMessageId[(int)$message["MESSAGE_ID"]] = [];
+    }
+
+    foreach ($files as $file) {
+        $bestMessageId = null;
+        $bestTime = null;
+        $fileTime = !empty($file["created_at"]) ? strtotime($file["created_at"]) : false;
+
+        foreach ($messages as $message) {
+            if ((string)$message["SENDER_ID"] !== (string)$file["uploader_id"]) {
+                continue;
+            }
+
+            $messageTime = !empty($message["CREATED_AT"]) ? strtotime($message["CREATED_AT"]) : false;
+            if ($fileTime !== false && $messageTime !== false && $messageTime > $fileTime) {
+                continue;
+            }
+
+            if ($bestTime === null || ($messageTime !== false && $messageTime >= $bestTime)) {
+                $bestMessageId = (int)$message["MESSAGE_ID"];
+                $bestTime = $messageTime !== false ? $messageTime : 0;
+            }
+        }
+
+        if ($bestMessageId === null) {
+            foreach ($messages as $message) {
+                if ((string)$message["SENDER_ID"] === (string)$file["uploader_id"]) {
+                    $bestMessageId = (int)$message["MESSAGE_ID"];
+                    break;
+                }
+            }
+        }
+
+        if ($bestMessageId !== null) {
+            $filesByMessageId[$bestMessageId][] = $file;
+        }
+    }
+
+    return $filesByMessageId;
 }
 
 if ($ticketId > 0) {
@@ -95,6 +143,8 @@ if ($ticketId > 0) {
     ");
     $stmt->execute([":ticket_id" => $ticketId]);
     $messages = $stmt->fetchAll();
+    $ticketFiles = fetch_uploaded_files($pdo, 3, "ticket_id", $ticketId);
+    $filesByMessageId = build_ticket_file_map($messages, $ticketFiles);
 }
 
 $status = $ticket ? $ticket["STATUS"] : "open";
@@ -129,6 +179,9 @@ $statusText = isset($statusMap[$status]) ? $statusMap[$status] : $status;
     .message:last-child{border-bottom:0}
     .message-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px}
     .message-body{white-space:pre-wrap;line-height:1.55}
+    .message-files{margin-top:10px;padding:10px 12px;background:#f8fafc;border-radius:8px}
+    .message-files-title{font-size:13px;font-weight:700;margin-bottom:6px;color:#475569}
+    .file-list{margin:0;padding-left:18px}
     .ticket-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
     .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .alert{background:#fee2e2;color:#991b1b;border-radius:8px;padding:10px 12px;margin-bottom:14px}
@@ -181,6 +234,22 @@ $statusText = isset($statusMap[$status]) ? $statusMap[$status] : $status;
               <span class="muted"><?= h($message["CREATED_AT"]) ?></span>
             </div>
             <div class="message-body"><?= h($message["MESSAGE"]) ?></div>
+            <?php $messageFiles = isset($filesByMessageId[(int)$message["MESSAGE_ID"]]) ? $filesByMessageId[(int)$message["MESSAGE_ID"]] : []; ?>
+            <?php if ($messageFiles): ?>
+              <div class="message-files">
+                <div class="message-files-title">附件</div>
+                <ul class="file-list">
+                  <?php foreach ($messageFiles as $file): ?>
+                    <li>
+                      <a href="/scholarship/file_view.php?id=<?= urlencode($file["id"]) ?>">
+                        <?= h($file["original_name"]) ?>
+                      </a>
+                      <span class="muted">（<?= h($file["created_at"]) ?>）</span>
+                    </li>
+                  <?php endforeach; ?>
+                </ul>
+              </div>
+            <?php endif; ?>
           </div>
         <?php endforeach; ?>
       <?php endif; ?>
@@ -192,12 +261,17 @@ $statusText = isset($statusMap[$status]) ? $statusMap[$status] : $status;
         <div class="alert"><?= h($error) ?></div>
       <?php endif; ?>
 
-      <form method="post" action="/scholarship/submit_ticket.php">
+      <form method="post" action="/scholarship/submit_ticket.php" enctype="multipart/form-data">
         <input type="hidden" name="ticket_id" value="<?= h($ticket["TICKET_ID"]) ?>">
 
         <div class="field">
           <label for="message">內容</label>
           <textarea id="message" name="message" required></textarea>
+        </div>
+
+        <div class="field">
+          <label for="ticket_file">附件（可空）</label>
+          <input type="file" id="ticket_file" name="TICKET_FILE">
         </div>
 
         <div class="actions">
@@ -215,7 +289,7 @@ $statusText = isset($statusMap[$status]) ? $statusMap[$status] : $status;
         <div class="alert"><?= h($error) ?></div>
       <?php endif; ?>
 
-      <form method="post" action="/scholarship/submit_ticket.php">
+      <form method="post" action="/scholarship/submit_ticket.php" enctype="multipart/form-data">
         <div class="field">
           <label for="title">標題</label>
           <input type="text" id="title" name="title" maxlength="255" required>
@@ -224,6 +298,11 @@ $statusText = isset($statusMap[$status]) ? $statusMap[$status] : $status;
         <div class="field">
           <label for="message">內容</label>
           <textarea id="message" name="message" required></textarea>
+        </div>
+
+        <div class="field">
+          <label for="ticket_file_new">附件（可空）</label>
+          <input type="file" id="ticket_file_new" name="TICKET_FILE">
         </div>
 
         <div class="actions">

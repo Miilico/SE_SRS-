@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/../file_helpers.php";
 require_role(1);
 
 require 'PHPMailer.php'; 
@@ -80,16 +81,7 @@ if ($recEmail !== "" && !filter_var($recEmail, FILTER_VALIDATE_EMAIL)) {
   back_err("推薦人 Email 格式不正確");
 }
 
-// 檔案上傳資料夾（實體路徑 & 網址路徑）
-$uploadDirFs = realpath(__DIR__ . "/../") . DIRECTORY_SEPARATOR . "uploads" . DIRECTORY_SEPARATOR; // C:\xampp\htdocs\scholarship\uploads\
-$uploadDirUrl = "/scholarship/uploads/";
-
-// 確保資料夾存在
-if (!is_dir($uploadDirFs)) {
-  if (!mkdir($uploadDirFs, 0777, true)) {
-    back_err("上傳資料夾建立失敗，請確認權限");
-  }
-}
+ensure_application_files_table($pdo);
 
 /*function save_upload(array $file, string $uploadDirFs, string $uploadDirUrl, string $prefix, array $allowExt): array {
   if (($file["error"] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
@@ -118,33 +110,19 @@ if (!is_dir($uploadDirFs)) {
   ];
 }*/
 
-function save_upload($file, $uploadDirFs, $uploadDirUrl, $prefix, $allowExt) {
-  // 檢查 error
-  $error = isset($file["error"]) ? $file["error"] : UPLOAD_ERR_NO_FILE;
-  if ($error !== UPLOAD_ERR_OK) {
-    throw new RuntimeException("檔案上傳失敗（error=" . $error . "）");
-  }
-
-  $orig = isset($file["name"]) ? $file["name"] : "file";
-  $tmp  = isset($file["tmp_name"]) ? $file["tmp_name"] : "";
-
-  $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
-  if (!in_array($ext, $allowExt)) {
-    throw new RuntimeException("不支援的檔案格式：" . htmlspecialchars($ext));
-  }
-
-  // 產生安全檔名（PHP 5 沒有 random_bytes，用 uniqid 代替）
-  $rand = uniqid();
-  $fname = $prefix . "_" . date("Ymd_His") . "_" . $rand . "." . $ext;
-
-  $destFs = $uploadDirFs . $fname;
-  if (!move_uploaded_file($tmp, $destFs)) {
-    throw new RuntimeException("檔案搬移失敗");
-  }
+function save_upload($file, $pdo, $uploaderId, $apno, $scid, $providerId, $fileSubtype, $allowExt) {
+  $saved = store_uploaded_file($pdo, $file, 2, $uploaderId, array(
+    "application_id" => $apno,
+    "scholarship_id" => $scid,
+    "scholarship_provider_id" => $providerId,
+    "file_subtype" => $fileSubtype,
+    "allowed_ext" => $allowExt
+  ));
 
   return array(
-    "original" => $orig,
-    "path_url" => $uploadDirUrl . $fname
+    "original" => $saved["original_name"],
+    "path_url" => $saved["view_url"],
+    "file_id" => $saved["id"]
   );
 }
 
@@ -242,7 +220,7 @@ if (!$stmt->fetchColumn()) {
   // 2) 自傳（必傳）—存到 application.AUTOBI + application_files(autobi)
   if (empty($_FILES["AUTOBI_FILE"])) throw new RuntimeException("請上傳自傳");
   //if (empty($_FILES["AUTOBI_FILE"])) throw new RuntimeException("請上傳自傳/讀書計畫");
-  $autobi = save_upload($_FILES["AUTOBI_FILE"], $uploadDirFs, $uploadDirUrl, "ap{$apno}_autobi", ["pdf","doc","docx"]);
+  $autobi = save_upload($_FILES["AUTOBI_FILE"], $pdo, $stId, $apno, $scid, $oid, "autobi", array("pdf","doc","docx"));
 
   // update application.AUTOBI
   $stmt = $pdo->prepare("UPDATE application SET AUTOBI=:p WHERE APNO=:apno");
@@ -251,13 +229,6 @@ if (!$stmt->fetchColumn()) {
   // update application.AUTOBI
   //tmt = $pdo->prepare("UPDATE application SET AUTOBI=:p WHERE APNO=:apno");
   //stmt->execute([":p"=>$autobiText, ":apno"=>$apno]);
-
-  // insert application_files
-  $stmt = $pdo->prepare("
-    INSERT INTO application_files (apno, file_type, original_name, path)
-    VALUES (:apno, 'autobi', :orig, :path)
-  ");
-  $stmt->execute([":apno"=>$apno, ":orig"=>$autobi["original"], ":path"=>$autobi["path_url"]]);
 
   // 2) 自傳（必填文字）—存到 application.AUTOBI
   //$autobiText = trim($_POST["AUTOBI_TEXT"] ?? "");
@@ -282,13 +253,7 @@ if (!$stmt->fetchColumn()) {
         "size" => $_FILES["OTHER_FILES"]["size"][$i],
       ];
 
-      $saved = save_upload($one, $uploadDirFs, $uploadDirUrl, "ap{$apno}_support", ["pdf","doc","docx","jpg","jpeg","png"]);
-
-      $stmt = $pdo->prepare("
-        INSERT INTO application_files (apno, file_type, original_name, path)
-        VALUES (:apno, 'support', :orig, :path)
-      ");
-      $stmt->execute([":apno"=>$apno, ":orig"=>$saved["original"], ":path"=>$saved["path_url"]]);
+      $saved = save_upload($one, $pdo, $stId, $apno, $scid, $oid, "support", array("pdf","doc","docx","jpg","jpeg","png"));
     }
   }
 
