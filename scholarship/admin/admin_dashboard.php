@@ -66,6 +66,7 @@ $userName = $_SESSION["user"]["name"];
     <a href="/scholarship/admin/post_management.php">公告管理</a>
     <a href="/scholarship/admin/app_management.php">獎助學金申請管理</a>
     <a href="/scholarship/profile.php">個人檔案</a>
+    <a href="/scholarship/ticket_list.php">回報問題</a>
   </div>
 
   <div>
