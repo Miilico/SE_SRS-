@@ -83,33 +83,6 @@ if ($recEmail !== "" && !filter_var($recEmail, FILTER_VALIDATE_EMAIL)) {
 
 ensure_application_files_table($pdo);
 
-/*function save_upload(array $file, string $uploadDirFs, string $uploadDirUrl, string $prefix, array $allowExt): array {
-  if (($file["error"] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-    throw new RuntimeException("檔案上傳失敗（error=" . ($file["error"] ?? -1) . "）");
-  }
-  $orig = $file["name"] ?? "file";
-  $tmp  = $file["tmp_name"] ?? "";
-
-  $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
-  if (!in_array($ext, $allowExt, true)) {
-    throw new RuntimeException("不支援的檔案格式：" . htmlspecialchars($ext));
-  }
-
-  // 產生安全檔名
-  $rand = bin2hex(random_bytes(6));
-  $fname = $prefix . "_" . date("Ymd_His") . "_" . $rand . "." . $ext;
-
-  $destFs = $uploadDirFs . $fname;
-  if (!move_uploaded_file($tmp, $destFs)) {
-    throw new RuntimeException("檔案搬移失敗");
-  }
-
-  return [
-    "original" => $orig,
-    "path_url" => $uploadDirUrl . $fname
-  ];
-}*/
-
 function save_upload($file, $pdo, $uploaderId, $apno, $scid, $providerId, $fileSubtype, $allowExt) {
   $saved = store_uploaded_file($pdo, $file, 2, $uploaderId, array(
     "application_id" => $apno,

@@ -338,8 +338,8 @@ application 刪除 -> application_files/recommendations 連動刪除
 1. 檢查學生身份。
 2. 查詢所選 `scholarship`。
 3. 建立 `application`。
-4. 上傳自傳檔案到 `/uploads/`。
-5. 寫入 `application_files`。
+4. 透過 `store_uploaded_file()` 儲存自傳檔案到 `scholarship/user_file/`。
+5. 寫入 `application_files`，並以 `/scholarship/file_view.php?id=...` 作為下載入口。
 6. 若有其他附件，也寫入 `application_files`。
 7. 若有推薦教授 email，建立 `recommendations` token。
 8. 使用 PHPMailer 嘗試寄出推薦信連結。
@@ -567,7 +567,7 @@ http://127.0.0.1:5050/scholarship/...
 - 寄件人信箱
 - 正式站台 URL
 
-### `apply_submit.php` 可能影響 redirect
+### `student/apply_submit.php` 可能影響 redirect
 
 `student/apply_submit.php` 中間有輸出：
 
@@ -579,17 +579,17 @@ echo "新申請編號: " . $apno;
 
 ### 上傳目錄
 
-申請附件會上傳到：
+申請附件會由 `store_uploaded_file()` 儲存到：
 
 ```text
-/uploads/
+scholarship/user_file/
 ```
 
-程式會嘗試自動建立目錄，但部署時仍需確認：
+下載不直接暴露實體檔案路徑，統一經過 `/scholarship/file_view.php?id=...` 做權限檢查後輸出。程式會嘗試自動建立目錄，但部署時仍需確認：
 
 - PHP 對該目錄有寫入權限
-- Web server 可讀取檔案
-- 檔案下載路徑正確
+- PHP 可讀取檔案並透過 `file_view.php` 輸出
+- `application_files.file_path` 指向 `user_file/` 下的實體檔案
 
 ### GET 參數可覆蓋 provider_id
 
