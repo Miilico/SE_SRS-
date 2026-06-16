@@ -8,7 +8,14 @@ require_role(3);
 //if (!isset($_SESSION['role']) || $_SESSION['role'] != 3) { die("拒絕存取"); }
 
 $id = isset($_GET['id']) ? $_GET['id'] : '';
-$org = null;
+$org = [
+    'ID' => '',
+    'NAME' => '',
+    'TEL' => '',
+    'EMAIL' => '',
+    'CONTACT' => '',
+];
+$phone_str = '';
 $mode = 'add';
 
 if ($id) {
@@ -17,15 +24,21 @@ if ($id) {
                            LEFT JOIN organization o ON u.ID = o.ID 
                            WHERE u.ID = ? AND u.ROLE = 4");
     $stmt->execute([$id]);
-    $org = $stmt->fetch();
-    
+    $found_org = $stmt->fetch();
+
+    if (!$found_org) {
+        echo "<script>alert('修改的單位不存在');location.href='org_management.php';</script>";
+        exit;
+    }
+
+    $org = $found_org;
+    $mode = 'edit';
+
     // 抓取該單位的所有電話
     $stmt_p = $pdo->prepare("SELECT TEL FROM ophone WHERE ID = ?");
     $stmt_p->execute([$id]);
     $phones = $stmt_p->fetchAll(PDO::FETCH_COLUMN);
     $phone_str = implode(', ', $phones); // 轉成字串顯示
-    
-    if ($org) $mode = 'edit';
 }
 ?>
 <!DOCTYPE html>
@@ -51,7 +64,7 @@ if ($id) {
             <input type="text" name="id" value="<?php echo htmlspecialchars($org['ID']); ?>" <?php echo ($mode == 'edit') ? 'readonly' : 'required'; ?>>
             
             <label>單位名稱 (NAME):</label>
-            <input type="text" name="name" value="<?php if($org['NAME']) echo htmlspecialchars($org['NAME']);?>" required>
+            <input type="text" name="name" value="<?php echo htmlspecialchars($org['NAME']); ?>" required>
             
             <label>登入密碼 (PWD):</label>
             <input type="password" name="pwd" <?php echo ($mode == 'add') ? 'required' : ''; ?> placeholder="<?php echo ($mode == 'edit') ? '不修改請留空' : ''; ?>">
