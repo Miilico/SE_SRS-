@@ -30,15 +30,54 @@ function role_name($role) {
 // 處理表單提交
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     try {
+        $stmt = $pdo->prepare("SELECT ROLE, PWD FROM users WHERE ID = ?");
+        $stmt->execute([$target_id]);
+        $account = $stmt->fetch();
+
+        if (!$account) {
+            throw new Exception("找不到使用者資料，請重新登入。");
+        }
+
+        $role = (int)$account["ROLE"];
+        $currentPassword = isset($_POST["CURRENT_PWD"]) ? $_POST["CURRENT_PWD"] : "";
+        $newPassword = isset($_POST["NEW_PWD"]) ? $_POST["NEW_PWD"] : "";
+        $confirmPassword = isset($_POST["CONFIRM_PWD"]) ? $_POST["CONFIRM_PWD"] : "";
+        $changePassword = ($currentPassword !== "" || $newPassword !== "" || $confirmPassword !== "");
+        $passwordHash = null;
+
+        if ($changePassword) {
+            if ($currentPassword === "" || $newPassword === "" || $confirmPassword === "") {
+                throw new Exception("如需修改密碼，請完整填寫目前密碼、新密碼與確認新密碼。");
+            }
+
+            if (!password_verify($currentPassword, $account["PWD"])) {
+                throw new Exception("目前密碼不正確。");
+            }
+
+            if ($newPassword !== $confirmPassword) {
+                throw new Exception("新密碼與確認新密碼不一致。");
+            }
+
+            if (mb_strlen($newPassword) < 6) {
+                throw new Exception("新密碼至少 6 碼。");
+            }
+
+            $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+        }
+
         $pdo->beginTransaction();
 
         // 1. 更新 users 基本資料
-        $sql1 = "UPDATE users SET NAME = ?, TEL = ?, EMAIL = ? WHERE ID = ?";
+        $sql1 = $changePassword
+            ? "UPDATE users SET NAME = ?, TEL = ?, EMAIL = ?, PWD = ? WHERE ID = ?"
+            : "UPDATE users SET NAME = ?, TEL = ?, EMAIL = ? WHERE ID = ?";
         $stmt1 = $pdo->prepare($sql1);
-        $stmt1->execute([$_POST["NAME"], $_POST["TEL"], $_POST["EMAIL"], $target_id]);
+        $params1 = $changePassword
+            ? [$_POST["NAME"], $_POST["TEL"], $_POST["EMAIL"], $passwordHash, $target_id]
+            : [$_POST["NAME"], $_POST["TEL"], $_POST["EMAIL"], $target_id];
+        $stmt1->execute($params1);
 
         // 2. 根據角色更新擴展資料
-        $role = $_POST["ROLE"];
         if ($role == 1) {
             $stmt2 = $pdo->prepare("UPDATE students SET SID = ?, DNAME = ? WHERE ID = ?");
             $stmt2->execute([$_POST["SID"], $_POST["DNAME"], $target_id]);
@@ -63,10 +102,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         $pdo->commit();
-        $message = "資料更新成功！";
+        $_SESSION["user"]["name"] = $_POST["NAME"];
+        $message = $changePassword ? "資料與密碼更新成功！" : "資料更新成功！";
         $messageType = "success";
     } catch (Exception $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         $message = "更新失敗：" . $e->getMessage();
         $messageType = "danger";
     }
@@ -207,6 +249,27 @@ try {
                                 </div>
                             </section>
                         <?php endif; ?>
+
+                        <section class="mb-4">
+                            <div class="border-start border-4 border-primary bg-body-tertiary px-3 py-2 fw-bold mb-3">
+                                修改密碼
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="CURRENT_PWD" class="form-label fw-semibold">目前密碼</label>
+                                <input type="password" id="CURRENT_PWD" name="CURRENT_PWD" class="form-control" autocomplete="current-password" placeholder="不修改密碼可留空">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="NEW_PWD" class="form-label fw-semibold">新密碼</label>
+                                <input type="password" id="NEW_PWD" name="NEW_PWD" class="form-control" minlength="6" autocomplete="new-password" placeholder="至少 6 碼">
+                            </div>
+
+                            <div class="mb-0">
+                                <label for="CONFIRM_PWD" class="form-label fw-semibold">確認新密碼</label>
+                                <input type="password" id="CONFIRM_PWD" name="CONFIRM_PWD" class="form-control" minlength="6" autocomplete="new-password" placeholder="再次輸入新密碼">
+                            </div>
+                        </section>
 
                         <div class="d-flex flex-column flex-sm-row gap-2 pt-2">
                             <button type="submit" class="btn btn-primary">儲存修改</button>
