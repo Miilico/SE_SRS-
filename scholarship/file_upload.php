@@ -105,40 +105,49 @@ function ensure_can_upload($pdo, $fileType, $user, $context) {
 
 if ($_SERVER["REQUEST_METHOD"] === "GET") {
     require_login();
+    $pageTitle = "上傳文件";
+    $siteHeaderRequireLogin = true;
+    $siteHeaderMaxWidth = "760px";
+    require __DIR__ . "/header.php";
     ?>
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8">
-  <title>上傳文件</title>
-  <style>
-    body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:32px;background:#f6f7fb;color:#111827}
-    form{max-width:640px;background:#fff;border-radius:8px;padding:22px;box-shadow:0 1px 8px rgba(0,0,0,.06)}
-    label{display:block;font-weight:700;margin:14px 0 6px}
-    input,select{width:100%;box-sizing:border-box;padding:9px;border:1px solid #d0d5dd;border-radius:6px}
-    button{margin-top:18px;padding:9px 16px;border:0;border-radius:6px;background:#2563eb;color:#fff;font-weight:700}
-  </style>
-</head>
-<body>
-  <h1>上傳文件</h1>
-  <form method="post" enctype="multipart/form-data">
-    <label>文件類型</label>
-    <select name="file_type" required>
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-4 p-md-5">
+      <h1 class="h3 fw-bold mb-1">上傳文件</h1>
+      <div class="text-secondary mb-4">選擇文件類型並填入對應編號後上傳。</div>
+
+  <form method="post" enctype="multipart/form-data" class="vstack gap-3">
+    <div>
+    <label class="form-label fw-semibold">文件類型</label>
+    <select class="form-select" name="file_type" required>
       <option value="1">公告附帶文件</option>
       <option value="2">學生申請獎學金附件</option>
       <option value="3">工單附件</option>
       <option value="4">導師推薦信附件</option>
     </select>
-    <label>公告 ID（類型 1）</label>
-    <input name="announcement_id">
-    <label>申請編號 APNO（類型 2 / 4）</label>
-    <input name="application_id">
-    <label>工單 ID（類型 3）</label>
-    <input name="ticket_id">
-    <label>文件</label>
-    <input type="file" name="file" required>
-    <button type="submit">上傳</button>
+    </div>
+    <div>
+    <label class="form-label fw-semibold">公告 ID（類型 1）</label>
+    <input class="form-control" name="announcement_id">
+    </div>
+    <div>
+    <label class="form-label fw-semibold">申請編號 APNO（類型 2 / 4）</label>
+    <input class="form-control" name="application_id">
+    </div>
+    <div>
+    <label class="form-label fw-semibold">工單 ID（類型 3）</label>
+    <input class="form-control" name="ticket_id">
+    </div>
+    <div>
+    <label class="form-label fw-semibold">文件</label>
+    <input class="form-control" type="file" name="file" required>
+    </div>
+    <div class="d-flex justify-content-end">
+      <button class="btn btn-primary" type="submit">上傳</button>
+    </div>
   </form>
+    </div>
+  </div>
+</main>
 </body>
 </html>
     <?php

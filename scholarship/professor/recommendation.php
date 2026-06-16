@@ -31,10 +31,20 @@ if (!$recommendation) {
 }
 
 if (!empty($recommendation['content'])) {
-    echo "<div style='margin: 50px auto; max-width: 600px; font-family: sans-serif; text-align: center;'>
-            <h3 style='color: green;'>✅ 您已經提交過推薦信</h3>
-            <p>感謝您的協助！</p>
-          </div>";
+    $pageTitle = "推薦信已提交";
+    $siteHeaderMaxWidth = "720px";
+    require __DIR__ . "/../header.php";
+    ?>
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4 p-md-5 text-center">
+        <h1 class="h4 fw-bold text-success">您已經提交過推薦信</h1>
+        <p class="text-secondary mb-0">感謝您的協助。</p>
+      </div>
+    </div>
+    </main>
+    </body>
+    </html>
+    <?php
     exit;
 }
 
@@ -65,45 +75,11 @@ echo "<p>成績：" . htmlspecialchars($row['GRADE']) . "</p>";
 echo "<p>班排：" . htmlspecialchars($row['RANK']) . "</p>"; 
 echo "<p>自傳：" . nl2br(htmlspecialchars($row['AUTOBI'])) . "</p>";-->
 
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <title>填寫推薦信 - 獎助學金系統</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f0f2f5; font-family: "Segoe UI","Noto Sans TC",sans-serif; } 
-        .card { border-radius: 12px; }
-        /*
-        body {
-            background-color: #f0f2f5;
-            font-family: "Segoe UI", "Noto Sans TC", sans-serif;
-        }
-        .form-card {
-            max-width: 600px;
-            margin: 60px auto;
-            background-color: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            padding: 30px;
-        }
-        .form-title {
-            font-size: 1.8rem;
-            font-weight: bold;
-            margin-bottom: 20px;
-            color: #0d6efd;
-        }
-        .form-label {
-            font-weight: 500;
-        }
-        .btn-primary {
-            font-size: 1.1rem;
-            padding: 10px;
-        }*/
-    </style>
-</head>
-<body>
-    <div class="container mt-5">
+<?php
+$pageTitle = "填寫推薦信";
+$siteHeaderMaxWidth = "760px";
+require __DIR__ . "/../header.php";
+?>
         <!-- 標題在卡片外 -->
         <div class="text-center mb-4">
             <h2 class="text-dark fw-bold">填寫推薦信</h2>
@@ -193,7 +169,7 @@ echo "<p>自傳：" . nl2br(htmlspecialchars($row['AUTOBI'])) . "</p>";-->
         </div>
 
         <p class="text-center text-muted mt-3">若有問題，請聯絡系辦或管理員</p>
-    </div>
+</main>
 </body>
 </html>
 

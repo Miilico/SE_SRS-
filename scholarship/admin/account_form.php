@@ -1,6 +1,6 @@
 <?php
 $adminHeaderBootstrapOnly = true;
-require __DIR__ . "/header.php";
+require __DIR__ . "/../header.php";
 unset($adminHeaderBootstrapOnly);
 
 function account_form_role_name($role) {
@@ -63,7 +63,7 @@ if ($id !== "") {
 $pageTitle = ($mode === "add") ? "新增帳號" : "修改帳號";
 $activeNav = "account_management.php";
 ?>
-<?php require __DIR__ . "/header.php"; ?>
+<?php require __DIR__ . "/../header.php"; ?>
 
     <div class="form-container">
         <h1 class="admin-page-title"><?php echo ($mode === "add") ? "新增帳號" : "修改帳號"; ?></h1>

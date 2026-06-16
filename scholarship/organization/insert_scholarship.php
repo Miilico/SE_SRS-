@@ -78,25 +78,3 @@ try {
     header("Location: add_scholarship.php?error=" . urlencode("新增失敗：" . $e->getMessage())); 
     exit; 
 }
-
-?>
-
-<!DOCTYPE html> 
-<html lang="zh-TW">
-    <!-- Bootstrap CSS --> <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<body class="bg-light">
-    
-<div class="alert alert-success text-center mt-4" role="alert">
-    🎉 新增成功！<br>
-    獎助學金已成功建立
-    <div class="mt-2">
-        <a href="add_scholarship.php" class="btn btn-outline-primary">繼續新增</a>
-        <a href="org-dashboard.php" class="btn btn-outline-secondary ms-2">返回主頁</a>
-    </div>
-</div>
-
-<!-- Bootstrap JS --> <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-</body> 
-</html>

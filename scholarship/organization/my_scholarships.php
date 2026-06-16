@@ -39,40 +39,12 @@ $scholarships = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->prepare("SELECT id, NAME FROM scholarship WHERE provider_id = ?");
 $stmt->execute(array($provider_id));
 $allOptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$pageTitle = "我的獎助學金";
+$activeNav = "my_scholarships.php";
+require __DIR__ . "/../header.php";
 ?>
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <title>我提供的獎助學金</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f4f6f9;
-            font-family: "Segoe UI", "Noto Sans TC", sans-serif;
-        }
-        .card {
-            border-radius: 12px;
-        }
-        .badge {
-            font-size: 0.9em;
-        }
-        .card-title {
-            font-weight: 600;
-            color: #0d6efd;
-        }
-        .fixed-btn {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-        }
-    </style>
-</head>
-<body>
-<div class="container-sm mt-5">
-    <h2 class="display-5 mb-4 text-primary">🎓 我提供的獎助學金清單</h2>
+    <h1 class="h3 mb-4 fw-bold">我提供的獎助學金清單</h1>
 
     <!-- 選擇獎助學金 -->
     <form method="get" action="" class="mb-4 d-flex gap-2 align-items-center">
@@ -129,7 +101,7 @@ $allOptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </p>
                             <a href="view_applicants.php?provider_id=<?php echo urlencode($provider_id); ?>&scholarship_id=<?php echo $s['id']; ?>" 
                                class="btn btn-outline-primary btn-sm w-100">
-                                📄 瀏覽申請資料
+                                瀏覽申請資料
                             </a>
                         </div>
                     </div>
@@ -137,12 +109,7 @@ $allOptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
-</div>
 
-<!-- 保持原來格式的返回主頁按鈕 -->
-<div class="text-center mt-4"> 
-    <a href="org-dashboard.php" class="btn btn-secondary fixed-btn">返回主頁</a> 
-</div>
-
+</main>
 </body>
 </html>

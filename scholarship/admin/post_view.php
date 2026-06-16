@@ -1,6 +1,6 @@
 <?php
 $adminHeaderBootstrapOnly = true;
-require __DIR__ . "/header.php";
+require __DIR__ . "/../header.php";
 unset($adminHeaderBootstrapOnly);
 require_once __DIR__ . "/../file_helpers.php";
 
@@ -22,7 +22,7 @@ try {
 $pageTitle = $post['title'];
 $activeNav = "post_management.php";
 ?>
-<?php require __DIR__ . "/header.php"; ?>
+<?php require __DIR__ . "/../header.php"; ?>
 
     <div class="post-container">
         <div class="post-title"><?php echo htmlspecialchars($post['title']); ?></div>

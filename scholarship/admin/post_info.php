@@ -1,6 +1,6 @@
 <?php
 $adminHeaderBootstrapOnly = true;
-require __DIR__ . "/header.php";
+require __DIR__ . "/../header.php";
 unset($adminHeaderBootstrapOnly);
 
 // 權限檢查：根據您的設定 ROLE 3 為管理員
@@ -33,7 +33,7 @@ if ($id) {
 $pageTitle = ($mode == 'edit') ? "修改公告" : "新增公告";
 $activeNav = "post_management.php";
 ?>
-<?php require __DIR__ . "/header.php"; ?>
+<?php require __DIR__ . "/../header.php"; ?>
 
     <div class="form-box">
         <div class="admin-actions">

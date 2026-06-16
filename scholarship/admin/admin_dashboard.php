@@ -2,7 +2,7 @@
 $pageTitle = "管理員總覽";
 $activeNav = "admin_dashboard.php";
 ?>
-<?php require __DIR__ . "/header.php"; ?>
+<?php require __DIR__ . "/../header.php"; ?>
 
 <!-- ====== 歡迎卡片 ====== -->
 <div class="card">

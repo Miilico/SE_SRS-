@@ -12,39 +12,28 @@ try {
 } catch (PDOException $e) {
     die("查詢失敗：" . $e->getMessage());
 }
+        
+$pageTitle = "最新公告事項";
+$activeNav = "announcement_board.php";
+require __DIR__ . "/header.php";
 ?>
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <title>佈告欄 - 最新公告</title>
-    <style>
-        body { background-color: #f4f7f6; font-family: "Microsoft JhengHei", sans-serif; color: #333; }
-        .board-container { width: 850px; margin: 50px auto; padding: 40px; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-radius: 8px; }
-        .board-title { font-size: 28px; font-weight: bold; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 30px; text-align: center; }
-        
-        table { width: 100%; border-collapse: collapse; }
-        th { border-bottom: 2px solid #eee; padding: 12px; color: #666; font-weight: bold; }
-        td { border-bottom: 1px solid #eee; padding: 15px; }
-        
-        .post-link { text-decoration: none; color: #222; font-size: 17px; transition: 0.2s; }
-        .post-link:hover { color: #007bff; text-decoration: underline; }
-        .date-col { color: #888; font-size: 14px; width: 150px; text-align: center; }
-        
-        .no-data { text-align: center; padding: 50px; color: #999; }
-        .nav-link { display: inline-block; margin-top: 20px; text-decoration: none; color: #666; }
-    </style>
-</head>
-<body>
 
-<div class="board-container">
-    <div class="board-title">最新公告事項</div>
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+    <div>
+        <h1 class="h3 fw-bold mb-1">最新公告事項</h1>
+        <div class="text-secondary">查看系統公告與獎助學金審查結果。</div>
+    </div>
+    <a href="/scholarship/index.php" class="btn btn-outline-secondary">返回首頁</a>
+</div>
 
-    <table>
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
         <thead>
             <tr>
-                <th align="left">公告標題</th>
-                <th>發佈日期</th>
+                <th>公告標題</th>
+                <th class="text-md-center">發佈日期</th>
             </tr>
         </thead>
         <tbody>
@@ -52,25 +41,26 @@ try {
                 <?php foreach ($posts as $p): ?>
                 <tr>
                     <td>
-                        <a href="announcement_view.php?id=<?php echo $p['ID']; ?>" class="post-link">
+                        <a href="announcement_view.php?id=<?php echo $p['ID']; ?>" class="fw-semibold text-decoration-none">
                             <?php echo htmlspecialchars($p['TITLE']); ?>
                         </a>
                     </td>
-                    <td class="date-col">
+                    <td class="text-secondary text-md-center">
                         <?php echo $p['ADATE']; ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="2" class="no-data">目前尚無任何公告</td>
+                    <td colspan="2" class="text-center text-secondary py-5">目前尚無任何公告</td>
                 </tr>
             <?php endif; ?>
         </tbody>
     </table>
-
-    <a href="index.php" class="nav-link">← 返回首頁</a>
+        </div>
+    </div>
 </div>
 
+</main>
 </body>
 </html>

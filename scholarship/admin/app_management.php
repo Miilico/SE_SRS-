@@ -1,6 +1,6 @@
 <?php
 $adminHeaderBootstrapOnly = true;
-require __DIR__ . "/header.php";
+require __DIR__ . "/../header.php";
 unset($adminHeaderBootstrapOnly);
 
 // 權限檢查：假設 ROLE 4 為獎助單位 (organization)
@@ -50,7 +50,7 @@ try {
 $pageTitle = "獎助學金申請管理";
 $activeNav = "app_management.php";
 ?>
-<?php require __DIR__ . "/header.php"; ?>
+<?php require __DIR__ . "/../header.php"; ?>
 
 <div class="admin-container">
     <div class="admin-page-head">

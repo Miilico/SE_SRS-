@@ -1,6 +1,6 @@
 <?php
 $adminHeaderBootstrapOnly = true;
-require __DIR__ . "/header.php";
+require __DIR__ . "/../header.php";
 unset($adminHeaderBootstrapOnly);
 
 function account_role_name($role) {
@@ -60,7 +60,7 @@ try {
 $pageTitle = "帳號管理";
 $activeNav = "account_management.php";
 ?>
-<?php require __DIR__ . "/header.php"; ?>
+<?php require __DIR__ . "/../header.php"; ?>
 
     <div class="admin-page-head">
         <div>

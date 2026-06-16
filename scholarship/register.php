@@ -1,25 +1,12 @@
-<?php require_once __DIR__ . "/config.php"; ?>
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>註冊｜獎助學金系統</title>
+<?php
+require_once __DIR__ . "/config.php";
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="/scholarship/assets/css/auth.css">
-</head>
-
-<body>
-  <nav class="navbar navbar-expand-lg bg-white border-bottom">
-    <div class="container">
-      <a class="navbar-brand fw-semibold text-decoration-none" href="login.php">
-        <span class="brand-dot"></span>獎助學金系統
-      </a>
-    </div>
-  </nav>
-
-  <main class="auth-wrap">
+$pageTitle = "註冊";
+$activeNav = "register.php";
+$siteHeaderMainClass = "auth-wrap";
+$siteHeaderStylesheets = array("/scholarship/assets/css/auth.css");
+require __DIR__ . "/header.php";
+?>
     <div class="card auth-card">
       <div class="auth-header p-4">
         <div class="text-muted small">Create account</div>
@@ -110,9 +97,7 @@
         </form>
       </div>
     </div>
-  </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     (function () {
       var role = document.getElementById("role");
@@ -143,5 +128,6 @@
       syncRoleFields();
     })();
   </script>
+</main>
 </body>
 </html>
