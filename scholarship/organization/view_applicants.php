@@ -3,6 +3,8 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
 require_once "db.php";
+require_once __DIR__ . "/../file_helpers.php";
+ensure_application_files_table($pdo);
 
 // 取得 provider_id
 if (isset($_SESSION['user']['id'])) {
@@ -119,6 +121,15 @@ if ($scholarship_id) {
                 "); 
                 $fileStmt->execute([$row['app_id']]); 
                 $files = $fileStmt->fetchAll(PDO::FETCH_ASSOC); 
+
+                $recFileStmt = $pdo->prepare("
+                    SELECT id, original_name
+                    FROM application_files
+                    WHERE application_id = ? AND file_category = 4
+                    ORDER BY created_at ASC, id ASC
+                ");
+                $recFileStmt->execute([$row['app_id']]);
+                $recommendationFiles = $recFileStmt->fetchAll(PDO::FETCH_ASSOC);
                 ?>
 
                 <div class="col">
@@ -130,6 +141,17 @@ if ($scholarship_id) {
                             <p><strong>成績：</strong> <?php echo htmlspecialchars($row['GRADE']); ?></p>
                             <p><strong>推薦老師：</strong> <?php echo htmlspecialchars($row['teacher_name']); ?> <?php echo htmlspecialchars($row['department_name']); ?></p>
                             <p><strong>推薦信內容：</strong><br><?php echo nl2br(htmlspecialchars($row['recommendation'])); ?></p>
+                            <?php if (!empty($recommendationFiles)): ?>
+                            <p><strong>推薦信附件：</strong></p>
+                            <ul class="list-group mb-3">
+                                <?php foreach ($recommendationFiles as $f): ?>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <?= htmlspecialchars($f['original_name']) ?>
+                                        <a href="/scholarship/file_view.php?id=<?= urlencode($f['id']) ?>" target="_blank" class="btn btn-sm btn-outline-secondary">下載</a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                            <?php endif; ?>
                             <?php if (!empty($autobiFiles)): ?>
   
                             <p><strong>自傳檔案：</strong></p>
@@ -137,7 +159,11 @@ if ($scholarship_id) {
                                 <?php foreach ($autobiFiles as $f): ?>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <?= htmlspecialchars($f['original_name']) ?>
+                                <?php if (strpos($f['path'], '/scholarship/file_view.php?id=') === 0): ?>
                                 <a href="<?= htmlspecialchars($f['path']) ?>" target="_blank" class="btn btn-sm btn-outline-secondary">下載</a>
+                                <?php else: ?>
+                                <span class="text-muted small">舊附件需重新上傳</span>
+                                <?php endif; ?>
                                 </li>
                                 <?php endforeach; ?>
                                 </ul>
@@ -153,7 +179,11 @@ if ($scholarship_id) {
                                     <li class="list-group-item d-flex justify-content-between align-items-center">
                                         <!--?= htmlspecialchars($f['file_type']) ?>-->
                                         <?= htmlspecialchars($f['original_name']) ?>
+                                        <?php if (strpos($f['path'], '/scholarship/file_view.php?id=') === 0): ?>
                                         <a href="<?= htmlspecialchars($f['path']) ?>" target="_blank" class="btn btn-sm btn-outline-secondary">下載</a>
+                                        <?php else: ?>
+                                        <span class="text-muted small">舊附件需重新上傳</span>
+                                        <?php endif; ?>
                                     </li>
                                 <?php endforeach; ?>
                             </ul>

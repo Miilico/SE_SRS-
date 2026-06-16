@@ -42,7 +42,7 @@ $activeNav = "post_management.php";
         <h1 class="admin-page-title"><?php echo ($mode == 'edit') ? "修改公告內容 (#$id)" : "發佈新消息"; ?></h1>
         <div class="admin-page-subtitle admin-form-lead">填寫公告類別、標題與內容後送出。</div>
         
-        <form method="post" action="post_process.php">
+        <form method="post" action="post_process.php" enctype="multipart/form-data">
             <input type="hidden" name="mode" value="<?php echo $mode; ?>">
             <input type="hidden" name="id" value="<?php echo $id; ?>">
             <?php $admin_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : ''; ?>
@@ -67,6 +67,12 @@ $activeNav = "post_management.php";
             <div class="form-group">
                 <label>公告內容：</label>
                 <textarea name="content" rows="12" placeholder="請輸入詳細公告內容..." required><?php echo htmlspecialchars($default_content); ?></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>公告附件：</label>
+                <input type="file" name="ANNOUNCEMENT_FILE" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx,.txt,.zip">
+                <div class="hint">公告附件屬公開文件，所有人可下載。</div>
             </div>
 
             <div class="btn-group">

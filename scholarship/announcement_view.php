@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . "/config.php";
 require_once __DIR__ . "/auth.php";
+require_once __DIR__ . "/file_helpers.php";
 
 // 取得公告 ID
 $id = isset($_GET['id']) ? $_GET['id'] : die("未指定公告");
@@ -14,6 +15,8 @@ try {
     if (!$post) {
         die("找不到該公告");
     }
+
+    $files = fetch_uploaded_files($pdo, 1, "announcement_id", $post["id"]);
 } catch (PDOException $e) {
     die("查詢失敗：" . $e->getMessage());
 }
@@ -39,6 +42,21 @@ try {
             管理員：<?php echo htmlspecialchars($post['AID']); ?>
         </div>
         <div class="post-content"><?php echo htmlspecialchars($post['CONTENT']); ?></div>
+
+        <?php if (!empty($files)): ?>
+            <div style="margin-top:24px;">
+                <strong>附件：</strong>
+                <ul>
+                    <?php foreach ($files as $file): ?>
+                        <li>
+                            <a href="/scholarship/file_view.php?id=<?php echo urlencode($file["id"]); ?>">
+                                <?php echo htmlspecialchars($file["original_name"]); ?>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
         
         <a href="announcement_board.php" class="back-btn">← 返回列表</a>
     </div>

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . "/config.php";
 require_once __DIR__ . "/auth.php";
+require_once __DIR__ . "/file_helpers.php";
 
 require_login();
 
@@ -12,6 +13,7 @@ $ticketId = isset($_GET["id"]) ? (int)$_GET["id"] : 0;
 $error = isset($_GET["error"]) ? trim($_GET["error"]) : "";
 $ticket = null;
 $messages = [];
+$ticketFiles = [];
 
 $statusMap = [
     "open" => "已開啟",
@@ -95,6 +97,7 @@ if ($ticketId > 0) {
     ");
     $stmt->execute([":ticket_id" => $ticketId]);
     $messages = $stmt->fetchAll();
+    $ticketFiles = fetch_uploaded_files($pdo, 3, "ticket_id", $ticketId);
 }
 
 $status = $ticket ? $ticket["STATUS"] : "open";
@@ -129,6 +132,7 @@ $statusText = isset($statusMap[$status]) ? $statusMap[$status] : $status;
     .message:last-child{border-bottom:0}
     .message-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px}
     .message-body{white-space:pre-wrap;line-height:1.55}
+    .file-list{margin:0;padding-left:18px}
     .ticket-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
     .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .alert{background:#fee2e2;color:#991b1b;border-radius:8px;padding:10px 12px;margin-bottom:14px}
@@ -186,18 +190,39 @@ $statusText = isset($statusMap[$status]) ? $statusMap[$status] : $status;
       <?php endif; ?>
     </div>
 
+    <?php if ($ticketFiles): ?>
+      <div class="card">
+        <h3 style="margin:0 0 12px;">附件</h3>
+        <ul class="file-list">
+          <?php foreach ($ticketFiles as $file): ?>
+            <li>
+              <a href="/scholarship/file_view.php?id=<?= urlencode($file["id"]) ?>">
+                <?= h($file["original_name"]) ?>
+              </a>
+              <span class="muted">（<?= h($file["created_at"]) ?>）</span>
+            </li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
+    <?php endif; ?>
+
     <div class="card">
       <h3 style="margin:0 0 12px;">回覆</h3>
       <?php if ($error !== ""): ?>
         <div class="alert"><?= h($error) ?></div>
       <?php endif; ?>
 
-      <form method="post" action="/scholarship/submit_ticket.php">
+      <form method="post" action="/scholarship/submit_ticket.php" enctype="multipart/form-data">
         <input type="hidden" name="ticket_id" value="<?= h($ticket["TICKET_ID"]) ?>">
 
         <div class="field">
           <label for="message">內容</label>
           <textarea id="message" name="message" required></textarea>
+        </div>
+
+        <div class="field">
+          <label for="ticket_file">附件（可空）</label>
+          <input type="file" id="ticket_file" name="TICKET_FILE">
         </div>
 
         <div class="actions">
@@ -215,7 +240,7 @@ $statusText = isset($statusMap[$status]) ? $statusMap[$status] : $status;
         <div class="alert"><?= h($error) ?></div>
       <?php endif; ?>
 
-      <form method="post" action="/scholarship/submit_ticket.php">
+      <form method="post" action="/scholarship/submit_ticket.php" enctype="multipart/form-data">
         <div class="field">
           <label for="title">標題</label>
           <input type="text" id="title" name="title" maxlength="255" required>
@@ -224,6 +249,11 @@ $statusText = isset($statusMap[$status]) ? $statusMap[$status] : $status;
         <div class="field">
           <label for="message">內容</label>
           <textarea id="message" name="message" required></textarea>
+        </div>
+
+        <div class="field">
+          <label for="ticket_file_new">附件（可空）</label>
+          <input type="file" id="ticket_file_new" name="TICKET_FILE">
         </div>
 
         <div class="actions">
