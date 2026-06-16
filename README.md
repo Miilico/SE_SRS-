@@ -110,7 +110,7 @@ $_SESSION["user"]["stid"]
 
 ## 6. 資料庫結構
 
-本節依據資料庫備份 `scholarship (3).sql` 更新。資料庫名稱為 `scholarship`，預設字元集多數為 `utf8`。
+本節依據目前專案內的資料庫備份 `scholarship/scholarship_2026-06-16_23-58-29_mysql_data_OrCAk.sql` 與最新 PHP 程式碼更新。資料庫名稱為 `scholarship`，備份由 MariaDB 10.11 匯出，多數資料表使用 `utf8mb3`。
 
 ### 資料表清單
 
@@ -125,6 +125,8 @@ recommendations
 scholarship
 students
 teachers
+ticket_messages
+tickets
 users
 ```
 
@@ -210,6 +212,8 @@ IS_POSTED int default 0
 
 `application_files`：申請附件。
 
+備份檔目前的基礎欄位：
+
 ```text
 id int PK AUTO_INCREMENT
 apno int FK -> application.APNO
@@ -217,6 +221,26 @@ file_type varchar(50)
 original_name varchar(255)
 path varchar(255)
 ```
+
+最新的 `file_helpers.php`、`file_view.php`、工單與公告附件功能會額外讀寫下列欄位，部署資料庫時必須補齊，否則上傳會在 `INSERT INTO application_files` 時失敗：
+
+```text
+uploader_id char(10)
+file_category int
+stored_name varchar(255)
+mime_type varchar(255)
+file_size int
+file_path varchar(255)
+announcement_id int nullable
+application_id int nullable
+scholarship_id int nullable
+scholarship_provider_id char(10) nullable
+ticket_id int nullable
+recommendation_id int nullable
+created_at datetime/timestamp default current_timestamp
+```
+
+其中 `path` 會存 `/scholarship/file_view.php?id=...` 的下載入口，`file_path` 才是 `user_file/` 下的實體相對路徑。
 
 `recommendations`：推薦信。
 
@@ -245,6 +269,28 @@ AID char(10) FK -> administrator.ID
 CATEGORY int default 0
 ```
 
+`tickets`：使用者支援工單。
+
+```text
+TICKET_ID int PK AUTO_INCREMENT
+USER_ID char(10) FK -> users.ID
+ADMIN_ID char(10) nullable, FK -> users.ID
+TITLE varchar(255)
+STATUS enum('open','pending','closed') default 'open'
+CREATED_AT datetime default current_timestamp
+UPDATED_AT datetime default current_timestamp on update current_timestamp
+```
+
+`ticket_messages`：工單對話訊息。
+
+```text
+MESSAGE_ID int PK AUTO_INCREMENT
+TICKET_ID int FK -> tickets.TICKET_ID
+SENDER_ID char(10) FK -> users.ID
+MESSAGE text
+CREATED_AT datetime default current_timestamp
+```
+
 ### 外鍵關係
 
 ```text
@@ -267,6 +313,11 @@ recommendations.application_id -> application.APNO
 recommendations.teacher_id -> users.ID
 
 announcement.AID -> administrator.ID
+
+tickets.USER_ID -> users.ID
+tickets.ADMIN_ID -> users.ID
+ticket_messages.TICKET_ID -> tickets.TICKET_ID
+ticket_messages.SENDER_ID -> users.ID
 ```
 
 ### 刪除與更新規則
@@ -279,6 +330,7 @@ organization 刪除 -> ophone/application 連動刪除
 students 刪除 -> application 連動刪除
 scholarship 刪除 -> application 連動刪除
 application 刪除 -> application_files/recommendations 連動刪除
+tickets 刪除 -> ticket_messages 連動刪除
 ```
 
 注意：`announcement.AID` 外鍵指向 `administrator.ID`，因此管理員若只存在於 `users` 但沒有對應 `administrator` 記錄，新增公告會失敗。
@@ -292,6 +344,7 @@ application 刪除 -> application_files/recommendations 連動刪除
 - `organization`：`S1111111`、`S2222222`、`S3333333`、`S4444444`、`S8888888`、`S9999999`。
 - `scholarship`：id 34 到 44 的獎助學金資料。
 - `announcement`：id 15、16 的公告資料。
+- `tickets`、`ticket_messages`：含少量測試工單資料。
 
 ### Schema 與程式碼差異注意
 
@@ -579,35 +632,93 @@ echo "新申請編號: " . $apno;
 
 ### 上傳目錄
 
-申請附件會由 `store_uploaded_file()` 儲存到：
+申請、公告、工單與推薦信附件會由 `store_uploaded_file()` 儲存到：
 
 ```text
 scholarship/user_file/
 ```
 
-下載不直接暴露實體檔案路徑，統一經過 `/scholarship/file_view.php?id=...` 做權限檢查後輸出。程式會嘗試自動建立目錄，但部署時仍需確認：
+下載不直接暴露實體檔案路徑，統一經過 `/scholarship/file_view.php?id=...` 做權限檢查後輸出。`file_view.php` 會先查 `application_files`，再依 `file_category` 檢查目前使用者是否可下載，最後只允許讀取 `scholarship/user_file/` 內的實體檔案。
+
+程式會嘗試自動建立目錄，但部署時仍需確認：
 
 - PHP 對該目錄有寫入權限
 - PHP 可讀取檔案並透過 `file_view.php` 輸出
 - `application_files.file_path` 指向 `user_file/` 下的實體檔案
 
+#### nginx 攔截直接請求 `user_file`
+
+正式部署時應在 nginx 層阻擋瀏覽器直接請求 `/scholarship/user_file/...`，只允許透過 `/scholarship/file_view.php?id=...` 下載。以下規則需放在 `server { ... }` 內，且要放在一般 PHP `location ~ \.php$` 規則之前：
+
+```nginx
+# 不暴露上傳檔實體路徑；下載一律走 /scholarship/file_view.php?id=...
+location = /scholarship/user_file {
+    return 404;
+}
+
+location ^~ /scholarship/user_file/ {
+    access_log off;
+    log_not_found off;
+    return 404;
+}
+```
+
+範例站台設定：
+
+```nginx
+server {
+    listen 80;
+    server_name example.com;
+    root /var/www/html;
+    index index.php index.html;
+
+    location = /scholarship/user_file {
+        return 404;
+    }
+
+    location ^~ /scholarship/user_file/ {
+        access_log off;
+        log_not_found off;
+        return 404;
+    }
+
+    location /scholarship/ {
+        try_files $uri $uri/ /scholarship/index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+    }
+}
+```
+
+如果部署路徑不是 `/scholarship`，需同步調整上述 `location` 路徑與程式中目前寫死的 `/scholarship/file_view.php?id=...`。
+
 ### GET 參數可覆蓋 provider_id
 
 部分 organization 頁面允許透過 GET 傳入 `provider_id`。這可能讓使用者查看或操作其他獎助單位資料。建議移除 GET fallback，只使用 session 中的登入者 ID。
 
-### SQL schema 缺失
+### SQL schema 與附件欄位
 
-專案中沒有資料庫建表檔。建議從現有 MySQL 匯出：
+專案目前已有資料庫備份：
+
+```text
+scholarship/scholarship_2026-06-16_23-58-29_mysql_data_OrCAk.sql
+```
+
+但此備份中的 `application_files` 仍是舊欄位；最新檔案上傳代碼已依 `uploader_id`、`file_category`、`file_path`、`ticket_id`、`created_at` 等欄位運作。正式部署前需先用實際線上資料庫重新匯出 schema，或補一份 migration 將附件欄位補齊：
 
 ```bash
 mysqldump -u root -p --no-data scholarship > schema.sql
 ```
 
-再匯出測試資料或種子資料。
+再依需要匯出測試資料或種子資料。
 
 ## 14. 建議優先重構順序
 
-1. 匯出並補上 `schema.sql`。
+1. 補上正式 `schema.sql` 或 migration，特別是 `application_files` 的最新欄位。
 2. 統一 DB 連線，只保留 `config.php`。
 3. 所有角色頁補上 `require_role()`。
 4. 移除 organization 頁面的 `provider_id` GET fallback。
