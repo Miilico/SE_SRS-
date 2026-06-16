@@ -1,7 +1,7 @@
 <?php
-session_start();
-require_once __DIR__ . "/../config.php";
-
+$adminHeaderBootstrapOnly = true;
+require __DIR__ . "/header.php";
+unset($adminHeaderBootstrapOnly);
 
 // 取得公告 ID
 $id = isset($_GET['id']) ? $_GET['id'] : die("未指定公告");
@@ -17,21 +17,11 @@ try {
 } catch (PDOException $e) {
     die("查詢失敗：" . $e->getMessage());
 }
+$pageTitle = $post['title'];
+$activeNav = "post_management.php";
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title><?php echo htmlspecialchars($post['title']); ?></title>
-    <style>
-        .post-container { width: 700px; margin: 50px auto; padding: 30px; border: 1px solid #ddd; background: #fff; line-height: 1.6; }
-        .post-title { font-size: 28px; font-weight: bold; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
-        .post-meta { color: #666; font-size: 14px; margin-bottom: 20px; }
-        .post-content { font-size: 18px; white-space: pre-wrap; } /* 保留換行符號 */
-        .back-btn { display: inline-block; margin-top: 30px; text-decoration: none; color: blue; }
-    </style>
-</head>
-<body>
+<?php require __DIR__ . "/header.php"; ?>
+
     <div class="post-container">
         <div class="post-title"><?php echo htmlspecialchars($post['title']); ?></div>
         <div class="post-meta">
@@ -40,7 +30,10 @@ try {
         </div>
         <div class="post-content"><?php echo htmlspecialchars($post['CONTENT']); ?></div>
         
-        <a href="post_management.php" class="back-btn">← 返回列表</a>
+        <div class="admin-actions admin-actions-bottom">
+            <a href="post_management.php">← 返回列表</a>
+        </div>
     </div>
+</main>
 </body>
 </html>

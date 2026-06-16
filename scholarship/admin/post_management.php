@@ -1,9 +1,7 @@
 <?php
-session_start();
-require_once __DIR__ . "/../config.php";
-require_once __DIR__ . "/../auth.php";
-
-require_role(3); // 3 = admin
+$adminHeaderBootstrapOnly = true;
+require __DIR__ . "/header.php";
+unset($adminHeaderBootstrapOnly);
 
 /*if (!isset($_SESSION['role']) || $_SESSION['role'] != 3) {
     die("權限不足");
@@ -18,29 +16,23 @@ try {
 } catch (PDOException $e) {
     die("查詢失敗：" . $e->getMessage());
 }
+$pageTitle = "公告管理";
+$activeNav = "post_management.php";
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>公告管理</title>
-    <style>
-        table { width: 95%; border-collapse: collapse; margin: 20px auto; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        th { background-color: #f2f2f2; }
-        .btn { padding: 5px 10px; text-decoration: none; color: white; border-radius: 4px; }
-        .btn-edit { background-color: #007bff; }
-        .btn-del { background-color: #dc3545; }
-    </style>
-</head>
-<body>
-    <h2 style="text-align:center;">公告管理中心</h2>
-    <div style="text-align:center; margin-bottom: 20px;">
-	<a href="admin_dashboard.php" style="background:#6c757d; 
-		color:white; padding:10px; text-decoration:none; border-radius:4px;">← 回到儀表板</a>
-        <a href="post_info.php" style="background:green; color:white; padding:10px; text-decoration:none; border-radius:4px;">＋ 發佈新公告</a>
+<?php require __DIR__ . "/header.php"; ?>
+
+    <div class="admin-page-head">
+        <div>
+            <h1 class="admin-page-title">公告管理</h1>
+            <div class="admin-page-subtitle">新增、編輯或刪除系統公告與獎學金審查結果。</div>
+        </div>
     </div>
 
+    <div class="admin-actions">
+        <a href="post_info.php" class="btn btn-success">＋ 發佈新公告</a>
+    </div>
+
+    <div class="admin-card admin-table-wrap">
     <table>
         <thead>
             <tr>
@@ -66,8 +58,8 @@ try {
     ?>
 </td>
                 <td><?php echo $p['ADATE']; ?></td>
-                <td align="left">
-					<a href="post_view.php?id=<?php echo $p['id']; ?>" style="text-decoration: none; color: #333; font-weight: bold;">
+                <td>
+					<a href="post_view.php?id=<?php echo $p['id']; ?>" class="announcement-title-link">
 						<?php echo htmlspecialchars($p['title']); ?>
 					</a>
 				</td>
@@ -82,5 +74,7 @@ try {
             <?php endforeach; ?>
         </tbody>
     </table>
+    </div>
+</main>
 </body>
 </html>
