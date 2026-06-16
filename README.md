@@ -155,11 +155,12 @@ $_SESSION["user"]["stid"]
 
 1. 使用者進入 `register.php`。
 2. 表單送到 `register_submit.php`。
-3. 只允許學生與教授自註冊。
-4. 新帳號寫入 `users`，狀態為 `pending`。
+3. 允許學生、教授與獎助單位自註冊。
+4. 學生與教授新帳號寫入 `users`，狀態為 `active`，註冊後可直接登入。
 5. 學生額外寫入 `students`。
 6. 教授額外寫入 `teachers`。
-7. 管理員需到 `admin/admin_users_pending.php` 核准，將 `users.status` 改為 `active`。
+7. 獎助單位新帳號寫入 `users`，狀態為 `pending`，並額外寫入 `organization` 與 `ophone`。
+8. 管理員需到 `admin/admin_users_pending.php` 核准獎助單位帳號，將 `users.status` 改為 `active`。
 
 ## 6. 資料庫結構
 
@@ -500,7 +501,7 @@ scholarship.start_date
 
 `admin/admin_users_pending.php`：
 
-- 查詢 `users.status = pending`。
+- 查詢 `users.status = pending` 且 `role = 4` 的獎助單位帳號。
 - 核准後更新為 `active`。
 
 ### 獎助單位管理

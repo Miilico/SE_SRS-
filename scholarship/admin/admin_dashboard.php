@@ -16,7 +16,7 @@ $activeNav = "admin_dashboard.php";
 <div class="grid kpi admin-section-gap">
   <div class="card">
     <h3>帳號審核</h3>
-    <p class="muted">審核學生 / 教授註冊申請</p>
+    <p class="muted">審核獎助單位註冊申請</p>
     <a class="btn" href="/scholarship/admin/admin_users_pending.php">前往</a>
   </div>
 
