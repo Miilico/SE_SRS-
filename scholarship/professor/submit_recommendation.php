@@ -1,17 +1,7 @@
 <?php
 // submit_recommendation.php
 
-// 資料庫連線設定
-$dsn = "mysql:host=localhost;dbname=scholarship;charset=utf8";
-$user = "root";
-$pass = "a1125518";
-
-try {
-    $pdo = new PDO($dsn, $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("❌ 資料庫連線失敗：" . $e->getMessage());
-}
+require_once __DIR__ . "/../config.php";
 
 // 檢查表單是否有 token 與推薦內容
 if (!isset($_POST['token']) || empty($_POST['token'])) {
