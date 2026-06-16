@@ -53,6 +53,7 @@ $myStudents = $stmt->fetchAll(PDO::FETCH_ASSOC);
   <div class="tabs">
     <a class="active" href="#">總覽</a>
     <a href="/scholarship/profile.php">個人檔案</a>
+    <a href="/scholarship/ticket_list.php">回報問題</a>
   </div>
   <div>
     <?= htmlspecialchars($userName) ?> 老師｜

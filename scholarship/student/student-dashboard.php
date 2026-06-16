@@ -156,6 +156,7 @@ $notis = $stmt->fetchAll();
     <!--<a href="/scholarship/student/apply.php">我的申請</a>-->
     <a href="/scholarship/profile.php">個人檔案</a>
     <a href="/scholarship/announcement_board.php">查看公告</a>
+    <a href="/scholarship/ticket_list.php">回報問題</a>
   </div>
   <div>
     <?= htmlspecialchars($userName) ?>｜
