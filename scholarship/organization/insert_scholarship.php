@@ -14,14 +14,11 @@ require_once "db.php";
 
 // 接收表單
 $provider_id = $_SESSION['user']['id'];
-$name     = $_POST['scholarship_name'];
-$start_date = $_POST['start_date'];
-$deadline = $_POST['deadline'];
-$condi    = $_POST['conditions'];
-$amount   = $_POST['amount'];
-
-$start_date = $_POST['start_date'];
-$deadline   = $_POST['deadline'];
+$name       = trim($_POST['scholarship_name'] ?? '');
+$start_date = trim($_POST['start_date'] ?? '');
+$deadline   = trim($_POST['deadline'] ?? '');
+$condi      = trim($_POST['conditions'] ?? '');
+$amount     = trim($_POST['amount'] ?? '');
 
 // 檢查必填欄位 
 if ($name === '' || $amount === '' || $start_date === '' || $deadline === '') { 
@@ -35,11 +32,42 @@ if (!is_numeric($amount) || (float)$amount <= 0) {
     exit; 
 }
 
+function parse_form_date($value)
+{
+    $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+    $errors = DateTimeImmutable::getLastErrors();
+
+    if (
+        !$date ||
+        ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))
+    ) {
+        return null;
+    }
+
+    return $date;
+}
+
+$startDateObj = parse_form_date($start_date);
+$deadlineObj = parse_form_date($deadline);
+
+if (
+    !$startDateObj ||
+    !$deadlineObj
+) {
+    header("Location: add_scholarship.php?error=" . urlencode("日期格式錯誤，請使用有效日期"));
+    exit;
+}
+
+$start_date = $startDateObj->format('Y-m-d');
+$deadline = $deadlineObj->format('Y-m-d');
+
 // 檢查日期邏輯 
-if ($start_date > $deadline) {
+if ($startDateObj > $deadlineObj) {
     header("Location: add_scholarship.php?error=" . urlencode("開始日期不能晚於截止日期")); 
     exit; 
-} try { 
+}
+
+try {
     $sql = "INSERT INTO scholarship (NAME, provider_id, DEADLINE, CONDI, AMOUNT, start_date) 
             VALUES (?, ?, ?, ?, ?, ?)"; 
             $stmt = $pdo->prepare($sql); 
