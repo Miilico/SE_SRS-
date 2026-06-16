@@ -1,172 +1,182 @@
-<?php 
-session_start();
+<?php
 require_once __DIR__ . "/config.php";
+require_once __DIR__ . "/auth.php";
 
+require_login();
 
 $target_id = isset($_SESSION["user"]["id"]) ? $_SESSION["user"]["id"] : null;
 
-if (!$target_id) {
-    header("Location: login.php");
-    exit;
+function h($value) {
+    return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
 }
-?>
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <title>個人資料 - 獎助學金系統</title>
-    <style>
-        body { background-color: #f4f7f6; font-family: "Microsoft JhengHei", sans-serif; color: #333; }
-        .info-container { 
-            width: 700px; 
-            margin: 50px auto; 
-            padding: 40px; 
-            border: 1px solid #ddd; 
-            background: #fff; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            border-radius: 8px;
-        }
-        .info-title { 
-            font-size: 28px; 
-            font-weight: bold; 
-            border-bottom: 2px solid #333; 
-            padding-bottom: 10px; 
-            margin-bottom: 25px; 
-            color: #222;
-        }
-        .section-header {
-            background-color: #f8f9fa;
-            font-weight: bold;
-            padding: 10px;
-            margin-top: 20px;
-            border-left: 4px solid #333;
-            font-size: 18px;
-        }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        td { padding: 12px 15px; border-bottom: 1px solid #eee; }
-        .label { width: 30%; color: #666; font-weight: bold; }
-        .value { width: 70%; color: #333; }
-        
-        .btn-group { margin-top: 30px; display: flex; gap: 15px; }
-        .btn { 
-            padding: 10px 20px; 
-            text-decoration: none; 
-            border-radius: 4px; 
-            font-size: 16px; 
-            cursor: pointer;
-            transition: 0.3s;
-            border: none;
-        }
-        .btn-edit { background-color: #333; color: white; }
-        .btn-edit:hover { background-color: #555; }
-        .btn-back { background-color: #4682BF; color: white; text-align: center; }
-        .btn-back:hover { text-decoration: underline; }
-    </style>
-</head>
-<body>
 
-<div class="info-container">
-    <div class="info-title">個人帳號資訊</div>
-
-    <?php
-    try {
-        // 取得基本帳號資料
-        $stmt1 = $pdo->prepare("SELECT * FROM users WHERE ID = ?");
-        $stmt1->execute([$target_id]);
-        $row1 = $stmt1->fetch();
-
-        if ($row1) {
-            echo '<div class="section-header">基本帳號</div>';
-            echo '<table>';
-            echo '<tr><td class="label">使用者 ID</td><td class="value">' . htmlspecialchars($row1['ID']) . '</td></tr>';
-            
-            $role_name = "";
-            switch($row1['ROLE']) {
-                case 1: $role_name = "學生"; break;
-                case 2: $role_name = "教師"; break;
-                case 3: $role_name = "系統管理員"; break;
-                case 4: $role_name = "獎助單位"; break;
-                default: $role_name = "未知身分";
-            }
-            echo '<tr><td class="label">身分</td><td class="value">' . $role_name . '</td></tr>';
-            echo '<tr><td class="label">Email</td><td class="value">' . htmlspecialchars($row1['EMAIL']) . '</td></tr>';
-            echo '</table>';
-
-            // 擴充資料區段
-            if ($row1['ROLE'] == 1) { // 學生
-                echo '<div class="section-header">個人資料</div>';
-                $stmt2 = $pdo->prepare("SELECT * FROM students WHERE ID = ?");
-                $stmt2->execute([$target_id]);
-                $row2 = $stmt2->fetch();
-                echo '<table>';
-                echo '<tr><td class="label">姓名</td><td class="value">' . htmlspecialchars($row1['NAME']) . '</td></tr>';
-                if ($row2) {
-                    echo '<tr><td class="label">學號</td><td class="value">' . htmlspecialchars($row2['SID']) . '</td></tr>';
-                    echo '<tr><td class="label">就讀系所</td><td class="value">' . htmlspecialchars($row2['DNAME']) . '</td></tr>';
-                }
-                echo '<tr><td class="label">連絡電話</td><td class="value">' . htmlspecialchars($row1['TEL']) . '</td></tr>';
-                echo '</table>';
-
-            } else if ($row1['ROLE'] == 2) { // 教師
-                echo '<div class="section-header">個人資料</div>';
-                $stmt2 = $pdo->prepare("SELECT * FROM teachers WHERE ID = ?");
-                $stmt2->execute([$target_id]);
-                $row2 = $stmt2->fetch();
-                echo '<table>';
-                echo '<tr><td class="label">姓名</td><td class="value">' . htmlspecialchars($row1['NAME']) . '</td></tr>';
-                if ($row2) {
-                    echo '<tr><td class="label">所屬系所</td><td class="value">' . htmlspecialchars($row2['DNAME']) . '</td></tr>';
-                }
-                echo '<tr><td class="label">連絡電話</td><td class="value">' . htmlspecialchars($row1['TEL']) . '</td></tr>';
-                echo '</table>';
-             } else if ($row1['ROLE'] == 3) { // 管理員
-                echo '<div class="section-header">個人資料</div>';
-                echo '<table>';
-                echo '<tr><td class="label">姓名</td><td class="value">' . htmlspecialchars($row1['NAME']) . '</td></tr>';
-                echo '<tr><td class="label">連絡電話</td><td class="value">' . htmlspecialchars($row1['TEL']) . '</td></tr>';
-                echo '</table>';
-            } else if ($row1['ROLE'] == 4) { // 獎助單位
-                echo '<div class="section-header">獎助單位資訊</div>';
-                
-                // 1. 取得單位擴充資訊 (organization)
-                $stmt2 = $pdo->prepare("SELECT * FROM organization WHERE ID = ?");
-                $stmt2->execute([$target_id]);
-                $row2 = $stmt2->fetch();
-
-                // 2. 取得多重電話 (ophone)
-                $stmt3 = $pdo->prepare("SELECT TEL FROM ophone WHERE ID = ?");
-                $stmt3->execute([$target_id]);
-                $phones = $stmt3->fetchAll(PDO::FETCH_COLUMN);
-                $phone_str = implode(', ', $phones);
-
-                echo '<table>';
-                echo '<tr><td class="label">單位名稱</td><td class="value">' . htmlspecialchars($row1['NAME']) . '</td></tr>';
-                if ($row2) {
-                    echo '<tr><td class="label">聯絡人姓名</td><td class="value">' . htmlspecialchars($row2['CONTACT']) . '</td></tr>';
-                }
-                echo '<tr><td class="label">聯絡電話 (多筆)</td><td class="value">' . htmlspecialchars($phone_str ?: '尚未填寫') . '</td></tr>';
-                echo '</table>';
-            }
-
-        } else {
-            echo '<p>找不到該使用者資料，請重新登入。</p>';
-        }
-    } catch (PDOException $e) {
-        echo '<p>資料庫錯誤：' . htmlspecialchars($e->getMessage()) . '</p>';
+function role_name($role) {
+    switch ((int)$role) {
+        case 1:
+            return "學生";
+        case 2:
+            return "教師";
+        case 3:
+            return "系統管理員";
+        case 4:
+            return "獎助單位";
+        default:
+            return "未知身分";
     }
-    ?>
+}
 
-    <div class="btn-group">
-        <button onclick="location.href='profile_edit.php'" class="btn btn-edit">修改個人資料</button>
-        <a href="
-            <?php 
-                if($row1['ROLE']==1) echo '/scholarship/student/student-dashboard.php';
-                else if($row1['ROLE']==2) echo '/scholarship/professor/tea_dashboard.php';
-                else if($row1['ROLE']==3) echo '/scholarship/admin/admin_dashboard.php';
-                else echo '/scholarship/organization/org-dashboard.php';
-            ?>" class="btn btn-back">← 返回首頁</a>
+function dashboard_url($role) {
+    switch ((int)$role) {
+        case 1:
+            return "/scholarship/student/student-dashboard.php";
+        case 2:
+            return "/scholarship/professor/tea_dashboard.php";
+        case 3:
+            return "/scholarship/admin/admin_dashboard.php";
+        default:
+            return "/scholarship/organization/org-dashboard.php";
+    }
+}
+
+$user = null;
+$sections = [];
+$errorMessage = "";
+
+try {
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE ID = ?");
+    $stmt->execute([$target_id]);
+    $user = $stmt->fetch();
+
+    if ($user) {
+        $role = (int)$user["ROLE"];
+
+        $sections[] = [
+            "title" => "基本帳號",
+            "items" => [
+                "使用者 ID" => $user["ID"],
+                "身分" => role_name($role),
+                "Email" => $user["EMAIL"],
+            ],
+        ];
+
+        if ($role === 1) {
+            $stmt = $pdo->prepare("SELECT * FROM students WHERE ID = ?");
+            $stmt->execute([$target_id]);
+            $student = $stmt->fetch();
+
+            $items = [
+                "姓名" => $user["NAME"],
+                "學號" => $student ? $student["SID"] : "尚未填寫",
+                "就讀系所" => $student ? $student["DNAME"] : "尚未填寫",
+                "連絡電話" => $user["TEL"],
+            ];
+
+            $sections[] = ["title" => "個人資料", "items" => $items];
+        } elseif ($role === 2) {
+            $stmt = $pdo->prepare("SELECT * FROM teachers WHERE ID = ?");
+            $stmt->execute([$target_id]);
+            $teacher = $stmt->fetch();
+
+            $items = [
+                "姓名" => $user["NAME"],
+                "所屬系所" => $teacher ? $teacher["DNAME"] : "尚未填寫",
+                "連絡電話" => $user["TEL"],
+            ];
+
+            $sections[] = ["title" => "個人資料", "items" => $items];
+        } elseif ($role === 3) {
+            $sections[] = [
+                "title" => "個人資料",
+                "items" => [
+                    "姓名" => $user["NAME"],
+                    "連絡電話" => $user["TEL"],
+                ],
+            ];
+        } elseif ($role === 4) {
+            $stmt = $pdo->prepare("SELECT * FROM organization WHERE ID = ?");
+            $stmt->execute([$target_id]);
+            $organization = $stmt->fetch();
+
+            $stmt = $pdo->prepare("SELECT TEL FROM ophone WHERE ID = ?");
+            $stmt->execute([$target_id]);
+            $phones = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $phoneText = implode(", ", $phones);
+
+            $items = [
+                "單位名稱" => $user["NAME"],
+                "聯絡人姓名" => $organization ? $organization["CONTACT"] : "尚未填寫",
+                "聯絡電話 (多筆)" => $phoneText !== "" ? $phoneText : "尚未填寫",
+            ];
+
+            $sections[] = ["title" => "獎助單位資訊", "items" => $items];
+        }
+    } else {
+        $errorMessage = "找不到該使用者資料，請重新登入。";
+    }
+} catch (PDOException $e) {
+    $errorMessage = "資料庫錯誤：" . $e->getMessage();
+}
+
+$dashboardUrl = $user ? dashboard_url($user["ROLE"]) : "/scholarship/login.php";
+?>
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>個人資料 - 獎助學金系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<main class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4 p-md-5">
+                    <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+                        <div>
+                            <h1 class="h3 fw-bold mb-1">個人帳號資訊</h1>
+                            <div class="text-secondary">查看您的登入帳號、身分與角色相關資料。</div>
+                        </div>
+                        <?php if ($user): ?>
+                            <span class="badge rounded-pill text-bg-primary align-self-start px-3 py-2">
+                                <?php echo h(role_name($user["ROLE"])); ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+
+                    <?php if ($errorMessage): ?>
+                        <div class="alert alert-danger mb-0"><?php echo h($errorMessage); ?></div>
+                    <?php else: ?>
+                        <?php foreach ($sections as $section): ?>
+                            <section class="mb-4">
+                                <div class="border-start border-4 border-primary bg-body-tertiary px-3 py-2 fw-bold mb-2">
+                                    <?php echo h($section["title"]); ?>
+                                </div>
+
+                                <div class="list-group list-group-flush border rounded">
+                                    <?php foreach ($section["items"] as $label => $value): ?>
+                                        <div class="list-group-item">
+                                            <div class="row g-2 align-items-center">
+                                                <div class="col-sm-4 text-secondary fw-semibold"><?php echo h($label); ?></div>
+                                                <div class="col-sm-8"><?php echo h($value !== "" && $value !== null ? $value : "尚未填寫"); ?></div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </section>
+                        <?php endforeach; ?>
+
+                        <div class="d-flex flex-column flex-sm-row gap-2 pt-2">
+                            <a href="profile_edit.php" class="btn btn-primary">修改個人資料</a>
+                            <a href="<?php echo h($dashboardUrl); ?>" class="btn btn-outline-secondary">返回首頁</a>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
-
+</main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

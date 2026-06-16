@@ -1,9 +1,7 @@
 <?php
-require_once __DIR__ . "/../config.php";
-require_once __DIR__ . "/../auth.php";
-
-require_role(3);
-
+$adminHeaderBootstrapOnly = true;
+require __DIR__ . "/header.php";
+unset($adminHeaderBootstrapOnly);
 
 // 核准帳號
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["approve_id"])) {
@@ -35,20 +33,17 @@ $role_map = [
   3 => "管理員",
   4 => "獎助學金單位"
 ];
+$pageTitle = "帳號審核";
+$activeNav = "admin_users_pending.php";
 ?>
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>帳號審核｜管理員</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
+<?php require __DIR__ . "/header.php"; ?>
 
-<body class="bg-light">
-<div class="container py-4">
-
-  <h1 class="h4 fw-bold mb-3">待審核帳號</h1>
+  <div class="admin-page-head">
+    <div>
+      <h1 class="admin-page-title">待審核帳號</h1>
+      <div class="admin-page-subtitle">審核學生、教授與獎助學金單位註冊申請。</div>
+    </div>
+  </div>
 
   <div class="card">
     <div class="card-body">
@@ -96,10 +91,6 @@ $role_map = [
 
     </div>
   </div>
-</div>
-<div style="text-align:center;">
-		<a href="admin_dashboard.php" style="background:#6c757d; 
-		color:white; padding:10px; text-decoration:none; border-radius:4px;">← 回到管理主頁</a>
-</div>
+</main>
 </body>
 </html>

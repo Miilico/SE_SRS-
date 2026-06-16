@@ -1,9 +1,7 @@
 <?php
-session_start();
-require_once __DIR__ . "/../config.php";
-require_once __DIR__ . "/../auth.php";
-
-require_role(3);
+$adminHeaderBootstrapOnly = true;
+require __DIR__ . "/header.php";
+unset($adminHeaderBootstrapOnly);
 
 // 權限檢查：根據您的設定 ROLE 3 為管理員
 /*if (!isset($_SESSION['role']) || $_SESSION['role'] != 3) {
@@ -32,45 +30,17 @@ if ($id) {
         $default_cat = isset($post['CATEGORY']) ? $post['CATEGORY'] : 0;
     }
 }
+$pageTitle = ($mode == 'edit') ? "修改公告" : "新增公告";
+$activeNav = "post_management.php";
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title><?php echo ($mode == 'edit') ? "修改公告" : "新增公告"; ?></title>
-    <style>
-        body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f4f7f6; color: #333; }
-        .nav-bar { text-align: right; width: 650px; margin: 20px auto; font-size: 14px; }
-        .nav-bar a { color: #666; text-decoration: none; }
-        .form-box { width: 650px; margin: 20px auto; padding: 30px; border: 1px solid #ddd; border-radius: 12px; background: white; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        .tt { font-size: 24px; font-weight: bold; text-align: center; color: #2c3e50; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
-        
-        .form-group { margin-bottom: 20px; }
-        label { display: block; font-weight: bold; margin-bottom: 8px; color: #555; }
-        
-        input[type="text"], textarea, select { 
-            width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; 
-            box-sizing: border-box; font-size: 16px; background-color: #fafafa;
-        }
-        input[type="text"]:focus, textarea:focus, select:focus { border-color: #007bff; outline: none; background-color: #fff; }
-        
-        .btn-group { text-align: center; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
-        .save-btn { background: #28a745; color: white; padding: 12px 40px; border: none; cursor: pointer; border-radius: 6px; font-size: 18px; font-weight: bold; transition: 0.3s; }
-        .save-btn:hover { background: #218838; transform: translateY(-2px); }
-        .cancel-link { color: #888; text-decoration: none; margin-left: 20px; font-size: 16px; }
-        
-        /* 獎學金類別的特殊提醒樣式 */
-        .hint { font-size: 13px; color: #dc3545; margin-top: 5px; }
-    </style>
-</head>
-<body>
-    <div class="nav-bar">
-        <a href="admin_dashboard.php">回儀表板首頁</a> | 
-        <a href="post_management.php">回公告管理清單</a>
-    </div>
+<?php require __DIR__ . "/header.php"; ?>
 
     <div class="form-box">
-        <div class="tt"><?php echo ($mode == 'edit') ? "📝 修改公告內容 (#$id)" : "📢 發佈新消息"; ?></div>
+        <div class="admin-actions">
+            <a href="post_management.php">返回公告管理清單</a>
+        </div>
+        <h1 class="admin-page-title"><?php echo ($mode == 'edit') ? "修改公告內容 (#$id)" : "發佈新消息"; ?></h1>
+        <div class="admin-page-subtitle admin-form-lead">填寫公告類別、標題與內容後送出。</div>
         
         <form method="post" action="post_process.php">
             <input type="hidden" name="mode" value="<?php echo $mode; ?>">
@@ -105,5 +75,6 @@ if ($id) {
             </div>
         </form>
     </div>
+</main>
 </body>
 </html>

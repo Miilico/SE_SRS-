@@ -1,9 +1,7 @@
 <?php
-session_start();
-require_once __DIR__ . "/../config.php";
-require_once __DIR__ . "/../auth.php";
-
-require_role(3);
+$adminHeaderBootstrapOnly = true;
+require __DIR__ . "/header.php";
+unset($adminHeaderBootstrapOnly);
 
 //if (!isset($_SESSION['role']) || $_SESSION['role'] != 3) { die("拒絕存取"); }
 
@@ -40,22 +38,14 @@ if ($id) {
     $phones = $stmt_p->fetchAll(PDO::FETCH_COLUMN);
     $phone_str = implode(', ', $phones); // 轉成字串顯示
 }
+$pageTitle = ($mode == 'add') ? "新增獎助單位" : "修改獎助單位";
+$activeNav = "org_management.php";
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title><?php echo ($mode == 'add') ? "新增獎助單位" : "修改教學單位"; ?></title>
-    <style>
-        .form-container { width: 400px; margin: 30px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
-        input { width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; }
-        label { font-weight: bold; color: #555; }
-        .sub-title { background: #eee; padding: 5px; margin-top: 15px; font-size: 14px; }
-    </style>
-</head>
-<body>
+<?php require __DIR__ . "/header.php"; ?>
+
     <div class="form-container">
-        <h3><?php echo ($mode == 'add') ? "＋ 新增獎助單位" : "📝 修改單位資料"; ?></h3>
+        <h1 class="admin-page-title"><?php echo ($mode == 'add') ? "新增獎助單位" : "修改單位資料"; ?></h1>
+        <div class="admin-page-subtitle admin-form-lead">建立或更新獎助學金單位的登入與聯絡資訊。</div>
         <form action="org_process.php" method="post">
             <input type="hidden" name="mode" value="<?php echo $mode; ?>">
             
@@ -82,9 +72,12 @@ if ($id) {
             <label>單位電話 (可多筆，請用逗號隔開):</label>
             <input type="text" name="org_phones" value="<?php echo htmlspecialchars($phone_str); ?>" placeholder="例如: 02-123, 0912-345">
             
-            <button type="submit" style="width:100%; padding:10px; background:#007bff; color:white; border:none; cursor:pointer;">儲存送出</button>
-            <p style="text-align:center;"><a href="org_management.php">取消返回</a></p>
+            <div class="admin-actions admin-actions-bottom">
+                <button type="submit" class="btn">儲存送出</button>
+                <a href="org_management.php">取消返回</a>
+            </div>
         </form>
     </div>
+</main>
 </body>
 </html>
