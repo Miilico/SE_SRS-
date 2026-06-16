@@ -2,9 +2,8 @@
 
 ## 1. 專案概覽
 
-本專案是一個傳統 PHP 多頁式網站，沒有使用 Laravel、Symfony 等 PHP 框架，也沒有前端建置工具。頁面、表單處理、SQL 查詢、權限檢查大多直接寫在各個 PHP 檔案中。
-
-部署環境推測為 Apache + PHP + MySQL，網址根路徑多處寫死為 `/scholarship/...`。資料庫備份 `scholarship (3).sql` 
+本專案是一個傳統 PHP 多頁式網站。
+頁面、表單處理、SQL 查詢、權限檢查大多直接寫在各個 PHP 檔案中。
 
 主要功能是獎助學金申請與審核，依使用者角色分成：
 
@@ -24,59 +23,6 @@
 
 ## 3. 目錄結構
 
-```text
-/
-  config.php
-  auth.php
-  index.php
-  login.php
-  login_submit.php
-  logout.php
-  register.php
-  register_submit.php
-  profile.php
-  profile_edit.php
-  announcement_board.php
-  announcement_view.php
-  assets/css/auth.css
-
-student/
-  student-dashboard.php
-  browse_scholarships.php
-  apply.php
-  apply_submit.php
-  PHPMailer.php
-  SMTP.php
-  Exception.php
-
-organization/
-  db.php
-  org-dashboard.php
-  add_scholarship.php
-  insert_scholarship.php
-  my_scholarships.php
-  view_applicants.php
-  review_application.php
-  delete_scholarship.php
-
-admin/
-  admin_dashboard.php
-  admin_users_pending.php
-  account_management.php
-  account_form.php
-  account_process.php
-  post_management.php
-  post_info.php
-  post_process.php
-  post_view.php
-  app_management.php
-
-professor/
-  tea_dashboard.php
-  student_view.php
-  recommendation.php
-  submit_recommendation.php
-```
 
 ## 4. 共用入口與基礎配置
 
@@ -87,8 +33,8 @@ professor/
 ```php
 $pdo = new PDO(
   "mysql:host=localhost;dbname=scholarship;charset=utf8mb4",
-  "root",
-  "a1125518",
+  "username",
+  "password",
   [...]
 );
 ```
@@ -600,25 +546,6 @@ require_role(4);
 
 或依實際角色改成對應 role。
 
-### DB 連線重複
-
-目前至少有三種 DB 連線方式：
-
-- `config.php`
-- `organization/db.php`
-- `professor/recommendation.php` 與 `professor/submit_recommendation.php` 內部硬寫 PDO
-
-建議統一使用 `config.php`。
-
-### 密碼與環境設定硬編碼
-
-DB 帳號密碼直接寫在程式中：
-
-```text
-root / a1125518
-```
-
-建議改成環境變數或獨立的本機設定檔，並避免提交正式密碼。
 
 ### URL 寫死
 
@@ -689,20 +616,3 @@ mysqldump -u root -p --no-data scholarship > schema.sql
 7. 將共用 header、nav、樣式抽出，減少重複 HTML。
 8. 補最基本的錯誤頁與表單驗證。
 
-## 15. 快速維護索引
-
-```text
-登入驗證              login_submit.php
-角色導向              index.php
-權限函式              auth.php
-DB 連線               config.php
-學生申請表            student/apply.php
-學生申請送出          student/apply_submit.php
-獎助單位新增獎學金    organization/insert_scholarship.php
-獎助單位審核申請      organization/review_application.php
-教授推薦信頁          professor/recommendation.php
-教授推薦信送出        professor/submit_recommendation.php
-管理員帳號審核        admin/admin_users_pending.php
-管理員公告處理        admin/post_process.php
-個人資料              profile.php / profile_edit.php
-```
