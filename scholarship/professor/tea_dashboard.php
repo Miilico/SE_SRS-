@@ -4,15 +4,15 @@ require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/../recommendation_helpers.php";
 
 if (empty($_SESSION["user"]) || !in_array((int)$_SESSION["user"]["role"], array(2, 3), true)) {
-    header("Location: /scholarship/login.php");
-    exit;
+  header("Location: /scholarship/login.php");
+  exit;
 }
 
 $userId = $_SESSION["user"]["id"];
 $userName = $_SESSION["user"]["name"];
 $statusFilter = isset($_GET["status"]) ? $_GET["status"] : "all";
 if (!in_array($statusFilter, array("all", "pending", "draft", "completed", "rejected"), true)) {
-    $statusFilter = "all";
+  $statusFilter = "all";
 }
 
 ensure_application_files_table($pdo);
@@ -20,7 +20,7 @@ tar_auto_reject_overdue_recommendations($pdo);
 
 function h($value)
 {
-    return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
+  return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
 }
 
 $statsStmt = $pdo->prepare("
@@ -58,13 +58,13 @@ $myStudents = $studentsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $requestWhere = "r.teacher_id = :teacher_id";
 if ($statusFilter === "pending") {
-    $requestWhere .= " AND COALESCE(r.status, 'pending') = 'pending'";
+  $requestWhere .= " AND COALESCE(r.status, 'pending') = 'pending'";
 } elseif ($statusFilter === "draft") {
-    $requestWhere .= " AND COALESCE(r.status, 'pending') = 'draft'";
+  $requestWhere .= " AND COALESCE(r.status, 'pending') = 'draft'";
 } elseif ($statusFilter === "completed") {
-    $requestWhere .= " AND (COALESCE(r.status, 'pending') = 'submitted' OR (r.content IS NOT NULL AND r.content <> ''))";
+  $requestWhere .= " AND (COALESCE(r.status, 'pending') = 'submitted' OR (r.content IS NOT NULL AND r.content <> ''))";
 } elseif ($statusFilter === "rejected") {
-    $requestWhere .= " AND COALESCE(r.status, 'pending') = 'rejected'";
+  $requestWhere .= " AND COALESCE(r.status, 'pending') = 'rejected'";
 }
 
 $requestsStmt = $pdo->prepare("
@@ -119,11 +119,11 @@ require __DIR__ . "/../header.php";
 <div class="row g-3 mb-4">
   <?php
   $statCards = array(
-      array("推薦邀請", "total_requests"),
-      array("待填寫", "pending_requests"),
-      array("草稿", "draft_requests"),
-      array("已提交", "completed_requests"),
-      array("已駁回", "rejected_requests"),
+    array("推薦邀請", "total_requests"),
+    array("待填寫", "pending_requests"),
+    array("草稿", "draft_requests"),
+    array("已提交", "completed_requests"),
+    array("已駁回", "rejected_requests"),
   );
   ?>
   <?php foreach ($statCards as $card): ?>
@@ -144,7 +144,7 @@ require __DIR__ . "/../header.php";
     <form action="student_view.php" method="get" class="row g-2 align-items-end">
       <div class="col-md-8 col-lg-5">
         <label class="form-label fw-semibold" for="sid">學生帳號或學號</label>
-        <input class="form-control" id="sid" type="text" name="sid" placeholder="例如 TESTSTU01" required>
+        <input class="form-control" id="sid" type="text" name="sid" required>
       </div>
       <div class="col-md-auto">
         <button type="submit" class="btn btn-primary">查詢</button>
@@ -189,9 +189,7 @@ require __DIR__ . "/../header.php";
                     </td>
                     <td><?= h($request["scholarship_name"]) ?></td>
                     <td>
-                      <span class="badge rounded-pill <?= $statusLabel === "已提交" ? "text-bg-success" : ($statusLabel === "已駁回" ? "text-bg-danger" : ($statusLabel === "草稿" ? "text-bg-info" : "text-bg-warning")) ?>">
-                        <?= h($statusLabel) ?>
-                      </span>
+                      <?= site_status_badge($statusLabel, "recommendation") ?>
                     </td>
                     <td class="text-end">
                       <a class="btn btn-sm btn-outline-primary" href="recommendation.php?token=<?= urlencode($request["token"]) ?>">
@@ -234,4 +232,5 @@ require __DIR__ . "/../header.php";
 
 </main>
 </body>
+
 </html>

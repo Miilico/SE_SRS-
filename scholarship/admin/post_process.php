@@ -16,7 +16,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
     try {
         $stmt = $pdo->prepare("DELETE FROM announcement WHERE id = ?");
         $stmt->execute([$id]);
-        echo "<script>alert('公告已刪除'); window.location.href='post_management.php';</script>";
+        header("Location: post_management.php?msg=" . urlencode("公告已刪除"));
     } catch (PDOException $e) {
         die("刪除失敗：" . $e->getMessage());
     }
@@ -26,7 +26,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
 // 處理 POST 提交 (新增/修改)
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $mode     = $_POST['mode'];
-    $id       = $_POST['id']; 
+    $id       = $_POST['id'];
     $category = $_POST['category'];
     $title    = $_POST['title']; // 例如：【結果公告】校內優秀獎學金 獲獎名單
     $content  = $_POST['content'];
@@ -57,7 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $msg = "公告發佈成功！";
 
             // --- 標記已公告狀態邏輯 ---
-            if ($category == 1) { 
+            if ($category == 1) {
                 // 從標題提取 SCNAME，假設格式為「【結果公告】獎學金名稱 獲獎名單」
                 // 也可以更簡單地將所有 RESULT='通過' 且 IS_POSTED=0 的全部標記
                 $updateApp = $pdo->prepare("UPDATE application SET IS_POSTED = 1 WHERE RESULT = '通過' AND IS_POSTED = 0");
@@ -69,9 +69,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 "announcement_id" => $announcementId
             ));
         }
-        echo "<script>alert('$msg'); window.location.href='post_management.php';</script>";
+        header("Location: post_management.php?msg=" . urlencode($msg));
+        exit;
     } catch (Exception $e) {
         die("操作失敗：" . $e->getMessage());
     }
 }
-?>

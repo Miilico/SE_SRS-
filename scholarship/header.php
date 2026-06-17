@@ -2,19 +2,23 @@
 if (!defined("SITE_HEADER_FUNCTIONS_LOADED")) {
     define("SITE_HEADER_FUNCTIONS_LOADED", true);
 
-    function site_header_h($value) {
+    function site_header_h($value)
+    {
         return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
     }
 
-    function site_header_script_path() {
+    function site_header_script_path()
+    {
         return isset($_SERVER["SCRIPT_NAME"]) ? str_replace("\\", "/", $_SERVER["SCRIPT_NAME"]) : "";
     }
 
-    function site_header_is_admin_request() {
+    function site_header_is_admin_request()
+    {
         return strpos(site_header_script_path(), "/admin/") !== false;
     }
 
-    function site_header_require_roles($roles) {
+    function site_header_require_roles($roles)
+    {
         require_login();
 
         if (!is_array($roles)) {
@@ -32,7 +36,8 @@ if (!defined("SITE_HEADER_FUNCTIONS_LOADED")) {
         exit("Forbidden: role required");
     }
 
-    function site_header_dashboard_url($role) {
+    function site_header_dashboard_url($role)
+    {
         switch ((int)$role) {
             case 1:
                 return "/scholarship/student/student-dashboard.php";
@@ -47,7 +52,8 @@ if (!defined("SITE_HEADER_FUNCTIONS_LOADED")) {
         }
     }
 
-    function site_header_nav_items($role, $isAdmin) {
+    function site_header_nav_items($role, $isAdmin)
+    {
         if ($isAdmin || (int)$role === 3) {
             return array(
                 array("/scholarship/admin/admin_dashboard.php", "總覽"),
@@ -96,12 +102,114 @@ if (!defined("SITE_HEADER_FUNCTIONS_LOADED")) {
         );
     }
 
-    function site_header_is_active($activeNav, $href) {
+    function site_header_is_active($activeNav, $href)
+    {
         $path = parse_url($href, PHP_URL_PATH);
         $base = basename((string)$path);
         $active = (string)$activeNav;
 
         return $active === $href || $active === $path || $active === $base;
+    }
+
+    function site_status_badge_class($status, $type = "application")
+    {
+        $status = trim((string)$status);
+
+        if ($type === "recommendation") {
+            if ($status === "已提交" || $status === "submitted") {
+                return "text-bg-success";
+            }
+            if ($status === "已駁回" || $status === "rejected") {
+                return "text-bg-danger";
+            }
+            if ($status === "草稿" || $status === "draft") {
+                return "text-bg-info";
+            }
+            return "text-bg-warning";
+        }
+
+        if ($type === "scholarship") {
+            if ($status === "開放中") {
+                return "text-bg-success";
+            }
+            if ($status === "已截止") {
+                return "text-bg-secondary";
+            }
+            return "text-bg-warning";
+        }
+
+        if ($status === "通過" || $status === "active") {
+            return "text-bg-success";
+        }
+        if ($status === "不通過" || $status === "未通過" || $status === "rejected") {
+            return "text-bg-danger";
+        }
+        if ($status === "需補件" || $status === "draft") {
+            return "text-bg-info";
+        }
+        if ($status === "pending" || $status === "審查中") {
+            return "text-bg-warning";
+        }
+
+        return "text-bg-secondary";
+    }
+
+    function site_status_badge($status, $type = "application")
+    {
+        return '<span class="badge rounded-pill ' . site_header_h(site_status_badge_class($status, $type)) . '">' . site_header_h($status) . '</span>';
+    }
+
+    function site_header_default_breadcrumbs($pageTitle, $role)
+    {
+        $home = site_header_dashboard_url($role);
+        $items = array(array($home, "總覽"));
+
+        if ((string)$pageTitle !== "" && (string)$pageTitle !== "總覽") {
+            $items[] = array("", (string)$pageTitle);
+        }
+
+        return $items;
+    }
+
+    function site_header_render_breadcrumbs($breadcrumbs)
+    {
+        if (empty($breadcrumbs) || !is_array($breadcrumbs)) {
+            return;
+        }
+
+        echo '<nav class="site-breadcrumb" aria-label="Breadcrumb"><ol class="breadcrumb mb-3">';
+        $lastIndex = count($breadcrumbs) - 1;
+        foreach ($breadcrumbs as $index => $item) {
+            $href = isset($item[0]) ? (string)$item[0] : "";
+            $label = isset($item[1]) ? (string)$item[1] : "";
+            $isLast = $index === $lastIndex || $href === "";
+
+            if ($isLast) {
+                echo '<li class="breadcrumb-item active" aria-current="page">' . site_header_h($label) . '</li>';
+            } else {
+                echo '<li class="breadcrumb-item"><a href="' . site_header_h($href) . '">' . site_header_h($label) . '</a></li>';
+            }
+        }
+        echo '</ol></nav>';
+    }
+
+    function site_header_render_flash_messages()
+    {
+        $messages = array(
+            "msg" => "success",
+            "success" => "success",
+            "err" => "danger",
+            "error" => "danger",
+        );
+
+        foreach ($messages as $key => $type) {
+            if (isset($_GET[$key]) && trim((string)$_GET[$key]) !== "") {
+                echo '<div class="alert alert-' . $type . ' alert-dismissible fade show" role="alert">';
+                echo site_header_h($_GET[$key]);
+                echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="關閉"></button>';
+                echo '</div>';
+            }
+        }
     }
 }
 
@@ -155,6 +263,7 @@ $siteHeaderBodyClasses = trim("site-bg " . ($siteHeaderIsAdmin ? "site-admin" : 
 ?>
 <!doctype html>
 <html lang="zh-Hant">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -242,6 +351,26 @@ $siteHeaderBodyClasses = trim("site-bg " . ($siteHeaderIsAdmin ? "site-admin" : 
             border: 1px solid var(--site-border);
             border-radius: var(--site-radius);
             box-shadow: var(--site-shadow);
+        }
+
+        .site-breadcrumb .breadcrumb {
+            --bs-breadcrumb-divider-color: var(--site-muted);
+            color: var(--site-muted);
+            font-size: 14px;
+        }
+
+        .site-breadcrumb a {
+            color: var(--site-primary-dark);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .site-breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .site-breadcrumb .active {
+            color: var(--site-muted);
         }
 
         .site-admin a {
@@ -598,6 +727,7 @@ $siteHeaderBodyClasses = trim("site-bg " . ($siteHeaderIsAdmin ? "site-admin" : 
         }
 
         @media (max-width: 900px) {
+
             .site-shell,
             .admin-shell {
                 padding: 20px 14px 36px;
@@ -619,37 +749,70 @@ $siteHeaderBodyClasses = trim("site-bg " . ($siteHeaderIsAdmin ? "site-admin" : 
     </style>
     <?php echo $siteHeaderExtraHead; ?>
     <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("submit", function(event) {
+            var form = event.target;
+            if (!form || !form.matches("form[data-confirm]")) {
+                return;
+            }
+
+            if (!window.confirm(form.getAttribute("data-confirm"))) {
+                event.preventDefault();
+            }
+        });
+
+        document.addEventListener("click", function(event) {
+            var target = event.target.closest("[data-confirm]");
+            if (!target || target.tagName === "FORM") {
+                return;
+            }
+
+            if (!window.confirm(target.getAttribute("data-confirm"))) {
+                event.preventDefault();
+            }
+        });
+    </script>
 </head>
+
 <body class="<?php echo site_header_h($siteHeaderBodyClasses); ?>">
-<?php if ($siteHeaderShowNav): ?>
-<header class="site-topbar navbar navbar-expand-lg border-bottom sticky-top">
-    <div class="container-fluid px-3 px-md-4">
-        <a class="navbar-brand fw-bold" href="<?php echo site_header_h($siteHeaderBrandHref); ?>">
-            <span class="brand-dot"></span>獎助學金系統
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#siteHeaderNav" aria-controls="siteHeaderNav" aria-expanded="false" aria-label="切換導覽">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="siteHeaderNav">
-            <nav class="navbar-nav me-auto gap-1" aria-label="主要導覽">
-                <?php foreach ($siteHeaderNavItems as $item): ?>
-                    <?php list($href, $label) = $item; ?>
-                    <a class="nav-link <?php echo site_header_is_active($activeNav, $href) ? "active" : ""; ?>" href="<?php echo site_header_h($href); ?>">
-                        <?php echo site_header_h($label); ?>
-                    </a>
-                <?php endforeach; ?>
-            </nav>
-            <div class="site-userbar d-flex align-items-center gap-2 pt-3 pt-lg-0">
-                <?php if ($siteHeaderUser): ?>
-                    <span><?php echo site_header_h($siteHeaderUserName); ?></span>
-                    <span>|</span>
-                    <a href="/scholarship/logout.php">登出</a>
-                <?php else: ?>
-                    <a href="/scholarship/login.php">登入</a>
-                <?php endif; ?>
+    <?php if ($siteHeaderShowNav): ?>
+        <header class="site-topbar navbar navbar-expand-lg border-bottom sticky-top">
+            <div class="container-fluid px-3 px-md-4">
+                <a class="navbar-brand fw-bold" href="<?php echo site_header_h($siteHeaderBrandHref); ?>">
+                    <span class="brand-dot"></span>獎助學金系統
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#siteHeaderNav" aria-controls="siteHeaderNav" aria-expanded="false" aria-label="切換導覽">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="siteHeaderNav">
+                    <nav class="navbar-nav me-auto gap-1" aria-label="主要導覽">
+                        <?php foreach ($siteHeaderNavItems as $item): ?>
+                            <?php list($href, $label) = $item; ?>
+                            <a class="nav-link <?php echo site_header_is_active($activeNav, $href) ? "active" : ""; ?>" href="<?php echo site_header_h($href); ?>">
+                                <?php echo site_header_h($label); ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </nav>
+                    <div class="site-userbar d-flex align-items-center gap-2 pt-3 pt-lg-0">
+                        <?php if ($siteHeaderUser): ?>
+                            <span><?php echo site_header_h($siteHeaderUserName); ?></span>
+                            <span>|</span>
+                            <a href="/scholarship/logout.php">登出</a>
+                        <?php else: ?>
+                            <a href="/scholarship/login.php">登入</a>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-</header>
-<?php endif; ?>
-<main class="<?php echo site_header_h($siteHeaderMainClass); ?>">
+        </header>
+    <?php endif; ?>
+    <main class="<?php echo site_header_h($siteHeaderMainClass); ?>">
+        <?php
+        if (!isset($breadcrumbs)) {
+            $breadcrumbs = site_header_default_breadcrumbs($pageTitle, $siteHeaderRole);
+        }
+        site_header_render_breadcrumbs($breadcrumbs);
+        if (empty($siteHeaderSuppressFlash)) {
+            site_header_render_flash_messages();
+        }
+        ?>
