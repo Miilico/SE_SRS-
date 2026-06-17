@@ -10,22 +10,22 @@ tar_auto_reject_overdue_recommendations($pdo);
 
 function h($value)
 {
-    return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
+  return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
 }
 
 function count_application_status($pdo, $studentId, $status)
 {
-    $stmt = $pdo->prepare("
+  $stmt = $pdo->prepare("
         SELECT COUNT(*)
         FROM application
         WHERE STID = :student_id AND RESULT = :status
     ");
-    $stmt->execute(array(
-        ":student_id" => $studentId,
-        ":status" => $status,
-    ));
+  $stmt->execute(array(
+    ":student_id" => $studentId,
+    ":status" => $status,
+  ));
 
-    return (int)$stmt->fetchColumn();
+  return (int)$stmt->fetchColumn();
 }
 
 $studentId = $_SESSION["user"]["id"];
@@ -79,7 +79,7 @@ $notiStmt = $pdo->prepare("
     SELECT APNO, APDATE, RESULT
     FROM application
     WHERE STID = :student_id
-      AND RESULT IN ('需補件', '未通過')
+      AND RESULT IN ('需補件', '不通過')
     ORDER BY APDATE DESC, APNO DESC
     LIMIT 3
 ");
@@ -143,15 +143,15 @@ require __DIR__ . "/../header.php";
           <div class="text-secondary">目前沒有待處理通知。</div>
         <?php else: ?>
           <div class="list-group list-group-flush">
-          <?php foreach ($notis as $n): ?>
-            <div class="list-group-item px-0">
-              <div>
-                <span class="badge rounded-pill text-bg-warning"><?= h($n["RESULT"]) ?></span>
-                申請編號 <?= h($n["APNO"]) ?>
+            <?php foreach ($notis as $n): ?>
+              <div class="list-group-item px-0">
+                <div>
+                  <?= site_status_badge($n["RESULT"]) ?>
+                  申請編號 <?= h($n["APNO"]) ?>
+                </div>
+                <div class="text-secondary small mt-1"><?= h($n["APDATE"]) ?></div>
               </div>
-              <div class="text-secondary small mt-1"><?= h($n["APDATE"]) ?></div>
-            </div>
-          <?php endforeach; ?>
+            <?php endforeach; ?>
           </div>
         <?php endif; ?>
       </div>
@@ -165,41 +165,41 @@ require __DIR__ . "/../header.php";
         <?php if (empty($apps)): ?>
           <div class="text-secondary">目前沒有申請資料。</div>
         <?php else: ?>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead>
-              <tr>
-                <th>獎助學金</th>
-                <th>申請日期</th>
-                <th>申請金額</th>
-                <th>審核狀態</th>
-                <th>推薦信狀態</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($apps as $a): ?>
-              <tr>
-                <td><?= h($a["SCH_NAME"] ?: ("APNO " . $a["APNO"])) ?></td>
-                <td><?= h($a["APDATE"]) ?></td>
-                <td>NT$ <?= number_format((int)$a["AMOUNT"]) ?></td>
-                <td><span class="badge rounded-pill text-bg-light border"><?= h($a["RESULT"]) ?></span></td>
-                <td>
-                  <?php if (empty($a["status"]) && empty($a["content"])): ?>
-                    <span class="text-secondary">尚未建立推薦信請求</span>
-                  <?php else: ?>
-                    <span class="badge rounded-pill text-bg-secondary"><?= h(tar_recommendation_status_label($a)) ?></span>
-                    <?php if (($a["status"] ?? "") === "rejected" && !empty($a["rejected_reason"])): ?>
-                      <div class="small text-secondary mt-1">
-                        <?= h($a["rejected_source"] === "system" ? "系統自動駁回" : "導師駁回") ?>：<?= h($a["rejected_reason"]) ?>
-                      </div>
-                    <?php endif; ?>
-                  <?php endif; ?>
-                </td>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>獎助學金</th>
+                  <th>申請日期</th>
+                  <th>申請金額</th>
+                  <th>審核狀態</th>
+                  <th>推薦信狀態</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($apps as $a): ?>
+                  <tr>
+                    <td><?= h($a["SCH_NAME"] ?: ("APNO " . $a["APNO"])) ?></td>
+                    <td><?= h($a["APDATE"]) ?></td>
+                    <td>NT$ <?= number_format((int)$a["AMOUNT"]) ?></td>
+                    <td><?= site_status_badge($a["RESULT"]) ?></td>
+                    <td>
+                      <?php if (empty($a["status"]) && empty($a["content"])): ?>
+                        <span class="text-secondary">尚未建立推薦信請求</span>
+                      <?php else: ?>
+                        <?= site_status_badge(tar_recommendation_status_label($a), "recommendation") ?>
+                        <?php if (($a["status"] ?? "") === "rejected" && !empty($a["rejected_reason"])): ?>
+                          <div class="small text-secondary mt-1">
+                            <?= h($a["rejected_source"] === "system" ? "系統自動駁回" : "導師駁回") ?>：<?= h($a["rejected_reason"]) ?>
+                          </div>
+                        <?php endif; ?>
+                      <?php endif; ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
         <?php endif; ?>
       </div>
     </div>
@@ -208,4 +208,5 @@ require __DIR__ . "/../header.php";
 
 </main>
 </body>
+
 </html>

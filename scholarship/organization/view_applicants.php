@@ -174,19 +174,11 @@ require __DIR__ . "/../header.php";
                         <?php endif; ?>
 
                         <p><strong>目前狀態：</strong>
-                            <?php if ($row['RESULT'] === '通過'): ?>
-                                <span class="badge bg-success">通過</span>
-                            <?php elseif ($row['RESULT'] === '不通過'): ?>
-                                <span class="badge bg-danger">不通過</span>
-                            <?php elseif ($row['RESULT'] === '需補件'): ?>
-                                <span class="badge bg-info text-dark">需補件</span>
-                            <?php else: ?>
-                                <span class="badge bg-warning text-dark">審查中</span>
-                            <?php endif; ?>
+                            <?= site_status_badge($row['RESULT']) ?>
                         </p>
 
                         <!-- 審查表單 -->
-                        <form action="review_application.php" method="post" class="d-flex gap-2">
+                        <form action="review_application.php" method="post" class="d-flex gap-2" data-confirm="確定要更新這筆申請的審核結果嗎？">
                             <input type="hidden" name="application_id" value="<?php echo $row['app_id']; ?>">
                             <input type="hidden" name="scholarship_id" value="<?php echo $scholarship_id; ?>">
                             <input type="hidden" name="provider_id" value="<?php echo h($provider_id); ?>">

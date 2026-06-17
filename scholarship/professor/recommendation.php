@@ -4,13 +4,13 @@ require_once __DIR__ . "/../recommendation_helpers.php";
 
 function h($value)
 {
-    return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
+  return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
 }
 
 $token = isset($_GET["token"]) ? trim($_GET["token"]) : "";
 if ($token === "") {
-    http_response_code(400);
-    exit("缺少推薦信 token。");
+  http_response_code(400);
+  exit("缺少推薦信 token。");
 }
 
 ensure_application_files_table($pdo);
@@ -60,8 +60,8 @@ $stmt->execute(array(":token" => $token));
 $recommendation = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$recommendation) {
-    http_response_code(404);
-    exit("推薦信連結不存在或已失效。");
+  http_response_code(404);
+  exit("推薦信連結不存在或已失效。");
 }
 
 $fileStmt = $pdo->prepare("
@@ -76,18 +76,18 @@ $files = $fileStmt->fetchAll(PDO::FETCH_ASSOC);
 $autobiFiles = array();
 $supportFiles = array();
 foreach ($files as $file) {
-    if ($file["file_type"] === "autobi") {
-        $autobiFiles[] = $file;
-    } else {
-        $supportFiles[] = $file;
-    }
+  if ($file["file_type"] === "autobi") {
+    $autobiFiles[] = $file;
+  } else {
+    $supportFiles[] = $file;
+  }
 }
 
 $statusLabel = tar_recommendation_status_label($recommendation);
 $canWrite = in_array($statusLabel, array("待填寫", "草稿"), true);
 $draftText = $recommendation["draft_content"] !== null && $recommendation["draft_content"] !== ""
-    ? $recommendation["draft_content"]
-    : "";
+  ? $recommendation["draft_content"]
+  : "";
 
 $pageTitle = "推薦信";
 $siteHeaderMaxWidth = "860px";
@@ -104,9 +104,6 @@ require __DIR__ . "/../header.php";
   <?php endif; ?>
 </div>
 
-<?php if (!empty($_GET["err"])): ?>
-  <div class="alert alert-danger"><?= h($_GET["err"]) ?></div>
-<?php endif; ?>
 <?php if (!empty($_GET["saved"])): ?>
   <div class="alert alert-success">草稿已暫存。</div>
 <?php endif; ?>
@@ -121,27 +118,64 @@ require __DIR__ . "/../header.php";
   <div class="card-body p-4">
     <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
       <h2 class="h5 fw-bold mb-0">學生與申請資料</h2>
-      <span class="badge rounded-pill <?= $statusLabel === "已提交" ? "text-bg-success" : ($statusLabel === "已駁回" ? "text-bg-danger" : ($statusLabel === "草稿" ? "text-bg-info" : "text-bg-warning")) ?>">
-        <?= h($statusLabel) ?>
-      </span>
+      <?= site_status_badge($statusLabel, "recommendation") ?>
     </div>
     <div class="table-responsive">
       <table class="table table-bordered align-middle mb-0">
         <tbody>
-          <tr><th class="table-light" style="width: 180px;">學生姓名</th><td><?= h($recommendation["student_name"]) ?></td></tr>
-          <tr><th class="table-light">學生帳號</th><td><?= h($recommendation["STID"]) ?></td></tr>
-          <tr><th class="table-light">學號</th><td><?= h($recommendation["SID"] ?? "") ?></td></tr>
-          <tr><th class="table-light">系所</th><td><?= h($recommendation["DNAME"] ?? "") ?></td></tr>
-          <tr><th class="table-light">申請獎助學金</th><td><?= h($recommendation["scholarship_name"]) ?></td></tr>
-          <tr><th class="table-light">申請日期</th><td><?= h($recommendation["APDATE"]) ?></td></tr>
-          <tr><th class="table-light">成績</th><td><?= h($recommendation["GRADE"] ?? "") ?></td></tr>
-          <tr><th class="table-light">名次</th><td><?= h($recommendation["RANK"] ?? "") ?></td></tr>
-          <tr><th class="table-light">推薦關係</th><td><?= h($recommendation["rec_rel"] ?? "") ?></td></tr>
-          <tr><th class="table-light">請求期限</th><td><?= h($recommendation["expires_at"] ?? "") ?></td></tr>
+          <tr>
+            <th class="table-light" style="width: 180px;">學生姓名</th>
+            <td><?= h($recommendation["student_name"]) ?></td>
+          </tr>
+          <tr>
+            <th class="table-light">學生帳號</th>
+            <td><?= h($recommendation["STID"]) ?></td>
+          </tr>
+          <tr>
+            <th class="table-light">學號</th>
+            <td><?= h($recommendation["SID"] ?? "") ?></td>
+          </tr>
+          <tr>
+            <th class="table-light">系所</th>
+            <td><?= h($recommendation["DNAME"] ?? "") ?></td>
+          </tr>
+          <tr>
+            <th class="table-light">申請獎助學金</th>
+            <td><?= h($recommendation["scholarship_name"]) ?></td>
+          </tr>
+          <tr>
+            <th class="table-light">申請日期</th>
+            <td><?= h($recommendation["APDATE"]) ?></td>
+          </tr>
+          <tr>
+            <th class="table-light">成績</th>
+            <td><?= h($recommendation["GRADE"] ?? "") ?></td>
+          </tr>
+          <tr>
+            <th class="table-light">名次</th>
+            <td><?= h($recommendation["RANK"] ?? "") ?></td>
+          </tr>
+          <tr>
+            <th class="table-light">推薦關係</th>
+            <td><?= h($recommendation["rec_rel"] ?? "") ?></td>
+          </tr>
+          <tr>
+            <th class="table-light">請求期限</th>
+            <td><?= h($recommendation["expires_at"] ?? "") ?></td>
+          </tr>
           <?php if ($statusLabel === "已駁回"): ?>
-            <tr><th class="table-light">駁回來源</th><td><?= h($recommendation["rejected_source"] === "system" ? "系統自動" : "導師手動") ?></td></tr>
-            <tr><th class="table-light">駁回原因</th><td><?= nl2br(h($recommendation["rejected_reason"])) ?></td></tr>
-            <tr><th class="table-light">駁回時間</th><td><?= h($recommendation["rejected_at"]) ?></td></tr>
+            <tr>
+              <th class="table-light">駁回來源</th>
+              <td><?= h($recommendation["rejected_source"] === "system" ? "系統自動" : "導師手動") ?></td>
+            </tr>
+            <tr>
+              <th class="table-light">駁回原因</th>
+              <td><?= nl2br(h($recommendation["rejected_reason"])) ?></td>
+            </tr>
+            <tr>
+              <th class="table-light">駁回時間</th>
+              <td><?= h($recommendation["rejected_at"]) ?></td>
+            </tr>
           <?php endif; ?>
         </tbody>
       </table>
@@ -198,14 +232,14 @@ require __DIR__ . "/../header.php";
         </div>
         <div class="d-flex flex-wrap gap-2">
           <button type="submit" name="action" value="save_draft" class="btn btn-outline-primary">暫存草稿</button>
-          <button type="submit" name="action" value="submit" class="btn btn-primary">提交推薦信</button>
+          <button type="submit" name="action" value="submit" class="btn btn-primary" data-confirm="確定要正式提交推薦信嗎？提交後不可再次編輯。">提交推薦信</button>
         </div>
       </form>
 
       <hr class="my-4">
 
       <h2 class="h5 fw-bold mb-3">駁回撰寫請求</h2>
-      <form method="post" action="reject_recommendation.php" class="vstack gap-3">
+      <form method="post" action="reject_recommendation.php" class="vstack gap-3" data-confirm="確定要駁回這筆推薦信撰寫請求嗎？送出後會通知學生。">
         <input type="hidden" name="token" value="<?= h($token) ?>">
         <div>
           <label for="reason" class="form-label">駁回原因</label>
@@ -219,4 +253,5 @@ require __DIR__ . "/../header.php";
 
 </main>
 </body>
+
 </html>

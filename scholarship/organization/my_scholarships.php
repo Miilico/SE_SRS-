@@ -61,7 +61,7 @@ require __DIR__ . "/../header.php";
     <?php
     if ($selected_id !== 'all' && !empty($selected_id)) {
         $deleteUrl = "delete_scholarship.php?scholarship_id=" . urlencode($selected_id);
-        echo "<a href=\"$deleteUrl\" class=\"btn btn-danger\" onclick=\"return confirm('確定要刪除此獎學金嗎？');\">刪除</a>";
+        echo "<a href=\"$deleteUrl\" class=\"btn btn-danger\" data-confirm=\"確定要刪除此獎學金嗎？此操作無法復原。\">刪除</a>";
     }
     ?>
     <noscript><button type="submit" class="btn btn-primary">瀏覽</button></noscript>
@@ -91,13 +91,7 @@ require __DIR__ . "/../header.php";
                         <p class="mb-1"><strong>申請條件：</strong> <?php echo htmlspecialchars($s['CONDI']); ?></p>
                         <p class="mb-1"><strong>金額：</strong> $<?php echo htmlspecialchars($s['AMOUNT']); ?></p>
                         <p class="mb-2"><strong>狀態：</strong>
-                            <?php if ($status === '尚未開始'): ?>
-                                <span class="badge bg-warning text-dark">尚未開始</span>
-                            <?php elseif ($status === '開放中'): ?>
-                                <span class="badge bg-success">開放中</span>
-                            <?php else: ?>
-                                <span class="badge bg-secondary">已截止</span>
-                            <?php endif; ?>
+                            <?= site_status_badge($status, "scholarship") ?>
                         </p>
                         <a href="view_applicants.php?provider_id=<?php echo urlencode($provider_id); ?>&scholarship_id=<?php echo $s['id']; ?>"
                             class="btn btn-outline-primary btn-sm w-100">

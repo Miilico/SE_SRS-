@@ -4,8 +4,8 @@ require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/../recommendation_helpers.php";
 
 if (empty($_SESSION["user"]) || !in_array((int)$_SESSION["user"]["role"], array(2, 3), true)) {
-    http_response_code(403);
-    exit("Forbidden: role required");
+  http_response_code(403);
+  exit("Forbidden: role required");
 }
 
 ensure_application_files_table($pdo);
@@ -13,32 +13,32 @@ tar_auto_reject_overdue_recommendations($pdo);
 
 function h($value)
 {
-    return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
+  return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
 }
 
 function mask_private_id($value)
 {
-    $value = trim((string)$value);
-    $len = strlen($value);
-    if ($len <= 4) {
-        return str_repeat("*", $len);
-    }
+  $value = trim((string)$value);
+  $len = strlen($value);
+  if ($len <= 4) {
+    return str_repeat("*", $len);
+  }
 
-    return substr($value, 0, 2) . str_repeat("*", max(3, $len - 4)) . substr($value, -2);
+  return substr($value, 0, 2) . str_repeat("*", max(3, $len - 4)) . substr($value, -2);
 }
 
 function mask_phone($value)
 {
-    $digits = preg_replace("/\D+/", "", (string)$value);
-    $len = strlen($digits);
-    if ($len === 0) {
-        return "";
-    }
-    if ($len <= 6) {
-        return substr($digits, 0, 1) . str_repeat("*", max(0, $len - 2)) . substr($digits, -1);
-    }
+  $digits = preg_replace("/\D+/", "", (string)$value);
+  $len = strlen($digits);
+  if ($len === 0) {
+    return "";
+  }
+  if ($len <= 6) {
+    return substr($digits, 0, 1) . str_repeat("*", max(0, $len - 2)) . substr($digits, -1);
+  }
 
-    return substr($digits, 0, 3) . str_repeat("*", max(3, $len - 6)) . substr($digits, -3);
+  return substr($digits, 0, 3) . str_repeat("*", max(3, $len - 6)) . substr($digits, -3);
 }
 
 $sid = isset($_GET["sid"]) ? trim($_GET["sid"]) : "";
@@ -49,34 +49,34 @@ $currentRole = isset($_SESSION["user"]["role"]) ? (int)$_SESSION["user"]["role"]
 $currentUserId = isset($_SESSION["user"]["id"]) ? $_SESSION["user"]["id"] : "";
 
 if ($sid !== "") {
-    $studentStmt = $pdo->prepare("
+  $studentStmt = $pdo->prepare("
         SELECT u.ID, u.NAME, u.EMAIL, u.TEL, s.SID, s.DNAME
         FROM users u
         JOIN students s ON u.ID = s.ID
         WHERE u.ROLE = 1 AND (u.ID = :sid OR s.SID = :sid)
         LIMIT 1
     ");
-    $studentStmt->execute(array(":sid" => $sid));
-    $student = $studentStmt->fetch(PDO::FETCH_ASSOC);
+  $studentStmt->execute(array(":sid" => $sid));
+  $student = $studentStmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($student && $currentRole !== 3) {
-        $accessStmt = $pdo->prepare("
+  if ($student && $currentRole !== 3) {
+    $accessStmt = $pdo->prepare("
             SELECT 1
             FROM recommendations r
             JOIN application a ON r.application_id = a.APNO
             WHERE a.STID = :student_id AND r.teacher_id = :teacher_id
             LIMIT 1
         ");
-        $accessStmt->execute(array(
-            ":student_id" => $student["ID"],
-            ":teacher_id" => $currentUserId,
-        ));
-        $accessDenied = !$accessStmt->fetchColumn();
-    }
+    $accessStmt->execute(array(
+      ":student_id" => $student["ID"],
+      ":teacher_id" => $currentUserId,
+    ));
+    $accessDenied = !$accessStmt->fetchColumn();
+  }
 
-    if ($student && !$accessDenied) {
-        if ($currentRole === 3) {
-            $sql = "
+  if ($student && !$accessDenied) {
+    if ($currentRole === 3) {
+      $sql = "
                 SELECT
                     a.APNO,
                     a.APDATE,
@@ -101,10 +101,10 @@ if ($sid !== "") {
                 WHERE a.STID = :student_id
                 ORDER BY a.APDATE DESC, a.APNO DESC
             ";
-            $appStmt = $pdo->prepare($sql);
-            $appStmt->execute(array(":student_id" => $student["ID"]));
-        } else {
-            $sql = "
+      $appStmt = $pdo->prepare($sql);
+      $appStmt->execute(array(":student_id" => $student["ID"]));
+    } else {
+      $sql = "
                 SELECT
                     a.APNO,
                     a.APDATE,
@@ -130,15 +130,15 @@ if ($sid !== "") {
                 WHERE a.STID = :student_id
                 ORDER BY a.APDATE DESC, a.APNO DESC
             ";
-            $appStmt = $pdo->prepare($sql);
-            $appStmt->execute(array(
-                ":teacher_id" => $currentUserId,
-                ":student_id" => $student["ID"],
-            ));
-        }
-
-        $applications = $appStmt->fetchAll(PDO::FETCH_ASSOC);
+      $appStmt = $pdo->prepare($sql);
+      $appStmt->execute(array(
+        ":teacher_id" => $currentUserId,
+        ":student_id" => $student["ID"],
+      ));
     }
+
+    $applications = $appStmt->fetchAll(PDO::FETCH_ASSOC);
+  }
 }
 
 $pageTitle = "學生資料檢視";
@@ -169,12 +169,30 @@ require __DIR__ . "/../header.php";
       <div class="table-responsive">
         <table class="table table-bordered align-middle mb-0">
           <tbody>
-            <tr><th class="table-light" style="width: 180px;">姓名</th><td><?= h($student["NAME"]) ?></td></tr>
-            <tr><th class="table-light">系統帳號</th><td><?= h(mask_private_id($student["ID"])) ?></td></tr>
-            <tr><th class="table-light">學號</th><td><?= h($student["SID"]) ?></td></tr>
-            <tr><th class="table-light">科系</th><td><?= h($student["DNAME"]) ?></td></tr>
-            <tr><th class="table-light">Email</th><td><?= h($student["EMAIL"]) ?></td></tr>
-            <tr><th class="table-light">電話</th><td><?= h(mask_phone($student["TEL"])) ?></td></tr>
+            <tr>
+              <th class="table-light" style="width: 180px;">姓名</th>
+              <td><?= h($student["NAME"]) ?></td>
+            </tr>
+            <tr>
+              <th class="table-light">系統帳號</th>
+              <td><?= h(mask_private_id($student["ID"])) ?></td>
+            </tr>
+            <tr>
+              <th class="table-light">學號</th>
+              <td><?= h($student["SID"]) ?></td>
+            </tr>
+            <tr>
+              <th class="table-light">科系</th>
+              <td><?= h($student["DNAME"]) ?></td>
+            </tr>
+            <tr>
+              <th class="table-light">Email</th>
+              <td><?= h($student["EMAIL"]) ?></td>
+            </tr>
+            <tr>
+              <th class="table-light">電話</th>
+              <td><?= h(mask_phone($student["TEL"])) ?></td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -210,9 +228,9 @@ require __DIR__ . "/../header.php";
                   <td><?= h($app["GRADE"] ?? "") ?></td>
                   <td><?= h($app["RANK"] ?? "") ?></td>
                   <td>NT$ <?= number_format((int)$app["AMOUNT"]) ?></td>
-                  <td><span class="badge rounded-pill text-bg-light border"><?= h($app["RESULT"]) ?></span></td>
+                  <td><?= site_status_badge($app["RESULT"]) ?></td>
                   <td>
-                    <span class="badge rounded-pill text-bg-secondary"><?= h(tar_recommendation_status_label($app)) ?></span>
+                    <?= site_status_badge(tar_recommendation_status_label($app), "recommendation") ?>
                     <?php if (($app["status"] ?? "") === "rejected" && !empty($app["rejected_reason"])): ?>
                       <div class="small text-secondary mt-1">
                         <?= h($app["rejected_source"] === "system" ? "系統自動" : "導師手動") ?>：<?= h($app["rejected_reason"]) ?>
@@ -231,4 +249,5 @@ require __DIR__ . "/../header.php";
 
 </main>
 </body>
+
 </html>

@@ -12,7 +12,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["approve_id"])) {
     WHERE id = ?  AND status = 'pending'
   ");
   $stmt->execute([$id]);
-  header("Location: admin_users_pending.php");
+  header("Location: admin_users_pending.php?msg=" . urlencode("帳號審核已通過"));
   exit;
 }
 
@@ -38,34 +38,34 @@ $activeNav = "admin_users_pending.php";
 ?>
 <?php require __DIR__ . "/../header.php"; ?>
 
-  <div class="admin-page-head">
-    <div>
-      <h1 class="admin-page-title">待審核帳號</h1>
-      <div class="admin-page-subtitle">審核獎助學金單位註冊申請；學生與教師註冊後可直接登入。</div>
-    </div>
+<div class="admin-page-head">
+  <div>
+    <h1 class="admin-page-title">待審核帳號</h1>
+    <div class="admin-page-subtitle">審核獎助學金單位註冊申請；學生與教師註冊後可直接登入。</div>
   </div>
+</div>
 
-  <div class="card">
-    <div class="card-body">
+<div class="card">
+  <div class="card-body">
 
-      <?php if (!$rows): ?>
-        <div class="text-muted">目前沒有待審核的獎助學金單位帳號。</div>
-      <?php else: ?>
+    <?php if (!$rows): ?>
+      <div class="text-muted">目前沒有待審核的獎助學金單位帳號。</div>
+    <?php else: ?>
 
-        <div class="table-responsive">
-          <table class="table align-middle">
-            <thead>
-              <tr>
-                <th>使用者 ID</th>
-                <th>角色</th>
-                <th>姓名</th>
-                <th>Email</th>
-                <th>電話</th>
-                <th>申請時間</th>
-                <th class="text-end">操作</th>
-              </tr>
-            </thead>
-            <tbody>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>使用者 ID</th>
+              <th>角色</th>
+              <th>姓名</th>
+              <th>Email</th>
+              <th>電話</th>
+              <th>申請時間</th>
+              <th class="text-end">操作</th>
+            </tr>
+          </thead>
+          <tbody>
             <?php foreach ($rows as $r): ?>
               <tr>
                 <td><?= htmlspecialchars($r["id"]) ?></td>
@@ -76,21 +76,22 @@ $activeNav = "admin_users_pending.php";
                 <td><?= htmlspecialchars($r["tel"]) ?></td>
                 <td><?= htmlspecialchars($r["created_at"]) ?></td>
                 <td class="text-end">
-                  <form method="post" class="d-inline">
+                  <form method="post" class="d-inline" data-confirm="確定要通過這個帳號審核嗎？">
                     <input type="hidden" name="approve_id" value="<?= htmlspecialchars($r["id"]) ?>">
                     <button class="btn btn-success btn-sm">核准</button>
                   </form>
                 </td>
               </tr>
             <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
+          </tbody>
+        </table>
+      </div>
 
-      <?php endif; ?>
+    <?php endif; ?>
 
-    </div>
   </div>
+</div>
 </main>
 </body>
+
 </html>
