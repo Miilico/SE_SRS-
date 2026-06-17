@@ -101,7 +101,7 @@ CREATE TABLE `application` (
   CONSTRAINT `application_ibfk_1` FOREIGN KEY (`STID`) REFERENCES `students` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `application_ibfk_2` FOREIGN KEY (`OID`) REFERENCES `organization` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `application_ibfk_3` FOREIGN KEY (`SCID`) REFERENCES `scholarship` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=41 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -110,6 +110,11 @@ CREATE TABLE `application` (
 
 LOCK TABLES `application` WRITE;
 /*!40000 ALTER TABLE `application` DISABLE KEYS */;
+INSERT INTO `application` VALUES
+(37,'/scholarship/uploads/ap37_autobi_20260617_000109_6a317345f2f68.pdf','3/22','2026-06-17',99,111,'審查中','A1112222','JXJ777',45,'11',0),
+(38,'/scholarship/file_view.php?id=1','10/48','2026-06-17',4,100,'審查中','A1112222','aa1129',46,'測試',0),
+(39,'/scholarship/file_view.php?id=4','2','2026-06-17',22,100,'審查中','A1112222','aa1129',46,'測試',0),
+(40,'/scholarship/file_view.php?id=7','11','2026-06-17',11,111,'審查中','A1112222','JXJ777',45,'11',0);
 /*!40000 ALTER TABLE `application` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -122,14 +127,32 @@ DROP TABLE IF EXISTS `application_files`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `application_files` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `apno` int(11) NOT NULL,
+  `apno` int(11) DEFAULT NULL,
   `file_type` varchar(50) NOT NULL,
   `original_name` varchar(255) NOT NULL,
   `path` varchar(255) NOT NULL,
+  `uploader_id` char(10) DEFAULT NULL,
+  `file_category` int(11) NOT NULL DEFAULT 2,
+  `stored_name` varchar(255) DEFAULT NULL,
+  `mime_type` varchar(120) DEFAULT NULL,
+  `file_size` int(11) DEFAULT 0,
+  `file_path` varchar(500) DEFAULT NULL,
+  `announcement_id` int(11) DEFAULT NULL,
+  `application_id` int(11) DEFAULT NULL,
+  `scholarship_id` int(11) DEFAULT NULL,
+  `scholarship_provider_id` char(10) DEFAULT NULL,
+  `ticket_id` int(11) DEFAULT NULL,
+  `recommendation_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `apno` (`apno`),
+  KEY `idx_application_files_category` (`file_category`),
+  KEY `idx_application_files_announcement` (`announcement_id`),
+  KEY `idx_application_files_application` (`application_id`),
+  KEY `idx_application_files_ticket` (`ticket_id`),
+  KEY `idx_application_files_provider` (`scholarship_provider_id`),
   CONSTRAINT `application_files_ibfk_1` FOREIGN KEY (`apno`) REFERENCES `application` (`APNO`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -138,6 +161,14 @@ CREATE TABLE `application_files` (
 
 LOCK TABLES `application_files` WRITE;
 /*!40000 ALTER TABLE `application_files` DISABLE KEYS */;
+INSERT INTO `application_files` VALUES
+(1,37,'autobi','2026年期刊訂購清單.pdf','/scholarship/uploads/ap37_autobi_20260617_000109_6a317345f2f68.pdf',NULL,2,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-06-17 01:10:29'),
+(2,37,'support','2026年期刊訂購清單.pdf','/scholarship/uploads/ap37_support_20260617_000109_6a317345f31ea.pdf',NULL,2,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-06-17 01:10:29'),
+(3,38,'autobi','2026年期刊訂購清單.pdf','/scholarship/file_view.php?id=1',NULL,2,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-06-17 01:10:29'),
+(4,39,'autobi','2026年期刊訂購清單.pdf','/scholarship/file_view.php?id=4','A1112222',2,'f2_20260617_011049_6a31839969b139661008621266.pdf','application/octet-stream',437177,'user_file/f2_20260617_011049_6a31839969b139661008621266.pdf',NULL,39,46,'aa1129',NULL,NULL,'2026-06-17 01:10:49'),
+(5,NULL,'ticket','逢甲大學_智慧製造學程_科目對照表_F_20260122.xlsx','/scholarship/file_view.php?id=5','aa1129',3,'f3_20260617_011805_6a31854dacd344780497983050.xlsx','application/octet-stream',42103,'user_file/f3_20260617_011805_6a31854dacd344780497983050.xlsx',NULL,NULL,NULL,NULL,3,NULL,'2026-06-17 01:18:05'),
+(6,NULL,'ticket','1709385712433.jpg','/scholarship/file_view.php?id=6','Z0000000',3,'f3_20260617_012658_6a31876238e8c6787852229410.jpg','application/octet-stream',108107,'user_file/f3_20260617_012658_6a31876238e8c6787852229410.jpg',NULL,NULL,NULL,NULL,3,NULL,'2026-06-17 01:26:58'),
+(7,40,'autobi','제출_서류_체크리스트.pdf','/scholarship/file_view.php?id=7','A1112222',2,'f2_20260617_015328_6a318d98318cf6987444664063.pdf','application/octet-stream',79105,'user_file/f2_20260617_015328_6a318d98318cf6987444664063.pdf',NULL,40,45,'JXJ777',NULL,NULL,'2026-06-17 01:53:28');
 /*!40000 ALTER TABLE `application_files` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -163,6 +194,8 @@ CREATE TABLE `ophone` (
 LOCK TABLES `ophone` WRITE;
 /*!40000 ALTER TABLE `ophone` DISABLE KEYS */;
 INSERT INTO `ophone` VALUES
+('aa1129','0999999999'),
+('aaa111','0201111999'),
 ('JXJ777','0206555444'),
 ('S1111111','11111111'),
 ('S2222222','22222222'),
@@ -200,6 +233,8 @@ CREATE TABLE `organization` (
 LOCK TABLES `organization` WRITE;
 /*!40000 ALTER TABLE `organization` DISABLE KEYS */;
 INSERT INTO `organization` VALUES
+('aa1129','花蓮希望基金會','陳專員'),
+('aaa111','孫中山基金會','王先生'),
 ('JXJ777','臺北市關帝廟聯誼會','張小姐'),
 ('S1111111','S111','S111聯絡人'),
 ('S2222222','S222','S222聯絡人'),
@@ -263,7 +298,7 @@ CREATE TABLE `scholarship` (
   PRIMARY KEY (`id`),
   KEY `provider_id` (`provider_id`),
   CONSTRAINT `scholarship_ibfk_1` FOREIGN KEY (`provider_id`) REFERENCES `users` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=47 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -283,7 +318,9 @@ INSERT INTO `scholarship` VALUES
 (41,'台灣國際造船股份有限公司獎學金(限理工科','S9999999','2026-01-30','1. 對象:以就讀於國立(科技大學之理工相關科系(以造船、輪機、電機、機械、\r\n海洋工程尤佳)大學三年級(含)以上、碩士班及博士班在學學生(須具中\r\n華民國國籍且不得兼具外國國籍)為主。\r\n2. 惟任何在職進修或專班以及本公司現職或留資停薪人員均不得申請。',10000,'2025-12-31'),
 (42,'115年度「獎勵農漁民子女就學金作業計畫','S8888888','2026-01-10','本部各類學雜費減免或同性質之助學措施(簡稱本部就學\r\n補助)多訂有「已獲政府其他相關學雜費減免、補助或與\r\n補助學雜費性質相當之給付者,不得重複申領」之規\r\n定, 除法規另有規定外,學生應擇一申領。',8888,'2025-12-28'),
 (43,'高雄市模範父親協會在學優秀青年','S8888888','2026-02-04','凡就讀國內公私立大專校院、高中職校之應屆畢業生(民國 115\r\n年畢業者)，並符合以下條件者皆可申請。\r\n一、 113學年度上下學期之智育成績(學期總成績)均須達70分以\r\n上。\r\n二、 在校期間持有本獎學金各獎項指定之認證或鑑定合格證\r\n書，且於 110 年 1 月 1 日至 115 年 1 月 31 日間取得。',7777,'2026-01-22'),
-(44,'114學年度財團法人中華民國電腦技能基金','S8888888','2026-01-22','凡就讀國內公私立大專校院、高中職校之應屆畢業生(民國 115\r\n年畢業者)，並符合以下條件者皆可申請。\r\n一、 113學年度上下學期之智育成績(學期總成績)均須達70分以\r\n上。\r\n二、 在校期間持有本獎學金各獎項指定之認證或鑑定合格證\r\n書，且於 110 年 1 月 1 日至 115 年 1 月 31 日間取得。\r\n(報考或申請換補發證照之核發作業需時一個月，有意申請\r\n獎學金者，請注意需在獎學金申請截止時間前取得證書)\r\n三、 申請 TQC 項目者，一般證照：成績需達 80 分以上；輸入類：\r\n中文輸入、英文輸入、日文輸入及數字輸入皆須達專業級以\r\n上才可申請。TQC 專業人事人員別中文輸入需達到進階級\r\n得以申請。',10000,'2026-01-14');
+(44,'114學年度財團法人中華民國電腦技能基金','S8888888','2026-01-22','凡就讀國內公私立大專校院、高中職校之應屆畢業生(民國 115\r\n年畢業者)，並符合以下條件者皆可申請。\r\n一、 113學年度上下學期之智育成績(學期總成績)均須達70分以\r\n上。\r\n二、 在校期間持有本獎學金各獎項指定之認證或鑑定合格證\r\n書，且於 110 年 1 月 1 日至 115 年 1 月 31 日間取得。\r\n(報考或申請換補發證照之核發作業需時一個月，有意申請\r\n獎學金者，請注意需在獎學金申請截止時間前取得證書)\r\n三、 申請 TQC 項目者，一般證照：成績需達 80 分以上；輸入類：\r\n中文輸入、英文輸入、日文輸入及數字輸入皆須達專業級以\r\n上才可申請。TQC 專業人事人員別中文輸入需達到進階級\r\n得以申請。',10000,'2026-01-14'),
+(45,'11','JXJ777','2099-02-02','111',111,'1011-11-11'),
+(46,'測試','aa1129','2026-07-11','test',100,'2026-06-17');
 /*!40000 ALTER TABLE `scholarship` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -366,7 +403,7 @@ CREATE TABLE `ticket_messages` (
   KEY `fk_ticket_messages_sender` (`SENDER_ID`),
   CONSTRAINT `fk_ticket_messages_sender` FOREIGN KEY (`SENDER_ID`) REFERENCES `users` (`ID`),
   CONSTRAINT `fk_ticket_messages_ticket` FOREIGN KEY (`TICKET_ID`) REFERENCES `tickets` (`TICKET_ID`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -380,7 +417,10 @@ INSERT INTO `ticket_messages` VALUES
 (2,1,'Z0000000','22222','2026-06-16 21:55:20'),
 (3,2,'A1112222','aaaaaaaa','2026-06-16 22:01:57'),
 (4,2,'Z0000000','yyyyyy','2026-06-16 22:02:09'),
-(5,2,'A1112222','1111','2026-06-16 22:02:13');
+(5,2,'A1112222','1111','2026-06-16 22:02:13'),
+(6,3,'aa1129','1111111aaaaa','2026-06-17 01:18:05'),
+(7,3,'Z0000000','測試aaaaa','2026-06-17 01:18:24'),
+(9,3,'Z0000000','附件測試上傳','2026-06-17 01:26:58');
 /*!40000 ALTER TABLE `ticket_messages` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -404,7 +444,7 @@ CREATE TABLE `tickets` (
   KEY `fk_tickets_admin` (`ADMIN_ID`),
   CONSTRAINT `fk_tickets_admin` FOREIGN KEY (`ADMIN_ID`) REFERENCES `users` (`ID`),
   CONSTRAINT `fk_tickets_user` FOREIGN KEY (`USER_ID`) REFERENCES `users` (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -415,7 +455,8 @@ LOCK TABLES `tickets` WRITE;
 /*!40000 ALTER TABLE `tickets` DISABLE KEYS */;
 INSERT INTO `tickets` VALUES
 (1,'Z0000000','Z0000000','111','closed','2026-06-16 21:55:03','2026-06-16 21:55:03'),
-(2,'A1112222','Z0000000','測試','open','2026-06-16 22:01:57','2026-06-16 22:02:13');
+(2,'A1112222','Z0000000','測試','open','2026-06-16 22:01:57','2026-06-16 22:02:13'),
+(3,'aa1129','Z0000000','111test','closed','2026-06-17 01:18:05','2026-06-17 01:18:24');
 /*!40000 ALTER TABLE `tickets` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -451,8 +492,10 @@ INSERT INTO `users` VALUES
 ('A1112222',1,'A1112222','A1112222@mail.nuk.edu.tw','0911222222','$2y$10$v4gAm7j7iG2HNYQjZDi/J.v6FV30l47AVS5yP2u/WXdlyGVsu00UG','active','2026-06-16 14:01:30'),
 ('a1115555',1,'張雪梅','a1115532@mail.nuk.edu.tw','0922666333','$2y$10$7nGFtTx8SzgjhVNaoOPqGeuhmGzV8vAB3iAIBge8Uk/WQjX/o3V1m','active','2026-06-11 17:05:30'),
 ('A2222222',1,'學生2','A2222222@mail.nuk.edu.tw','0922222222','$2y$10$Jp49FbL7EtH47Ff36nSMseXaI7Dbgz.SAERLmsEkIs1xDdhZ7vip2','active','2025-12-31 18:06:13'),
-('A3333333',1,'學生3','A3333333@mail.nuk.edu.tw','0933333333','$2y$10$tnFvJvi7vtp2ruRncq2.Cuc87pSy/2FmmESkyhJTkDmOCoAnO4TMC','pending','2026-01-11 18:51:04'),
+('A3333333',1,'學生3','A3333333@mail.nuk.edu.tw','0933333333','$2y$10$tnFvJvi7vtp2ruRncq2.Cuc87pSy/2FmmESkyhJTkDmOCoAnO4TMC','active','2026-01-11 18:51:04'),
 ('A5555555',1,'學生5','A5555555@mail.nuk.edu.tw','0955555551','$2y$10$BlAJpG/usQtUI9ypXJe4r.XorMF93GIOgchmCeqZ8AbMaRr3FtWHi','active','2025-10-05 18:12:06'),
+('aa1129',4,'花蓮希望基金會','HLhope.org@443.gs','0999999999','$2y$10$MPyZRTFr1L9YqrjKpS2KIuArzds46s35b5VkSIZfFxpZrxDSsfDZO','active','2026-06-16 16:11:52'),
+('aaa111',4,'孫中山基金會','sys@443.gs','0201111999','$2y$10$NE1rtgpWxADZf1trRBTzROfk15Jto0V4YrPew32lmNJugIEytNiCO','pending','2026-06-16 16:30:32'),
 ('JXJ777',4,'臺北市關帝廟聯誼會','JXJ777@443.gs','0206555444','$2y$10$EGxLbYz1XF6vwfFMJSt44uLlRxDPTtDaDJKCzUL4X2uhlwn9VcYtq','active','2026-06-16 15:47:10'),
 ('S1111111',4,'S111','S1111111@gmail.com','11111111','$2y$10$qirkHzwKMnshSMxVfVPusuKKdXgaIWTh5UfP.UjDbd8NAU7pWfJXW','active','2026-01-11 11:17:32'),
 ('S2222222',4,'S222','S2222222@gmail.com','22222222','$2y$10$tW.fCY93JDdyRgTxGoWIcebcaBtZaOobfieuqQpd6hodD.VDu9Pk.','active','2026-01-11 11:16:23'),
@@ -462,7 +505,7 @@ INSERT INTO `users` VALUES
 ('S9999999',4,'S999','S9999999@gmail.com','99999999','$2y$10$CsONXdPoXH/yDmAkQhXBhuJT2ciWjSq2DCpofkGBD1JTMY9owX8.u','active','2026-01-11 07:06:42'),
 ('T1111111',2,'老師1','T1111111@mail.nuk.edu.tw','0900000001','$2y$10$EB2Tp6wbHIAC82TFSz0afOaKkCPWwlAlOE9bM7o3W02r7rQorBfi6','active','2026-01-10 18:06:03'),
 ('T2222222',2,'老師2','T2222222@mail.nuk.edu.tw','0900000002','$2y$10$qWBRJGj9YNFIsmWopfJ7geT6tCY2bmsFmzuKSSei5nvTz7vGQC7Da','active','2026-01-06 20:02:10'),
-('T3333333',2,'老師3','T3333333@mail.nuk.edu.tw','0900000003','$2y$10$j4gQYGAaMTgcZu3pMykIt.VljeGoxK5FQqGR14N4rcOVYxb.SSs5C','pending','2026-01-11 18:52:46'),
+('T3333333',2,'老師3','T3333333@mail.nuk.edu.tw','0900000003','$2y$10$j4gQYGAaMTgcZu3pMykIt.VljeGoxK5FQqGR14N4rcOVYxb.SSs5C','active','2026-01-11 18:52:46'),
 ('Z0000000',3,'管理員0','Z0000000@mail.nuk.edu.tw','0900000000','$2y$10$7nGFtTx8SzgjhVNaoOPqGeuhmGzV8vAB3iAIBge8Uk/WQjX/o3V1m','active','2025-12-31 19:17:10');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -484,4 +527,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-16 23:58:30
+-- Dump completed on 2026-06-17 18:00:49
