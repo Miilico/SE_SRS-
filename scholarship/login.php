@@ -26,29 +26,29 @@ require __DIR__ . "/header.php";
             <?= htmlspecialchars($_GET["msg"], ENT_QUOTES, "UTF-8") ?>
           </div>
         <?php endif; ?>
+
         <form method="post" action="login_submit.php" class="vstack gap-3">
           <div>
-            <label class="form-label fw-semibold">使用者 ID</label>
-            <input class="form-control" name="id" maxlength="10" required placeholder="例如：S123456789" autocomplete="username">
+            <label class="form-label fw-semibold" for="id">使用者 ID</label>
+            <input class="form-control" id="id" name="id" maxlength="10" required placeholder="例如 A1234567" autocomplete="username">
           </div>
 
           <div>
-            <label class="form-label fw-semibold">密碼</label>
-            <input class="form-control" type="password" name="pwd" maxlength="64" required placeholder="請輸入密碼" autocomplete="current-password">
+            <label class="form-label fw-semibold" for="pwd">密碼</label>
+            <input class="form-control" id="pwd" type="password" name="pwd" maxlength="64" required placeholder="請輸入密碼" autocomplete="current-password">
+            <div class="text-end mt-2">
+              <a href="forgot_password.php" class="small text-decoration-none">忘記密碼？</a>
+            </div>
           </div>
 
           <button type="submit" class="btn btn-primary w-100 fw-semibold">
             登入
           </button>
 
-          <div class="text-center text-muted small mt-1">
-            若帳號/密碼有問題，請洽系辦或管理員
+          <div class="text-center mt-3">
+            <span class="text-muted small">還沒有帳號？</span>
+            <a class="btn btn-outline-primary btn-sm ms-2" href="register.php">註冊</a>
           </div>
-
-	  <div class="text-center mt-3">
-  	  <span class="text-muted small">還沒有帳號？</span>
- 	   <a class="btn btn-outline-primary btn-sm ms-2" href="register.php">註冊</a>
-	  </div>
         </form>
       </div>
     </div>
