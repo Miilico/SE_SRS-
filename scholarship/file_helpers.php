@@ -1,14 +1,115 @@
 <?php
 
-function ensure_application_files_table($pdo) {
-    return;
+function table_has_column($pdo, $tableName, $columnName)
+{
+    $stmt = $pdo->prepare("SHOW COLUMNS FROM `$tableName` LIKE ?");
+    $stmt->execute(array($columnName));
+    return (bool)$stmt->fetch();
 }
 
-function uploaded_file_view_url($fileId) {
+function table_has_index($pdo, $tableName, $indexName)
+{
+    $stmt = $pdo->prepare("SHOW INDEX FROM `$tableName` WHERE Key_name = ?");
+    $stmt->execute(array($indexName));
+    return (bool)$stmt->fetch();
+}
+
+function ensure_application_files_table($pdo)
+{
+    $columns = array(
+        "uploader_id" => "ALTER TABLE application_files ADD COLUMN uploader_id char(10) NULL AFTER path",
+        "file_category" => "ALTER TABLE application_files ADD COLUMN file_category int(11) NULL AFTER uploader_id",
+        "stored_name" => "ALTER TABLE application_files ADD COLUMN stored_name varchar(255) NULL AFTER file_category",
+        "mime_type" => "ALTER TABLE application_files ADD COLUMN mime_type varchar(255) NULL AFTER stored_name",
+        "file_size" => "ALTER TABLE application_files ADD COLUMN file_size int(11) NULL AFTER mime_type",
+        "file_path" => "ALTER TABLE application_files ADD COLUMN file_path varchar(255) NULL AFTER file_size",
+        "announcement_id" => "ALTER TABLE application_files ADD COLUMN announcement_id int(11) NULL AFTER file_path",
+        "application_id" => "ALTER TABLE application_files ADD COLUMN application_id int(11) NULL AFTER announcement_id",
+        "scholarship_id" => "ALTER TABLE application_files ADD COLUMN scholarship_id int(11) NULL AFTER application_id",
+        "scholarship_provider_id" => "ALTER TABLE application_files ADD COLUMN scholarship_provider_id char(10) NULL AFTER scholarship_id",
+        "ticket_id" => "ALTER TABLE application_files ADD COLUMN ticket_id int(11) NULL AFTER scholarship_provider_id",
+        "recommendation_id" => "ALTER TABLE application_files ADD COLUMN recommendation_id int(11) NULL AFTER ticket_id",
+        "created_at" => "ALTER TABLE application_files ADD COLUMN created_at datetime DEFAULT CURRENT_TIMESTAMP AFTER recommendation_id",
+    );
+
+    foreach ($columns as $column => $sql) {
+        if (!table_has_column($pdo, "application_files", $column)) {
+            $pdo->exec($sql);
+        }
+    }
+
+    $stmt = $pdo->query("SHOW COLUMNS FROM application_files LIKE 'apno'");
+    $apno = $stmt->fetch();
+    if ($apno && strtoupper((string)$apno["Null"]) === "NO") {
+        $pdo->exec("ALTER TABLE application_files MODIFY apno int(11) NULL");
+    }
+
+    ensure_recommendations_table($pdo);
+}
+
+function ensure_recommendations_table($pdo)
+{
+    if (!table_has_column($pdo, "recommendations", "content")) {
+        return;
+    }
+
+    $stmt = $pdo->query("SHOW COLUMNS FROM recommendations LIKE 'content'");
+    $content = $stmt->fetch();
+    if ($content && strtoupper((string)$content["Null"]) === "NO") {
+        $pdo->exec("ALTER TABLE recommendations MODIFY content text NULL");
+    }
+
+    if (!table_has_column($pdo, "recommendations", "expires_at")) {
+        $pdo->exec("ALTER TABLE recommendations ADD COLUMN expires_at datetime NULL AFTER created_at");
+    }
+
+    if (!table_has_column($pdo, "recommendations", "submitted_at")) {
+        $pdo->exec("ALTER TABLE recommendations ADD COLUMN submitted_at datetime NULL AFTER expires_at");
+    }
+
+    if (!table_has_column($pdo, "recommendations", "draft_content")) {
+        $pdo->exec("ALTER TABLE recommendations ADD COLUMN draft_content text NULL AFTER content");
+    }
+
+    if (!table_has_column($pdo, "recommendations", "status")) {
+        $pdo->exec("ALTER TABLE recommendations ADD COLUMN status varchar(20) NOT NULL DEFAULT 'pending' AFTER submitted_at");
+    }
+
+    if (!table_has_column($pdo, "recommendations", "rejected_reason")) {
+        $pdo->exec("ALTER TABLE recommendations ADD COLUMN rejected_reason text NULL AFTER status");
+    }
+
+    if (!table_has_column($pdo, "recommendations", "rejected_source")) {
+        $pdo->exec("ALTER TABLE recommendations ADD COLUMN rejected_source varchar(20) NULL AFTER rejected_reason");
+    }
+
+    if (!table_has_column($pdo, "recommendations", "rejected_at")) {
+        $pdo->exec("ALTER TABLE recommendations ADD COLUMN rejected_at datetime NULL AFTER rejected_source");
+    }
+
+    if (!table_has_index($pdo, "recommendations", "uq_recommendations_application_id")) {
+        $dupStmt = $pdo->query("
+            SELECT application_id
+            FROM recommendations
+            WHERE application_id IS NOT NULL
+            GROUP BY application_id
+            HAVING COUNT(*) > 1
+            LIMIT 1
+        ");
+
+        if (!$dupStmt->fetch()) {
+            $pdo->exec("ALTER TABLE recommendations ADD UNIQUE KEY uq_recommendations_application_id (application_id)");
+        }
+    }
+}
+
+function uploaded_file_view_url($fileId)
+{
     return "/scholarship/file_view.php?id=" . urlencode((string)$fileId);
 }
 
-function normalize_uploaded_context($context) {
+function normalize_uploaded_context($context)
+{
     return array(
         "announcement_id" => isset($context["announcement_id"]) && $context["announcement_id"] !== "" ? (int)$context["announcement_id"] : null,
         "application_id" => isset($context["application_id"]) && $context["application_id"] !== "" ? (int)$context["application_id"] : null,
@@ -19,7 +120,8 @@ function normalize_uploaded_context($context) {
     );
 }
 
-function guess_upload_mime_type($tmpPath) {
+function guess_upload_mime_type($tmpPath)
+{
     if (function_exists("finfo_open")) {
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         if ($finfo) {
@@ -34,7 +136,8 @@ function guess_upload_mime_type($tmpPath) {
     return "application/octet-stream";
 }
 
-function store_uploaded_file($pdo, $file, $fileType, $uploaderId, $context) {
+function store_uploaded_file($pdo, $file, $fileType, $uploaderId, $context)
+{
     ensure_application_files_table($pdo);
 
     $error = isset($file["error"]) ? (int)$file["error"] : UPLOAD_ERR_NO_FILE;
@@ -59,7 +162,8 @@ function store_uploaded_file($pdo, $file, $fileType, $uploaderId, $context) {
         throw new RuntimeException("檔案大小超過限制");
     }
 
-    $allowedExt = isset($context["allowed_ext"]) ? $context["allowed_ext"] : array("pdf",
+    $allowedExt = isset($context["allowed_ext"]) ? $context["allowed_ext"] : array(
+        "pdf",
         "doc",
         "docx",
         "jpg",
@@ -74,13 +178,15 @@ function store_uploaded_file($pdo, $file, $fileType, $uploaderId, $context) {
         "webp",
         "ppt",
         'pptx',
-        "ods","gif");
+        "ods",
+        "gif"
+    );
     $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
     if ($ext === "" || !in_array($ext, $allowedExt)) {
         throw new RuntimeException("不支援的檔案格式：" . htmlspecialchars($ext, ENT_QUOTES, "UTF-8"));
     }
 
-    $blockedExt = array("apk","mht","php", "phtml", "phar", "exe", "bat", "cmd", "js", "html", "htm");
+    $blockedExt = array("apk", "mht", "php", "phtml", "phar", "exe", "bat", "cmd", "js", "html", "htm");
     if (in_array($ext, $blockedExt)) {
         throw new RuntimeException("此檔案格式不可上傳");
     }
@@ -154,7 +260,8 @@ function store_uploaded_file($pdo, $file, $fileType, $uploaderId, $context) {
     );
 }
 
-function user_can_download_file($pdo, $file, $user) {
+function user_can_download_file($pdo, $file, $user)
+{
     $fileType = isset($file["file_category"]) ? (int)$file["file_category"] : 0;
 
     if ($fileType === 1) {
@@ -243,7 +350,8 @@ function user_can_download_file($pdo, $file, $user) {
     return false;
 }
 
-function fetch_uploaded_files($pdo, $fileType, $contextColumn, $contextValue) {
+function fetch_uploaded_files($pdo, $fileType, $contextColumn, $contextValue)
+{
     ensure_application_files_table($pdo);
 
     $allowedColumns = array(
