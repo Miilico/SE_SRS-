@@ -144,7 +144,7 @@ require __DIR__ . "/../header.php";
     <form action="student_view.php" method="get" class="row g-2 align-items-end">
       <div class="col-md-8 col-lg-5">
         <label class="form-label fw-semibold" for="sid">學生帳號或學號</label>
-        <input class="form-control" id="sid" type="text" name="sid" placeholder="例如 TESTSTU01" required>
+        <input class="form-control" id="sid" type="text" name="sid" required>
       </div>
       <div class="col-md-auto">
         <button type="submit" class="btn btn-primary">查詢</button>
