@@ -67,7 +67,7 @@ function document_uploader_role_label($role)
         case 4:
             return "獎助單位";
         default:
-            return "未知身分";
+            return "未知";
     }
 }
 
@@ -88,7 +88,7 @@ function document_detail_type_label($file)
             "application" => "申請附件",
         );
 
-        return isset($applicationTypes[$fileTypeKey]) ? $applicationTypes[$fileTypeKey] : "申請文件";
+        return isset($applicationTypes[$fileTypeKey]) ? $applicationTypes[$fileTypeKey] : "申請檔案";
     }
 
     if ($category === 3) {
@@ -99,7 +99,7 @@ function document_detail_type_label($file)
         return "推薦信附件";
     }
 
-    return $fileType !== "" ? "其他文件：" . $fileType : "其他文件";
+    return $fileType !== "" ? "其他檔案：" . $fileType : "其他檔案";
 }
 
 function document_context_label($file)
@@ -157,7 +157,7 @@ try {
     die("查詢失敗：" . $e->getMessage());
 }
 
-$pageTitle = "文件管理";
+$pageTitle = "檔案管理";
 $activeNav = "document_management.php";
 $siteHeaderExtraHead = '
 <style>
@@ -285,15 +285,15 @@ $siteHeaderExtraHead = '
 
 <div class="admin-page-head">
     <div>
-        <h1 class="admin-page-title">文件管理</h1>
-        <div class="admin-page-subtitle">清單管理系統文件、附件與上傳資料。</div>
+        <h1 class="admin-page-title">檔案管理</h1>
+        <div class="admin-page-subtitle">管理系統使用者上傳的檔案</div>
     </div>
 </div>
 
 <div class="admin-card">
     <div class="document-filter-section">
         <h2 class="document-filter-heading">篩選</h2>
-        <div class="document-toolbar" aria-label="文件篩選">
+        <div class="document-toolbar" aria-label="檔案篩選">
             <div>
                 <label for="documentFilterFormat">格式</label>
                 <select id="documentFilterFormat">
@@ -304,9 +304,9 @@ $siteHeaderExtraHead = '
                 </select>
             </div>
             <div>
-                <label for="documentFilterDetailType">文件細項</label>
+                <label for="documentFilterDetailType">檔案歸屬</label>
                 <select id="documentFilterDetailType">
-                    <option value="all">全部文件細項</option>
+                    <option value="all">全部檔案歸屬</option>
                     <?php foreach ($detailTypes as $detailType): ?>
                         <option value="<?php echo document_h($detailType); ?>"><?php echo document_h($detailType); ?></option>
                     <?php endforeach; ?>
@@ -329,7 +329,7 @@ $siteHeaderExtraHead = '
                     <option value="推薦人">推薦人</option>
                     <option value="管理員">管理員</option>
                     <option value="獎助單位">獎助單位</option>
-                    <option value="未知身分">未知身分</option>
+                    <option value="未知">未知</option>
                 </select>
             </div>
         </div>
@@ -337,9 +337,9 @@ $siteHeaderExtraHead = '
 
     <div class="document-filter-section">
         <h2 class="document-filter-heading">搜尋</h2>
-        <div class="document-search-grid" aria-label="文件搜尋">
+        <div class="document-search-grid" aria-label="檔案搜尋">
             <div>
-                <label for="documentSearchName">文件名</label>
+                <label for="documentSearchName">檔案名</label>
                 <input id="documentSearchName" type="text" placeholder="原始檔名或儲存檔名">
             </div>
             <div>
@@ -360,7 +360,7 @@ $siteHeaderExtraHead = '
             </div>
             <div>
                 <label for="documentSearchSystem">系統欄位</label>
-                <input id="documentSearchSystem" type="text" placeholder="文件 ID、MIME、子類型">
+                <input id="documentSearchSystem" type="text" placeholder="檔案 ID、MIME、子類型">
             </div>
         </div>
     </div>
@@ -368,7 +368,7 @@ $siteHeaderExtraHead = '
     <form method="post" action="document_process.php" data-document-form>
         <div class="document-bulkbar">
             <div class="muted">
-                顯示 <span id="documentVisibleCount"><?php echo count($files); ?></span> / <?php echo count($files); ?> 份文件，
+                顯示 <span id="documentVisibleCount"><?php echo count($files); ?></span> / <?php echo count($files); ?> 份檔案，
                 已選 <span id="documentSelectedCount">0</span> 份
             </div>
             <button type="submit" name="bulk_delete" value="1" class="btn btn-danger" id="documentBulkDelete" disabled>批量刪除</button>
@@ -379,7 +379,7 @@ $siteHeaderExtraHead = '
                 <thead>
                     <tr>
                         <th><input class="document-check" type="checkbox" id="documentSelectAll" aria-label="全選"></th>
-                        <th>文件</th>
+                        <th>檔案</th>
                         <th>格式</th>
                         <th>類型</th>
                         <th>上傳人</th>
@@ -431,7 +431,7 @@ $siteHeaderExtraHead = '
                             data-context-search="<?php echo document_h($contextSearch); ?>"
                             data-system-search="<?php echo document_h($systemSearch); ?>">
                             <td>
-                                <input class="document-check document-row-check" type="checkbox" name="selected_ids[]" value="<?php echo (int)$file["id"]; ?>" aria-label="選擇文件 <?php echo (int)$file["id"]; ?>">
+                                <input class="document-check document-row-check" type="checkbox" name="selected_ids[]" value="<?php echo (int)$file["id"]; ?>" aria-label="選擇檔案 <?php echo (int)$file["id"]; ?>">
                             </td>
                             <td>
                                 <div class="document-name">
@@ -475,7 +475,7 @@ $siteHeaderExtraHead = '
                     <?php endforeach; ?>
                     <?php if (empty($files)): ?>
                         <tr>
-                            <td colspan="9" class="text-center muted">目前沒有文件。</td>
+                            <td colspan="9" class="text-center muted">目前沒有檔案。</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
@@ -488,7 +488,7 @@ $siteHeaderExtraHead = '
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title fs-5" id="documentPreviewTitle">文件預覽</h2>
+                <h2 class="modal-title fs-5" id="documentPreviewTitle">檔案預覽</h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
             </div>
             <div class="modal-body">
@@ -642,8 +642,8 @@ $siteHeaderExtraHead = '
             form.addEventListener("submit", function(event) {
                 var submitter = event.submitter;
                 var message = submitter && submitter.classList.contains("document-delete-one")
-                    ? "確定要刪除此文件嗎？此操作無法復原。"
-                    : "確定要刪除已選文件嗎？此操作無法復原。";
+                    ? "確定要刪除此檔案嗎？此操作無法復原。"
+                    : "確定要刪除已選檔案嗎？此操作無法復原。";
 
                 if (!window.confirm(message)) {
                     event.preventDefault();
@@ -656,7 +656,7 @@ $siteHeaderExtraHead = '
                 var kind = button.getAttribute("data-preview-kind");
                 var previewUrl = button.getAttribute("data-preview-url");
                 var downloadUrl = button.getAttribute("data-download-url");
-                var fileName = button.getAttribute("data-file-name") || "文件預覽";
+                var fileName = button.getAttribute("data-file-name") || "檔案預覽";
                 var modalEl = document.getElementById("documentPreviewModal");
                 var body = document.getElementById("documentPreviewBody");
                 var title = document.getElementById("documentPreviewTitle");
@@ -696,10 +696,10 @@ $siteHeaderExtraHead = '
                             return mammoth.convertToHtml({ arrayBuffer: buffer });
                         })
                         .then(function(result) {
-                            container.innerHTML = result.value || "此文件沒有可顯示的內容。";
+                            container.innerHTML = result.value || "此檔案沒有可顯示的內容。";
                         })
                         .catch(function() {
-                            container.innerHTML = "此文件暫時無法預覽，請下載查看。";
+                            container.innerHTML = "此檔案暫時無法預覽，請下載查看。";
                         });
                 }
 
