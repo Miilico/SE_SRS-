@@ -208,7 +208,6 @@ require __DIR__ . "/../header.php";
   </div>
 
   <div class="d-flex justify-content-end gap-2 mt-4">
-    <a class="btn btn-outline-secondary" href="/scholarship/student/student-dashboard.php">返回</a>
     <button class="btn btn-primary fw-semibold" type="submit">送出申請</button>
   </div>
 </form>

@@ -43,9 +43,6 @@ $activeNav = "post_management.php";
     <div class="col-12 col-lg-8">
     <div class="card border-0 shadow-sm">
         <div class="card-body p-4 p-md-5">
-        <div class="mb-3">
-            <a href="post_management.php" class="btn btn-outline-secondary btn-sm">返回公告管理清單</a>
-        </div>
         <h1 class="h3 fw-bold mb-1"><?php echo ($mode == 'edit') ? "修改公告內容 (#$id)" : "發佈新消息"; ?></h1>
         <div class="text-secondary mb-4">填寫公告類別、標題與內容後送出。</div>
         
@@ -110,7 +107,7 @@ $activeNav = "post_management.php";
 
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <button type="submit" class="btn btn-primary">確認發佈</button>
-                <a href="post_management.php" class="btn btn-outline-secondary">取消並返回</a>
+                <a href="post_management.php" class="btn btn-outline-secondary">取消</a>
             </div>
         </form>
         </div>

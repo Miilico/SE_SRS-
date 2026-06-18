@@ -282,7 +282,7 @@ require __DIR__ . "/header.php";
 
                         <div class="d-flex flex-column flex-sm-row gap-2 pt-2">
                             <button type="submit" class="btn btn-primary">儲存修改</button>
-                            <a href="profile.php" class="btn btn-outline-secondary">取消返回</a>
+                            <a href="profile.php" class="btn btn-outline-secondary">取消</a>
                         </div>
                     </form>
                 </div>

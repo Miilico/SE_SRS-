@@ -94,9 +94,6 @@ require __DIR__ . "/scholarship/header.php";
             </section>
         <?php endif; ?>
 
-        <div class="d-flex flex-wrap gap-2 mt-4">
-            <a href="/index.php#announcements" class="btn btn-outline-secondary">返回公告列表</a>
-        </div>
     </div>
 </article>
 
