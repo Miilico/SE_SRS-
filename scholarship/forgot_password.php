@@ -14,10 +14,6 @@ require __DIR__ . "/header.php";
       </div>
 
       <div class="p-4">
-        <?php if (!empty($_GET["msg"])): ?>
-          <div class="alert alert-info mb-3"><?= htmlspecialchars($_GET["msg"], ENT_QUOTES, "UTF-8") ?></div>
-        <?php endif; ?>
-
         <?php if (!empty($_SESSION["password_reset_dev_link"])): ?>
           <div class="alert alert-warning mb-3">
             <div class="fw-semibold">本機測試連結</div>

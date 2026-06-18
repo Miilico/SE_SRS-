@@ -10,7 +10,6 @@ $userId = $user["id"];
 $role = (int)$user["role"];
 $isAdmin = ($role === 3);
 $ticketId = isset($_GET["id"]) ? (int)$_GET["id"] : 0;
-$error = isset($_GET["error"]) ? trim($_GET["error"]) : "";
 $ticket = null;
 $messages = [];
 $ticketFiles = [];
@@ -212,10 +211,6 @@ require __DIR__ . "/header.php";
     <div class="card border-0 shadow-sm">
       <div class="card-body p-4">
       <h2 class="h5 fw-bold mb-3">回覆</h2>
-      <?php if ($error !== ""): ?>
-        <div class="alert alert-danger"><?= h($error) ?></div>
-      <?php endif; ?>
-
       <form method="post" action="/scholarship/submit_ticket.php" enctype="multipart/form-data">
         <input type="hidden" name="ticket_id" value="<?= h($ticket["TICKET_ID"]) ?>">
 
@@ -243,10 +238,6 @@ require __DIR__ . "/header.php";
     <div class="card border-0 shadow-sm">
       <div class="card-body p-4">
       <h1 class="h3 fw-bold mb-3">新增工單</h1>
-      <?php if ($error !== ""): ?>
-        <div class="alert alert-danger"><?= h($error) ?></div>
-      <?php endif; ?>
-
       <form method="post" action="/scholarship/submit_ticket.php" enctype="multipart/form-data">
         <div class="mb-3">
           <label class="form-label fw-semibold" for="title">標題</label>

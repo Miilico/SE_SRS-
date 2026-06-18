@@ -3,7 +3,8 @@ require_once __DIR__ . "/config.php";
 
 $old = isset($_SESSION["register_old"]) && is_array($_SESSION["register_old"]) ? $_SESSION["register_old"] : array();
 $errorField = isset($_SESSION["register_error_field"]) ? $_SESSION["register_error_field"] : "";
-unset($_SESSION["register_old"], $_SESSION["register_error_field"]);
+$errorMessage = isset($_SESSION["register_error_message"]) ? $_SESSION["register_error_message"] : "請確認密碼。";
+unset($_SESSION["register_old"], $_SESSION["register_error_field"], $_SESSION["register_error_message"]);
 
 function h($value)
 {
@@ -73,12 +74,6 @@ require __DIR__ . "/header.php";
   </div>
 
   <div class="p-4">
-    <?php if (!empty($_GET["err"])): ?>
-      <div class="alert alert-danger" id="registerError">
-        <?= h($_GET["err"]) ?>
-      </div>
-    <?php endif; ?>
-
     <form method="post" action="register_submit.php" class="vstack gap-3" novalidate>
       <div>
         <label class="form-label fw-semibold" for="role">身分</label>
@@ -141,7 +136,7 @@ require __DIR__ . "/header.php";
         <input class="form-control<?= field_invalid_class("pwd", $errorField) ?>" id="pwd" type="password" name="pwd" maxlength="64" required>
         <div class="form-text">密碼至少 6 碼。</div>
         <?php if ($errorField === "pwd"): ?>
-          <div class="invalid-feedback d-block"><?= h($_GET["err"] ?? "請確認密碼。") ?></div>
+          <div class="invalid-feedback d-block"><?= h($errorMessage) ?></div>
         <?php endif; ?>
       </div>
 
@@ -149,7 +144,7 @@ require __DIR__ . "/header.php";
         <label class="form-label fw-semibold" for="pwd2">確認密碼</label>
         <input class="form-control<?= field_invalid_class("pwd2", $errorField) ?>" id="pwd2" type="password" name="pwd2" maxlength="64" required>
         <?php if ($errorField === "pwd2"): ?>
-          <div class="invalid-feedback d-block"><?= h($_GET["err"] ?? "請確認密碼。") ?></div>
+          <div class="invalid-feedback d-block"><?= h($errorMessage) ?></div>
         <?php endif; ?>
       </div>
 

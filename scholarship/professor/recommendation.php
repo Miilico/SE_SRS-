@@ -104,16 +104,6 @@ require __DIR__ . "/../header.php";
   <?php endif; ?>
 </div>
 
-<?php if (!empty($_GET["saved"])): ?>
-  <div class="alert alert-success">草稿已暫存。</div>
-<?php endif; ?>
-<?php if (!empty($_GET["submitted"])): ?>
-  <div class="alert alert-success">推薦信已提交。提交後不可再次編輯。</div>
-<?php endif; ?>
-<?php if (!empty($_GET["rejected"])): ?>
-  <div class="alert alert-success">推薦信撰寫請求已駁回。</div>
-<?php endif; ?>
-
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-body p-4">
     <div class="d-flex justify-content-between align-items-center gap-3 mb-3">

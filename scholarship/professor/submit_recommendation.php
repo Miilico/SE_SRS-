@@ -4,19 +4,23 @@ require_once __DIR__ . "/../recommendation_helpers.php";
 
 function back_to_recommendation($token, $params = array())
 {
-    $query = array_merge(array("token" => $token), $params);
-    header("Location: /scholarship/professor/recommendation.php?" . http_build_query($query));
+    $message = isset($params["message"]) ? $params["message"] : "";
+    $type = isset($params["type"]) ? $params["type"] : "info";
+    if ($message !== "") {
+        site_flash_add($message, $type);
+    }
+
+    header("Location: /scholarship/professor/recommendation.php?token=" . urlencode($token));
     exit;
 }
 
 function fail_and_back($message, $token)
 {
     if ($token === "") {
-        header("Location: /scholarship/professor/tea_dashboard.php?err=" . urlencode($message));
-        exit;
+        site_flash_redirect("/scholarship/professor/tea_dashboard.php", $message, "danger");
     }
 
-    back_to_recommendation($token, array("err" => $message));
+    back_to_recommendation($token, array("message" => $message, "type" => "danger"));
 }
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
@@ -102,7 +106,7 @@ if ($action === "save_draft") {
         ":token" => $token,
     ));
 
-    back_to_recommendation($token, array("saved" => "1"));
+    back_to_recommendation($token, array("message" => "草稿已暫存。", "type" => "success"));
 }
 
 if ($content === "") {
@@ -178,7 +182,7 @@ try {
     }
 
     $pdo->commit();
-    back_to_recommendation($token, array("submitted" => "1"));
+    back_to_recommendation($token, array("message" => "推薦信已提交。提交後不可再次編輯。", "type" => "success"));
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();

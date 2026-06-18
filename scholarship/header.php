@@ -195,20 +195,25 @@ if (!defined("SITE_HEADER_FUNCTIONS_LOADED")) {
 
     function site_header_render_flash_messages()
     {
-        $messages = array(
-            "msg" => "success",
-            "success" => "success",
-            "err" => "danger",
-            "error" => "danger",
-        );
+        if (!function_exists("site_flash_take_all")) {
+            return;
+        }
 
-        foreach ($messages as $key => $type) {
-            if (isset($_GET[$key]) && trim((string)$_GET[$key]) !== "") {
-                echo '<div class="alert alert-' . $type . ' alert-dismissible fade show" role="alert">';
-                echo site_header_h($_GET[$key]);
-                echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="關閉"></button>';
-                echo '</div>';
+        foreach (site_flash_take_all() as $flash) {
+            if (!is_array($flash)) {
+                continue;
             }
+
+            $message = isset($flash["message"]) ? trim((string)$flash["message"]) : "";
+            if ($message === "") {
+                continue;
+            }
+
+            $type = isset($flash["type"]) ? site_flash_normalize_type($flash["type"]) : "info";
+            echo '<div class="alert alert-' . site_header_h($type) . ' alert-dismissible fade show" role="alert">';
+            echo site_header_h($message);
+            echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="關閉"></button>';
+            echo '</div>';
         }
     }
 }

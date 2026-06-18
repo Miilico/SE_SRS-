@@ -4,10 +4,6 @@ require_once __DIR__ . "/../auth.php";
 
 require_role(4);
 
-// 檢查是否有成功或錯誤訊息
-$success = isset($_GET['success']);
-$error   = isset($_GET['error']) ? $_GET['error'] : '';
-
 $pageTitle = "新增獎助學金";
 $activeNav = "add_scholarship.php";
 $siteHeaderRequiredRole = 4;
@@ -52,29 +48,6 @@ require __DIR__ . "/../header.php";
     </div>
 </div>
 
-<!-- Bootstrap Modal -->
-<div class="modal fade" id="msgModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">系統提示</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <?php if ($error): ?>
-            <p class="text-danger">錯誤：<?php echo $error; ?></p>
-        <?php endif; ?>
-        <?php if ($success): ?>
-            <p class="text-success">新增成功！</p>
-        <?php endif; ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- 前端檢查 -->
 <script>
 document.querySelector("form").addEventListener("submit", function(e) {
@@ -93,13 +66,6 @@ document.querySelector("form").addEventListener("submit", function(e) {
     }
 });
 
-// 顯示 Modal 提示
-document.addEventListener("DOMContentLoaded", function() {
-    <?php if ($error || $success): ?>
-        var myModal = new bootstrap.Modal(document.getElementById('msgModal'));
-        myModal.show();
-    <?php endif; ?>
-});
 </script>
 
 </main>

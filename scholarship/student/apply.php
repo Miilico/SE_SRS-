@@ -23,9 +23,8 @@ $stmt = $pdo->query("
 $teachers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
-// demo：顯示教授連結（apply_submit.php 會帶回來）
-//$recommendLink = $_GET["recommend_link"] ?? "";
-$recommendLink = isset($_GET["recommend_link"]) ? $_GET["recommend_link"] : "";
+$recommendLink = isset($_SESSION["recommend_link"]) ? $_SESSION["recommend_link"] : "";
+unset($_SESSION["recommend_link"]);
 
 
 $pageTitle = "申請獎助學金";

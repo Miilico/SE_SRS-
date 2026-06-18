@@ -19,14 +19,12 @@ $title = isset($_POST["title"]) ? trim($_POST["title"]) : "";
 $message = isset($_POST["message"]) ? trim($_POST["message"]) : "";
 
 if ($message === "") {
-    $redirect = "/scholarship/ticket.php" . ($ticketId > 0 ? "?id=" . urlencode($ticketId) . "&" : "?");
-    header("Location: " . $redirect . "error=" . urlencode("請輸入內容"));
-    exit;
+    $redirect = "/scholarship/ticket.php" . ($ticketId > 0 ? "?id=" . urlencode($ticketId) : "");
+    site_flash_redirect($redirect, "請輸入內容", "danger");
 }
 
 if ($ticketId <= 0 && $title === "") {
-    header("Location: /scholarship/ticket.php?error=" . urlencode("請輸入標題"));
-    exit;
+    site_flash_redirect("/scholarship/ticket.php", "請輸入標題", "danger");
 }
 
 try {
