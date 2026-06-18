@@ -156,7 +156,7 @@ try {
 $pageTitle = "修改個人資料";
 $activeNav = "profile.php";
 $siteHeaderRequireLogin = true;
-$siteHeaderMainClass = "container py-5";
+$siteHeaderMainClass = "site-shell py-5";
 require __DIR__ . "/header.php";
 ?>
     <div class="row justify-content-center">

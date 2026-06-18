@@ -37,22 +37,22 @@ $activeNav = "admin_users_pending.php";
 ?>
 <?php require __DIR__ . "/../header.php"; ?>
 
-<div class="admin-page-head">
+<div class="mb-4">
   <div>
-    <h1 class="admin-page-title">待審核帳號</h1>
-    <div class="admin-page-subtitle">審核獎助學金單位註冊申請；學生與推薦人註冊後可直接登入。</div>
+    <h1 class="h3 fw-bold mb-1">待審核帳號</h1>
+    <div class="text-secondary">審核獎助學金單位註冊申請；學生與推薦人註冊後可直接登入。</div>
   </div>
 </div>
 
-<div class="card">
-  <div class="card-body">
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
 
     <?php if (!$rows): ?>
-      <div class="text-muted">目前沒有待審核的獎助學金單位帳號。</div>
+      <div class="p-4 text-secondary">目前沒有待審核的獎助學金單位帳號。</div>
     <?php else: ?>
 
       <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="table table-hover align-middle mb-0">
           <thead>
             <tr>
               <th>使用者 ID</th>

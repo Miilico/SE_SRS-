@@ -48,158 +48,49 @@ $isLoggedIn = !empty($_SESSION["user"]);
 if (!$isLoggedIn) {
     $breadcrumbs = array();
 }
-$siteHeaderMaxWidth = "1120px";
-$siteHeaderMainClass = "site-shell public-home-shell";
+$siteHeaderMainClass = "site-shell pt-4";
 if (!$isLoggedIn) {
     $siteHeaderBrandHref = "/index.php";
 }
-$siteHeaderExtraHead = <<<HTML
-<style>
-    .public-home-shell {
-        padding-top: 24px;
-    }
-
-    .announcement-card,
-    .empty-state {
-        background: #fff;
-        border: 1px solid var(--site-border);
-        border-radius: 8px;
-        box-shadow: var(--site-shadow);
-    }
-
-    .home-section-head {
-        display: flex;
-        justify-content: space-between;
-        gap: 14px;
-        align-items: flex-end;
-        margin: 0 0 14px;
-    }
-
-    .home-section-title {
-        margin: 0;
-        font-size: 22px;
-        font-weight: 850;
-        letter-spacing: 0;
-    }
-
-    .announcement-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px;
-    }
-
-    .announcement-card {
-        display: flex;
-        flex-direction: column;
-        min-height: 218px;
-        padding: 22px;
-        color: var(--site-text);
-        text-decoration: none;
-        transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
-    }
-
-    .announcement-card:hover {
-        border-color: #a9bce5;
-        box-shadow: 0 14px 34px rgba(15, 23, 42, .11);
-        color: var(--site-text);
-        transform: translateY(-2px);
-        text-decoration: none;
-    }
-
-    .announcement-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-        margin-bottom: 14px;
-        color: var(--site-muted);
-        font-size: 13px;
-        font-weight: 700;
-    }
-
-    .announcement-badge {
-        display: inline-flex;
-        align-items: center;
-        min-height: 26px;
-        padding: 4px 9px;
-        border-radius: 999px;
-        background: #eaf1ff;
-        color: var(--site-primary-dark);
-        font-size: 12px;
-        font-weight: 850;
-    }
-
-    .announcement-card.result .announcement-badge {
-        background: #e8f8ee;
-        color: #15803d;
-    }
-
-    .announcement-title {
-        margin: 0;
-        font-size: 19px;
-        font-weight: 850;
-        line-height: 1.45;
-        letter-spacing: 0;
-    }
-
-    .announcement-excerpt {
-        margin: 12px 0 0;
-        color: var(--site-muted);
-        line-height: 1.7;
-    }
-
-    .announcement-footer {
-        margin-top: auto;
-        padding-top: 18px;
-        color: var(--site-primary-dark);
-        font-weight: 850;
-    }
-
-    .empty-state {
-        padding: 44px 20px;
-        text-align: center;
-        color: var(--site-muted);
-    }
-
-    @media (max-width: 860px) {
-        .announcement-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-</style>
-HTML;
 require __DIR__ . "/scholarship/header.php";
 ?>
 
 <section id="announcements" <?php echo $isLoggedIn ? 'aria-label="獎學金公告"' : 'aria-labelledby="announcementTitle"'; ?>>
     <?php if (!$isLoggedIn): ?>
-        <div class="home-section-head">
+        <div class="d-flex justify-content-between align-items-end gap-3 mb-3">
             <div>
-                <h2 id="announcementTitle" class="home-section-title">最新公告</h2>
+                <h2 id="announcementTitle" class="h4 fw-bold mb-0">最新公告</h2>
             </div>
         </div>
     <?php endif; ?>
 
     <?php if (empty($announcements)): ?>
-        <div class="empty-state">目前尚無任何公告</div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-5 text-center text-secondary">目前尚無任何公告</div>
+        </div>
     <?php else: ?>
-        <div class="announcement-grid">
+        <div class="row row-cols-1 row-cols-lg-2 g-3">
             <?php foreach ($announcements as $announcement): ?>
                 <?php
                 $category = (int)$announcement["CATEGORY"];
                 $excerpt = public_excerpt($announcement["CONTENT"], 90);
+                $badgeClass = $category === 1 ? "text-bg-success" : "text-bg-primary";
                 ?>
-                <a class="announcement-card <?php echo $category === 1 ? "result" : ""; ?>" href="/announcement_detail.php?id=<?php echo urlencode((string)$announcement["id"]); ?>">
-                    <div class="announcement-meta">
-                        <span class="announcement-badge"><?php echo public_h(public_category_label($category)); ?></span>
+                <div class="col">
+                <a class="card border-0 shadow-sm h-100 text-body text-decoration-none" href="/announcement_detail.php?id=<?php echo urlencode((string)$announcement["id"]); ?>">
+                    <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-3 text-secondary small fw-semibold">
+                        <span class="badge rounded-pill <?php echo $badgeClass; ?>"><?php echo public_h(public_category_label($category)); ?></span>
                         <span><?php echo public_h($announcement["ADATE"]); ?></span>
                     </div>
-                    <h3 class="announcement-title"><?php echo public_h($announcement["title"]); ?></h3>
+                    <h3 class="h5 fw-bold lh-base mb-0"><?php echo public_h($announcement["title"]); ?></h3>
                     <?php if ($excerpt !== ""): ?>
-                        <p class="announcement-excerpt"><?php echo public_h($excerpt); ?></p>
+                        <p class="text-secondary lh-lg mt-3 mb-0"><?php echo public_h($excerpt); ?></p>
                     <?php endif; ?>
-                    <div class="announcement-footer">查看詳情</div>
+                    <div class="mt-auto pt-3 fw-bold text-primary">查看詳情</div>
+                    </div>
                 </a>
+                </div>
             <?php endforeach; ?>
         </div>
     <?php endif; ?>

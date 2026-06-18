@@ -92,7 +92,6 @@ $draftText = $recommendation["draft_content"] !== null && $recommendation["draft
   : "";
 
 $pageTitle = "推薦信";
-$siteHeaderMaxWidth = "860px";
 require __DIR__ . "/../header.php";
 ?>
 
@@ -116,7 +115,7 @@ require __DIR__ . "/../header.php";
       <table class="table table-bordered align-middle mb-0">
         <tbody>
           <tr>
-            <th class="table-light" style="width: 180px;">學生姓名</th>
+            <th class="table-light w-25">學生姓名</th>
             <td><?= h($recommendation["student_name"]) ?></td>
           </tr>
           <tr>

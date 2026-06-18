@@ -38,77 +38,61 @@ $pageTitle = ($mode == 'edit') ? "修改公告" : "新增公告";
 $activeNav = "post_management.php";
 ?>
 <?php require __DIR__ . "/../header.php"; ?>
-    <style>
-        .existing-announcement-file {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 8px;
-        }
 
-        .existing-announcement-file.marked-delete .existing-announcement-file-name {
-            color: #64748b;
-            text-decoration: line-through;
-        }
-
-        .existing-announcement-file.marked-delete .existing-announcement-file-name a {
-            color: inherit;
-            text-decoration: line-through;
-        }
-    </style>
-
-    <div class="form-box">
-        <div class="admin-actions">
-            <a href="post_management.php">返回公告管理清單</a>
+    <div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4 p-md-5">
+        <div class="mb-3">
+            <a href="post_management.php" class="btn btn-outline-secondary btn-sm">返回公告管理清單</a>
         </div>
-        <h1 class="admin-page-title"><?php echo ($mode == 'edit') ? "修改公告內容 (#$id)" : "發佈新消息"; ?></h1>
-        <div class="admin-page-subtitle admin-form-lead">填寫公告類別、標題與內容後送出。</div>
+        <h1 class="h3 fw-bold mb-1"><?php echo ($mode == 'edit') ? "修改公告內容 (#$id)" : "發佈新消息"; ?></h1>
+        <div class="text-secondary mb-4">填寫公告類別、標題與內容後送出。</div>
         
-        <form method="post" action="post_process.php" enctype="multipart/form-data">
+        <form method="post" action="post_process.php" enctype="multipart/form-data" class="vstack gap-3">
             <input type="hidden" name="mode" value="<?php echo $mode; ?>">
             <input type="hidden" name="id" value="<?php echo $id; ?>">
             <?php $admin_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : ''; ?>
             <input type="hidden" name="aid" value="<?php echo $admin_id; ?>">
 
-            <div class="form-group">
-                <label>公告類別：</label>
-                <select name="category">
+            <div>
+                <label class="form-label fw-semibold">公告類別：</label>
+                <select class="form-select" name="category">
                     <option value="0" <?php echo $default_cat == 0 ? 'selected' : ''; ?>>一般系統公告</option>
                     <option value="1" <?php echo $default_cat == 1 ? 'selected' : ''; ?>>獎學金審查結果</option>
                 </select>
                 <?php if($default_cat == 1): ?>
-                    <div class="hint">* 已自動帶入獲獎學生名單，發佈前請確認格式。</div>
+                    <div class="form-text text-danger">* 已自動帶入獲獎學生名單，發佈前請確認格式。</div>
                 <?php endif; ?>
             </div>
 
-            <div class="form-group">
-                <label>公告標題：</label>
-                <input type="text" name="title" value="<?php echo htmlspecialchars($default_title); ?>" placeholder="例如：2024年第一季獎學金錄取名單" required>
+            <div>
+                <label class="form-label fw-semibold">公告標題：</label>
+                <input class="form-control" type="text" name="title" value="<?php echo htmlspecialchars($default_title); ?>" placeholder="例如：2024年第一季獎學金錄取名單" required>
             </div>
 
-            <div class="form-group">
-                <label>公告內容：</label>
-                <textarea name="content" rows="12" placeholder="請輸入詳細公告內容..." required><?php echo htmlspecialchars($default_content); ?></textarea>
+            <div>
+                <label class="form-label fw-semibold">公告內容：</label>
+                <textarea class="form-control" name="content" rows="12" placeholder="請輸入詳細公告內容..." required><?php echo htmlspecialchars($default_content); ?></textarea>
             </div>
 
-            <div class="form-group">
-                <label>公告附件：</label>
-                <input type="file" id="announcementFiles" name="ANNOUNCEMENT_FILES[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx,.txt,.zip" multiple>
-                <div class="hint">可一次選擇多個檔案，也可分次選取後一併上傳；公告附件屬公開文件，所有人可下載。</div>
-                <div id="selectedAnnouncementFiles" class="admin-section-gap" hidden>
+            <div>
+                <label class="form-label fw-semibold">公告附件：</label>
+                <input class="form-control" type="file" id="announcementFiles" name="ANNOUNCEMENT_FILES[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx,.txt,.zip" multiple>
+                <div class="form-text text-danger">可一次選擇多個檔案，也可分次選取後一併上傳；公告附件屬公開文件，所有人可下載。</div>
+                <div id="selectedAnnouncementFiles" class="mt-3" hidden>
                     <strong>待上傳附件：</strong>
                     <ul id="selectedAnnouncementFileList"></ul>
                 </div>
                 <?php if ($mode == 'edit'): ?>
-                    <div class="admin-section-gap">
+                    <div class="mt-3">
                         <strong>目前附件：</strong>
                         <?php if (!empty($files)): ?>
-                            <ul>
+                            <ul class="list-unstyled mt-2">
                                 <?php foreach ($files as $file): ?>
-                                    <li class="existing-announcement-file">
+                                    <li class="d-flex flex-wrap align-items-center gap-2 mb-2 existing-announcement-file">
                                         <span class="existing-announcement-file-name">
-                                            <a href="/scholarship/file_view.php?id=<?php echo urlencode((string)$file["id"]); ?>">
+                                            <a class="existing-announcement-file-link" href="/scholarship/file_view.php?id=<?php echo urlencode((string)$file["id"]); ?>">
                                                 <?php echo htmlspecialchars($file["original_name"], ENT_QUOTES, "UTF-8"); ?>
                                             </a>
                                         </span>
@@ -118,17 +102,20 @@ $activeNav = "post_management.php";
                                 <?php endforeach; ?>
                             </ul>
                         <?php else: ?>
-                            <div class="muted">尚未上傳附件。</div>
+                            <div class="text-secondary">尚未上傳附件。</div>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
             </div>
 
-            <div class="btn-group">
-                <button type="submit" class="save-btn">確認發佈</button>
-                <a href="post_management.php" class="cancel-link">取消並返回</a>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <button type="submit" class="btn btn-primary">確認發佈</button>
+                <a href="post_management.php" class="btn btn-outline-secondary">取消並返回</a>
             </div>
         </form>
+        </div>
+    </div>
+    </div>
     </div>
     <script>
         (function() {
@@ -163,6 +150,10 @@ $activeNav = "post_management.php";
                     button.textContent = marked ? "恢復" : "刪除";
                     button.classList.toggle("btn-danger", !marked);
                     button.classList.toggle("btn-secondary", marked);
+                    item.querySelectorAll(".existing-announcement-file-name, .existing-announcement-file-link").forEach(function(target) {
+                        target.classList.toggle("text-secondary", marked);
+                        target.classList.toggle("text-decoration-line-through", marked);
+                    });
                 });
             });
 

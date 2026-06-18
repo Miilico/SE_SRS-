@@ -66,31 +66,29 @@ $activeNav = "account_management.php";
 ?>
 <?php require __DIR__ . "/../header.php"; ?>
 
-<div class="admin-page-head">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
     <div>
-        <h1 class="admin-page-title">帳號管理</h1>
-        <div class="admin-page-subtitle">管理學生、推薦人與獎助單位帳號；管理員帳號不在此頁開放操作。</div>
+        <h1 class="h3 fw-bold mb-1">帳號管理</h1>
+        <div class="text-secondary">管理學生、推薦人與獎助單位帳號；管理員帳號不在此頁開放操作。</div>
     </div>
+    <a href="account_form.php" class="btn btn-success">＋ 新增帳號</a>
 </div>
 
-<div class="admin-actions">
-    <a href="account_form.php" class="btn btn-add">＋ 新增帳號</a>
-</div>
-
-<div class="filters account-role-filters" aria-label="帳號身分篩選">
+<div class="d-flex flex-wrap gap-2 mb-3 account-role-filters" aria-label="帳號身分篩選">
     <?php foreach ($role_filter_options as $roleValue => $label): ?>
         <button
             type="button"
-            class="filter-btn <?php echo $roleValue === "all" ? "active" : ""; ?>"
+            class="btn btn-outline-primary filter-btn <?php echo $roleValue === "all" ? "active" : ""; ?>"
             data-role="<?php echo htmlspecialchars($roleValue); ?>">
             <span><?php echo htmlspecialchars($label); ?></span>
-            <span class="filter-count"><?php echo $roleValue === "all" ? count($accounts) : $role_counts[$roleValue]; ?></span>
+            <span class="badge text-bg-light ms-2"><?php echo $roleValue === "all" ? count($accounts) : $role_counts[$roleValue]; ?></span>
         </button>
     <?php endforeach; ?>
 </div>
 
-<div class="admin-card admin-table-wrap">
-    <table>
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
         <thead>
             <tr>
                 <th>帳號 ID</th>
@@ -130,15 +128,16 @@ $activeNav = "account_management.php";
                     <td><?php echo htmlspecialchars($phoneText ?: "未填"); ?></td>
                     <td><?php echo htmlspecialchars($account["EMAIL"] ?: "未填"); ?></td>
                     <td><?php echo site_status_badge($account["status"] ?: "未填"); ?></td>
-                    <td>
-                        <a href="account_form.php?id=<?php echo urlencode($account["ID"]); ?>" class="btn btn-edit">修改</a>
+                    <td class="text-nowrap">
+                        <a href="account_form.php?id=<?php echo urlencode($account["ID"]); ?>" class="btn btn-sm btn-outline-primary">修改</a>
                         <a href="account_process.php?action=delete&id=<?php echo urlencode($account["ID"]); ?>"
-                            class="btn btn-del" data-confirm="警告：將刪除此帳號與其角色相關資料，確定嗎？">刪除</a>
+                            class="btn btn-sm btn-outline-danger" data-confirm="警告：將刪除此帳號與其角色相關資料，確定嗎？">刪除</a>
                     </td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
+    </div>
 </div>
 <script>
     document.querySelectorAll(".account-role-filters .filter-btn").forEach(function(button) {

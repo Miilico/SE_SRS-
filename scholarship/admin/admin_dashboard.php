@@ -4,44 +4,64 @@ $activeNav = "admin_dashboard.php";
 ?>
 <?php require __DIR__ . "/../header.php"; ?>
 
-<!-- ====== 歡迎卡片 ====== -->
-<div class="card">
-  <h1 class="admin-page-title">管理員<?= htmlspecialchars($userName) ?>，您好</h1>
-  <div class="muted admin-tight-gap">
-    您可以在此管理帳號審核、帳號資料與公告內容
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body p-4">
+    <h1 class="h3 fw-bold mb-1">管理員<?= htmlspecialchars($userName) ?>，您好</h1>
+    <div class="text-secondary">
+      您可以在此管理帳號審核、帳號資料與公告內容
+    </div>
   </div>
 </div>
 
-<!-- ====== 功能捷徑（KPI / Quick Actions） ====== -->
-<div class="grid kpi admin-section-gap">
-  <div class="card">
-    <h3>帳號審核</h3>
-    <p class="muted">審核獎助單位註冊申請</p>
-    <a class="btn" href="/scholarship/admin/admin_users_pending.php">前往</a>
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h2 class="h5 fw-bold">帳號審核</h2>
+        <p class="text-secondary">審核獎助單位註冊申請</p>
+        <a class="btn btn-primary" href="/scholarship/admin/admin_users_pending.php">前往</a>
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <h3>帳號管理</h3>
-    <p class="muted">新增、編輯學生、推薦人與獎助單位帳號</p>
-    <a class="btn" href="/scholarship/admin/account_management.php">前往</a>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h2 class="h5 fw-bold">帳號管理</h2>
+        <p class="text-secondary">新增、編輯學生、推薦人與獎助單位帳號</p>
+        <a class="btn btn-primary" href="/scholarship/admin/account_management.php">前往</a>
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <h3>公告管理</h3>
-    <p class="muted">發布與管理系統公告</p>
-    <a class="btn" href="/scholarship/admin/post_management.php">前往</a>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h2 class="h5 fw-bold">公告管理</h2>
+        <p class="text-secondary">發布與管理系統公告</p>
+        <a class="btn btn-primary" href="/scholarship/admin/post_management.php">前往</a>
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <h3>文件管理</h3>
-    <p class="muted">篩選、預覽與批量管理系統文件</p>
-    <a class="btn" href="/scholarship/admin/document_management.php">前往</a>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h2 class="h5 fw-bold">文件管理</h2>
+        <p class="text-secondary">篩選、預覽與批量管理系統文件</p>
+        <a class="btn btn-primary" href="/scholarship/admin/document_management.php">前往</a>
+      </div>
+    </div>
   </div>
 
-    <div class="card">
-    <h3>獎助學金申請管理</h3>
-    <p class="muted">查看獎助學金申請情形、發布與管理獎助學金申請結果公告</p>
-    <a class="btn" href="/scholarship/admin/app_management.php">前往</a>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h2 class="h5 fw-bold">獎助學金申請管理</h2>
+        <p class="text-secondary">查看獎助學金申請情形、發布與管理獎助學金申請結果公告</p>
+        <a class="btn btn-primary" href="/scholarship/admin/app_management.php">前往</a>
+      </div>
+    </div>
   </div>
 </div>
 

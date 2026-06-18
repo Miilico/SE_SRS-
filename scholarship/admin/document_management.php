@@ -368,151 +368,6 @@ $pageTitle = "檔案管理";
 $activeNav = "document_management.php";
 $siteHeaderExtraHead = '
 <style>
-    .document-toolbar {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(160px, 1fr));
-        gap: 12px;
-        margin-bottom: 12px;
-    }
-
-    .document-search-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(180px, 1fr));
-        gap: 12px;
-        margin-bottom: 16px;
-    }
-
-    .document-filter-section {
-        margin-bottom: 18px;
-        padding-bottom: 18px;
-        border-bottom: 1px solid var(--site-border);
-    }
-
-    .document-filter-heading {
-        margin: 0 0 10px;
-        color: #475569;
-        font-size: 14px;
-        font-weight: 800;
-    }
-
-    .document-bulkbar {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        gap: 10px;
-        align-items: center;
-        margin-bottom: 14px;
-    }
-
-    .document-list-controls {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        gap: 12px;
-        align-items: center;
-        margin-bottom: 14px;
-    }
-
-    .document-page-controls {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-        justify-content: flex-end;
-    }
-
-    .document-page-controls label {
-        margin: 0;
-        white-space: nowrap;
-    }
-
-    .document-page-controls select {
-        width: auto;
-        min-width: 92px;
-        height: 38px;
-        padding: 6px 32px 6px 12px;
-    }
-
-    .document-page-controls .btn {
-        min-height: 38px;
-    }
-
-    .document-filter-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        justify-content: flex-end;
-    }
-
-    .document-filter-actions .btn,
-    .document-bulkbar .btn,
-    .document-page-controls .btn,
-    #documentPreviewModal .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        height: 38px;
-        min-width: 76px;
-        padding: 6px 12px;
-        border: var(--bs-btn-border-width) solid var(--bs-btn-border-color) !important;
-        border-radius: var(--bs-btn-border-radius);
-        background-color: var(--bs-btn-bg) !important;
-        color: var(--bs-btn-color) !important;
-        font-size: var(--bs-btn-font-size);
-        font-weight: var(--bs-btn-font-weight);
-        line-height: var(--bs-btn-line-height);
-        text-decoration: none;
-        filter: none;
-    }
-
-    .document-actions .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        box-sizing: border-box;
-        flex: 0 0 58px;
-        width: 58px;
-        height: 32px;
-        min-height: 32px;
-        min-width: 58px;
-        max-width: 58px;
-        padding: 0;
-        border: 1px solid var(--bs-btn-border-color) !important;
-        border-radius: 6px;
-        background-color: var(--bs-btn-bg) !important;
-        color: var(--bs-btn-color) !important;
-        font-size: 13px;
-        font-weight: 700;
-        line-height: 1;
-        text-decoration: none;
-        filter: none;
-        white-space: nowrap;
-        appearance: none;
-    }
-
-    .document-filter-actions .btn:hover,
-    .document-bulkbar .btn:hover,
-    .document-actions .btn:hover,
-    .document-page-controls .btn:hover,
-    #documentPreviewModal .btn:hover {
-        border-color: var(--bs-btn-hover-border-color) !important;
-        background-color: var(--bs-btn-hover-bg) !important;
-        color: var(--bs-btn-hover-color) !important;
-        text-decoration: none;
-        filter: none;
-    }
-
-    .document-filter-actions .btn:disabled,
-    .document-bulkbar .btn:disabled,
-    .document-actions .btn:disabled,
-    .document-page-controls .btn:disabled,
-    #documentPreviewModal .btn:disabled {
-        border-color: var(--bs-btn-disabled-border-color) !important;
-        background-color: var(--bs-btn-disabled-bg) !important;
-        color: var(--bs-btn-disabled-color) !important;
-        opacity: var(--bs-btn-disabled-opacity);
-    }
-
     .document-name {
         min-width: 220px;
         max-width: 340px;
@@ -540,12 +395,6 @@ $siteHeaderExtraHead = '
         display: flex;
         flex-wrap: nowrap;
         gap: 6px;
-    }
-
-    .document-actions a,
-    #documentPreviewModal .document-download-link {
-        display: inline-flex;
-        text-decoration: none;
     }
 
     .document-check {
@@ -577,39 +426,7 @@ $siteHeaderExtraHead = '
         height: auto;
     }
 
-    @media (max-width: 900px) {
-        .document-toolbar {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .document-search-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .document-bulkbar {
-            display: block;
-        }
-
-        .document-bulkbar .btn {
-            margin-top: 10px;
-        }
-
-        .document-list-controls {
-            display: block;
-        }
-
-        .document-page-controls {
-            justify-content: flex-start;
-            margin-top: 10px;
-        }
-    }
-
     @media (max-width: 640px) {
-        .document-toolbar,
-        .document-search-grid {
-            grid-template-columns: 1fr;
-        }
-
         .document-actions {
             flex-wrap: wrap;
         }
@@ -618,24 +435,25 @@ $siteHeaderExtraHead = '
 ?>
 <?php require __DIR__ . "/../header.php"; ?>
 
-<div class="admin-page-head">
+<div class="mb-4">
     <div>
-        <h1 class="admin-page-title">檔案管理</h1>
-        <div class="admin-page-subtitle">管理系統使用者上傳的檔案</div>
+        <h1 class="h3 fw-bold mb-1">檔案管理</h1>
+        <div class="text-secondary">管理系統使用者上傳的檔案</div>
     </div>
 </div>
 
-<div class="admin-card">
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
     <form method="get" action="document_management.php">
         <input type="hidden" name="page_size" value="<?php echo document_h($pageSizeParam); ?>">
         <input type="hidden" name="page" value="1">
 
-        <div class="document-filter-section">
-            <h2 class="document-filter-heading">篩選</h2>
-            <div class="document-toolbar" aria-label="檔案篩選">
-                <div>
-                    <label for="documentFilterFormat">格式</label>
-                    <select id="documentFilterFormat" name="format">
+        <div class="border-bottom pb-3 mb-3">
+            <h2 class="h6 fw-bold mb-3">篩選</h2>
+            <div class="row g-3 row-cols-1 row-cols-md-2 row-cols-xl-4" aria-label="檔案篩選">
+                <div class="col">
+                    <label class="form-label fw-semibold" for="documentFilterFormat">格式</label>
+                    <select class="form-select" id="documentFilterFormat" name="format">
                         <option value="all">全部格式</option>
                         <?php foreach ($formats as $formatValue => $formatLabel): ?>
                             <option value="<?php echo document_h($formatValue); ?>"<?php echo document_selected($filterFormat, $formatValue); ?>>
@@ -644,9 +462,9 @@ $siteHeaderExtraHead = '
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div>
-                    <label for="documentFilterDetailType">檔案歸屬</label>
-                    <select id="documentFilterDetailType" name="detail_type">
+                <div class="col">
+                    <label class="form-label fw-semibold" for="documentFilterDetailType">檔案歸屬</label>
+                    <select class="form-select" id="documentFilterDetailType" name="detail_type">
                         <option value="all">全部檔案歸屬</option>
                         <?php foreach ($detailTypes as $detailValue => $detailLabel): ?>
                             <option value="<?php echo document_h($detailValue); ?>"<?php echo document_selected($filterDetailType, $detailValue); ?>>
@@ -655,9 +473,9 @@ $siteHeaderExtraHead = '
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div>
-                    <label for="documentFilterUploader">上傳人</label>
-                    <select id="documentFilterUploader" name="uploader">
+                <div class="col">
+                    <label class="form-label fw-semibold" for="documentFilterUploader">上傳人</label>
+                    <select class="form-select" id="documentFilterUploader" name="uploader">
                         <option value="all">全部上傳人</option>
                         <?php foreach ($uploaders as $uploaderValue => $uploaderLabel): ?>
                             <option value="<?php echo document_h($uploaderValue); ?>"<?php echo document_selected($filterUploader, $uploaderValue); ?>>
@@ -666,9 +484,9 @@ $siteHeaderExtraHead = '
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div>
-                    <label for="documentFilterUploaderRole">上傳人身分</label>
-                    <select id="documentFilterUploaderRole" name="uploader_role">
+                <div class="col">
+                    <label class="form-label fw-semibold" for="documentFilterUploaderRole">上傳人身分</label>
+                    <select class="form-select" id="documentFilterUploaderRole" name="uploader_role">
                         <option value="all">全部身分</option>
                         <option value="1"<?php echo document_selected($filterUploaderRole, "1"); ?>>學生</option>
                         <option value="2"<?php echo document_selected($filterUploaderRole, "2"); ?>>推薦人</option>
@@ -680,35 +498,35 @@ $siteHeaderExtraHead = '
             </div>
         </div>
 
-        <div class="document-filter-section">
-            <h2 class="document-filter-heading">搜尋</h2>
-            <div class="document-search-grid" aria-label="檔案搜尋">
-                <div>
-                    <label for="documentSearchName">檔案名</label>
-                    <input id="documentSearchName" name="search_name" type="text" value="<?php echo document_input_value("search_name"); ?>" placeholder="原始檔名或儲存檔名">
+        <div class="border-bottom pb-3 mb-3">
+            <h2 class="h6 fw-bold mb-3">搜尋</h2>
+            <div class="row g-3 row-cols-1 row-cols-md-2 row-cols-xl-3" aria-label="檔案搜尋">
+                <div class="col">
+                    <label class="form-label fw-semibold" for="documentSearchName">檔案名</label>
+                    <input class="form-control" id="documentSearchName" name="search_name" type="text" value="<?php echo document_input_value("search_name"); ?>" placeholder="原始檔名或儲存檔名">
                 </div>
-                <div>
-                    <label for="documentSearchUploaderId">上傳人 ID</label>
-                    <input id="documentSearchUploaderId" name="search_uploader_id" type="text" value="<?php echo document_input_value("search_uploader_id"); ?>" placeholder="帳號 ID">
+                <div class="col">
+                    <label class="form-label fw-semibold" for="documentSearchUploaderId">上傳人 ID</label>
+                    <input class="form-control" id="documentSearchUploaderId" name="search_uploader_id" type="text" value="<?php echo document_input_value("search_uploader_id"); ?>" placeholder="帳號 ID">
                 </div>
-                <div>
-                    <label for="documentSearchUploaderName">上傳人姓名</label>
-                    <input id="documentSearchUploaderName" name="search_uploader_name" type="text" value="<?php echo document_input_value("search_uploader_name"); ?>" placeholder="姓名或單位名稱">
+                <div class="col">
+                    <label class="form-label fw-semibold" for="documentSearchUploaderName">上傳人姓名</label>
+                    <input class="form-control" id="documentSearchUploaderName" name="search_uploader_name" type="text" value="<?php echo document_input_value("search_uploader_name"); ?>" placeholder="姓名或單位名稱">
                 </div>
-                <div>
-                    <label for="documentSearchUploaderEmail">上傳人 Email</label>
-                    <input id="documentSearchUploaderEmail" name="search_uploader_email" type="text" value="<?php echo document_input_value("search_uploader_email"); ?>" placeholder="email">
+                <div class="col">
+                    <label class="form-label fw-semibold" for="documentSearchUploaderEmail">上傳人 Email</label>
+                    <input class="form-control" id="documentSearchUploaderEmail" name="search_uploader_email" type="text" value="<?php echo document_input_value("search_uploader_email"); ?>" placeholder="email">
                 </div>
-                <div>
-                    <label for="documentSearchContext">關聯編號</label>
-                    <input id="documentSearchContext" name="search_context" type="text" value="<?php echo document_input_value("search_context"); ?>" placeholder="公告、申請、獎學金、工單、推薦">
+                <div class="col">
+                    <label class="form-label fw-semibold" for="documentSearchContext">關聯編號</label>
+                    <input class="form-control" id="documentSearchContext" name="search_context" type="text" value="<?php echo document_input_value("search_context"); ?>" placeholder="公告、申請、獎學金、工單、推薦">
                 </div>
-                <div>
-                    <label for="documentSearchSystem">系統欄位</label>
-                    <input id="documentSearchSystem" name="search_system" type="text" value="<?php echo document_input_value("search_system"); ?>" placeholder="檔案 ID、MIME、子類型">
+                <div class="col">
+                    <label class="form-label fw-semibold" for="documentSearchSystem">系統欄位</label>
+                    <input class="form-control" id="documentSearchSystem" name="search_system" type="text" value="<?php echo document_input_value("search_system"); ?>" placeholder="檔案 ID、MIME、子類型">
                 </div>
             </div>
-            <div class="document-filter-actions">
+            <div class="d-flex flex-wrap gap-2 justify-content-end mt-3">
                 <a class="btn btn-outline-secondary" href="document_management.php">清除</a>
                 <button class="btn btn-primary" type="submit">套用</button>
             </div>
@@ -716,13 +534,13 @@ $siteHeaderExtraHead = '
     </form>
 
     <form method="post" action="document_process.php" data-document-form>
-        <div class="document-bulkbar">
-            <div class="muted">批量操作套用於已勾選的檔案。</div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div class="text-secondary">批量操作套用於已勾選的檔案。</div>
             <button type="submit" name="bulk_delete" value="1" class="btn btn-danger" id="documentBulkDelete" disabled>批量刪除</button>
         </div>
 
-        <div class="admin-table-wrap">
-            <table>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
                         <th><input class="document-check" type="checkbox" id="documentSelectAll" aria-label="全選"></th>
@@ -813,9 +631,7 @@ $siteHeaderExtraHead = '
                                         <?php echo $previewKind === "download" ? 'disabled title="此檔案格式不支援預覽"' : ""; ?>>
                                         預覽
                                     </button>
-                                    <a class="document-download-link" href="<?php echo document_h($downloadUrl); ?>">
-                                        <button type="button" class="btn btn-sm btn-outline-success">下載</button>
-                                    </a>
+                                    <a class="btn btn-sm btn-outline-success" href="<?php echo document_h($downloadUrl); ?>">下載</a>
                                     <button type="submit" name="delete_one" value="<?php echo (int)$file["id"]; ?>" class="btn btn-sm btn-outline-danger document-delete-one">刪除</button>
                                 </div>
                             </td>
@@ -823,21 +639,21 @@ $siteHeaderExtraHead = '
                     <?php endforeach; ?>
                     <?php if (empty($files)): ?>
                         <tr>
-                            <td colspan="9" class="text-center muted">目前沒有檔案。</td>
+                            <td colspan="9" class="text-center text-secondary">目前沒有檔案。</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
 
-        <div class="document-list-controls">
-            <div class="muted">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-3">
+            <div class="text-secondary">
                 顯示 <?php echo document_h($startRow); ?>-<?php echo document_h($endRow); ?> / <?php echo document_h($totalFiles); ?> 份檔案，
                 已選 <span id="documentSelectedCount">0</span> 份
             </div>
-            <div class="document-page-controls" aria-label="檔案清單分頁">
-                <label for="documentPageSize">每頁</label>
-                <select id="documentPageSize" data-url-template="<?php echo document_h(document_query_url(array("page" => 1, "page_size" => "__PAGE_SIZE__"))); ?>">
+            <div class="d-flex flex-wrap align-items-center gap-2" aria-label="檔案清單分頁">
+                <label class="form-label mb-0" for="documentPageSize">每頁</label>
+                <select class="form-select w-auto" id="documentPageSize" data-url-template="<?php echo document_h(document_query_url(array("page" => 1, "page_size" => "__PAGE_SIZE__"))); ?>">
                     <option value="10"<?php echo document_selected($pageSizeParam, "10"); ?>>10</option>
                     <option value="50"<?php echo document_selected($pageSizeParam, "50"); ?>>50</option>
                     <option value="100"<?php echo document_selected($pageSizeParam, "100"); ?>>100</option>
@@ -849,7 +665,7 @@ $siteHeaderExtraHead = '
                 <?php else: ?>
                     <button type="button" class="btn btn-outline-secondary" disabled>上一頁</button>
                 <?php endif; ?>
-                <span class="muted">第 <?php echo document_h($page); ?> / <?php echo document_h($totalPages); ?> 頁</span>
+                <span class="text-secondary">第 <?php echo document_h($page); ?> / <?php echo document_h($totalPages); ?> 頁</span>
                 <?php if ($page < $totalPages): ?>
                     <a class="btn btn-outline-secondary" href="<?php echo document_h(document_query_url(array("page" => $page + 1))); ?>">下一頁</a>
                 <?php else: ?>
@@ -858,6 +674,7 @@ $siteHeaderExtraHead = '
             </div>
         </div>
     </form>
+    </div>
 </div>
 
 <div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-labelledby="documentPreviewTitle" aria-hidden="true">
@@ -871,9 +688,7 @@ $siteHeaderExtraHead = '
                 <div id="documentPreviewBody"></div>
             </div>
             <div class="modal-footer">
-                <a id="documentPreviewDownload" class="document-download-link" href="#">
-                    <button type="button" class="btn btn-outline-success">下載</button>
-                </a>
+                <a id="documentPreviewDownload" class="btn btn-outline-success" href="#">下載</a>
                 <button type="button" class="btn btn-primary" data-bs-dismiss="modal">關閉</button>
             </div>
         </div>

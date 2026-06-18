@@ -7,12 +7,13 @@ $reset = $token === "" ? null : find_valid_password_reset($pdo, $token);
 
 $pageTitle = "重設密碼";
 $activeNav = "reset_password.php";
-$siteHeaderMainClass = "auth-wrap";
-$siteHeaderStylesheets = array("/scholarship/assets/css/auth.css");
+$siteHeaderMainClass = "site-shell py-4";
 require __DIR__ . "/header.php";
 ?>
-<div class="card auth-card">
-  <div class="auth-header p-4">
+<div class="row justify-content-center">
+<div class="col-12 col-sm-10 col-md-7 col-lg-5">
+<div class="card border-0 shadow-sm overflow-hidden">
+  <div class="card-header bg-white p-4">
     <div class="text-muted small">Password reset</div>
     <h1 class="h4 mb-0 fw-bold">重設密碼</h1>
   </div>
@@ -44,6 +45,8 @@ require __DIR__ . "/header.php";
       </form>
     <?php endif; ?>
   </div>
+</div>
+</div>
 </div>
 
 </main>

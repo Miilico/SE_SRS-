@@ -126,7 +126,7 @@ $dashboardUrl = $user ? dashboard_url($user["ROLE"]) : "/scholarship/login.php";
 $pageTitle = "個人資料";
 $activeNav = "profile.php";
 $siteHeaderRequireLogin = true;
-$siteHeaderMainClass = "container py-5";
+$siteHeaderMainClass = "site-shell py-5";
 require __DIR__ . "/header.php";
 ?>
     <div class="row justify-content-center">
