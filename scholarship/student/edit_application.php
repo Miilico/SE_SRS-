@@ -33,6 +33,37 @@ if (in_array($app["RESULT"], array("通過", "不通過"), true)) {
     exit;
 }
 
+$fileStmt = $pdo->prepare("
+    SELECT
+        id,
+        file_type,
+        original_name,
+        path,
+        file_size,
+        created_at
+    FROM application_files
+    WHERE COALESCE(application_id, apno) = :apno
+      AND file_type = 'support'
+    ORDER BY created_at DESC, id DESC
+");
+
+$fileStmt->execute(array(":apno" => $apno));
+$supportFiles = $fileStmt->fetchAll(PDO::FETCH_ASSOC);
+
+function application_file_size($bytes) {
+    $bytes = (int)$bytes;
+
+    if ($bytes <= 0) {
+        return "大小未記錄";
+    }
+
+    if ($bytes >= 1024 * 1024) {
+        return number_format($bytes / (1024 * 1024), 2) . " MB";
+    }
+
+    return number_format($bytes / 1024, 1) . " KB";
+}
+
 if (empty($_SESSION["csrf_token"])) {
     $_SESSION["csrf_token"] = bin2hex(random_bytes(32));
 }
@@ -114,6 +145,43 @@ require __DIR__ . "/../header.php";
       <div class="form-text">
         不選擇新檔案時會保留原本自傳。
       </div>
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label fw-semibold">目前的其他有利審查資料</label>
+
+      <?php if (empty($supportFiles)): ?>
+        <div class="text-secondary border rounded p-3">
+          尚未上傳其他有利審查資料。
+        </div>
+      <?php else: ?>
+        <div class="list-group">
+          <?php foreach ($supportFiles as $file): ?>
+            <div class="list-group-item d-flex justify-content-between align-items-center gap-3">
+              <div class="text-truncate">
+                <div class="fw-semibold text-truncate">
+                  <?= h($file["original_name"]) ?>
+                </div>
+
+                <div class="small text-secondary">
+                  <?= h(application_file_size($file["file_size"])) ?>
+
+                  <?php if (!empty($file["created_at"])): ?>
+                    · <?= h($file["created_at"]) ?>
+                  <?php endif; ?>
+                </div>
+              </div>
+
+              <a class="btn btn-sm btn-outline-primary flex-shrink-0"
+                href="<?= h($file["path"]) ?>"
+                target="_blank"
+                rel="noopener">
+                查看
+              </a>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
     </div>
 
     <div class="mb-4">

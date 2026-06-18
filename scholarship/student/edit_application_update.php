@@ -80,6 +80,7 @@ try {
 
     if (
         !empty($_FILES["AUTOBI_FILE"]) &&
+        isset($_FILES["AUTOBI_FILE"]["error"]) &&
         $_FILES["AUTOBI_FILE"]["error"] !== UPLOAD_ERR_NO_FILE
     ) {
         $saved = store_uploaded_file(
@@ -96,6 +97,19 @@ try {
                 "max_size" => 10 * 1024 * 1024
             )
         );
+
+        $stmt = $pdo->prepare("
+            UPDATE application
+            SET AUTOBI = :path
+            WHERE APNO = :apno AND STID = :stid
+        ");
+
+        $stmt->execute(array(
+            ":path" => $saved["view_url"],
+            ":apno" => $apno,
+            ":stid" => $stId
+        ));
+    }
 
     $stmt = $pdo->prepare("
         UPDATE recommendations
