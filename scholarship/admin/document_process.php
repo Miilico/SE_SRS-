@@ -24,7 +24,7 @@ if (isset($_POST["delete_one"])) {
 }
 
 if (empty($ids)) {
-    site_flash_redirect("document_management.php", "請先選擇要管理的文件。", "warning");
+    site_flash_redirect("document_management.php", "請先選擇要管理的檔案。", "warning");
 }
 
 $deleted = 0;
@@ -35,7 +35,7 @@ foreach ($ids as $id) {
 }
 
 if ($deleted > 0) {
-    site_flash_redirect("document_management.php", "已刪除 " . $deleted . " 份文件。", "success");
+    site_flash_redirect("document_management.php", "已刪除 " . $deleted . " 份檔案。", "success");
 }
 
-site_flash_redirect("document_management.php", "沒有文件被刪除。", "warning");
+site_flash_redirect("document_management.php", "沒有檔案被刪除。", "warning");
