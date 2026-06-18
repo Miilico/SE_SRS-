@@ -71,7 +71,7 @@ if (!defined("SITE_HEADER_FUNCTIONS_LOADED")) {
                 array("/scholarship/student/student-dashboard.php", "總覽"),
                 array("/scholarship/student/browse_scholarships.php", "瀏覽獎助學金"),
                 array("/scholarship/student/apply.php", "申請獎助學金"),
-                array("/scholarship/announcement_board.php", "查看公告"),
+                array("/index.php", "查看公告"),
                 array("/scholarship/ticket_list.php", "回報問題"),
                 array("/scholarship/profile.php", "個人檔案"),
             );
@@ -97,7 +97,7 @@ if (!defined("SITE_HEADER_FUNCTIONS_LOADED")) {
         }
 
         return array(
-            array("/scholarship/announcement_board.php", "最新公告"),
+            array("/index.php", "最新公告"),
             array("/scholarship/register.php", "註冊"),
         );
     }
@@ -255,7 +255,7 @@ $siteHeaderUserName = isset($siteHeaderUser["name"]) ? $siteHeaderUser["name"] :
 if (!isset($userName)) {
     $userName = $siteHeaderUserName !== "" ? $siteHeaderUserName : ($siteHeaderIsAdmin ? "管理員" : "");
 }
-$siteHeaderBrandHref = site_header_dashboard_url($siteHeaderRole);
+$siteHeaderBrandHref = isset($siteHeaderBrandHref) ? $siteHeaderBrandHref : site_header_dashboard_url($siteHeaderRole);
 $siteHeaderNavItems = isset($siteHeaderNavItems) && is_array($siteHeaderNavItems)
     ? $siteHeaderNavItems
     : site_header_nav_items($siteHeaderRole, $siteHeaderIsAdmin);
