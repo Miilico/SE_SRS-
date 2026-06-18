@@ -1,126 +1,92 @@
 <?php
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/../recommendation_helpers.php";
 
 require_role(1);
 
-// ====== 從 session 取值（✅ 全部用小寫） ======
-$stId     = $_SESSION["user"]["id"];
-$userName = $_SESSION["user"]["name"];
+ensure_application_files_table($pdo);
+tar_auto_reject_overdue_recommendations($pdo);
 
-// ====== 設定區 ======
-$TABLE_APP = "application";
-$COL_STID  = "STID";
-$COL_APNO  = "APNO";
-$COL_DATE  = "APDATE";
-$COL_AMT   = "AMOUNT";
-$COL_RES   = "RESULT";
+function h($value)
+{
+  return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
+}
 
-$STATUS_PENDING  = "審查中";
-$STATUS_APPROVED = "通過";
-$STATUS_FIX      = "需補件";
-$STATUS_REJECTED = "不通過";
+function count_application_status($pdo, $studentId, $status)
+{
+  $stmt = $pdo->prepare("
+        SELECT COUNT(*)
+        FROM application
+        WHERE STID = :student_id AND RESULT = :status
+    ");
+  $stmt->execute(array(
+    ":student_id" => $studentId,
+    ":status" => $status,
+  ));
 
-// ====== KPI: 四張卡 ======
-/*function count_by_status(
-  PDO $pdo,
-  string $table,
-  string $col_stid,
-  string $col_res,
-  string $stId,
-  string $status
-): int {
-  $sql = "SELECT COUNT(*) c FROM {$table}
-          WHERE {$col_stid} = :st AND {$col_res} = :res";
-  $stmt = $pdo->prepare($sql);
-  $stmt->execute([
-    ":st"  => $stId,
-    ":res" => $status
-  ]);
-  return (int)$stmt->fetchColumn();
-}*/
-function count_by_status($pdo, $table, $col_stid, $col_res, $stId, $status) {
-  $sql = "SELECT COUNT(*) c FROM {$table}
-          WHERE {$col_stid} = :st AND {$col_res} = :res";
-  $stmt = $pdo->prepare($sql);
-  $stmt->execute([
-    ":st"  => $stId,
-    ":res" => $status
-  ]);
   return (int)$stmt->fetchColumn();
 }
 
-$pending = count_by_status($pdo, $TABLE_APP, $COL_STID, $COL_RES, $stId, $STATUS_PENDING);
-$needFix = count_by_status($pdo, $TABLE_APP, $COL_STID, $COL_RES, $stId, $STATUS_FIX);
+$studentId = $_SESSION["user"]["id"];
+$userName = $_SESSION["user"]["name"];
 
-// ====== 本年度已通過 ======
-$sqlApproved = "SELECT COUNT(*) c FROM {$TABLE_APP}
-                WHERE {$COL_STID} = :st
-                  AND {$COL_RES}  = :res
-                  AND YEAR({$COL_DATE}) = YEAR(CURDATE())";
-$stmt = $pdo->prepare($sqlApproved);
-$stmt->execute([
-  ":st"  => $stId,
-  ":res" => $STATUS_APPROVED
-]);
-$approvedThisYear = (int)$stmt->fetchColumn();
+$pending = count_application_status($pdo, $studentId, "審查中");
+$needFix = count_application_status($pdo, $studentId, "需補件");
+$approvedThisYearStmt = $pdo->prepare("
+    SELECT COUNT(*)
+    FROM application
+    WHERE STID = :student_id
+      AND RESULT = '通過'
+      AND YEAR(APDATE) = YEAR(CURDATE())
+");
+$approvedThisYearStmt->execute(array(":student_id" => $studentId));
+$approvedThisYear = (int)$approvedThisYearStmt->fetchColumn();
 
-// ====== 已發放金額 ======
-$sqlPaid = "SELECT IFNULL(SUM({$COL_AMT}),0) s FROM {$TABLE_APP}
-            WHERE {$COL_STID} = :st AND {$COL_RES} = :res";
-$stmt = $pdo->prepare($sqlPaid);
-$stmt->execute([
-  ":st"  => $stId,
-  ":res" => $STATUS_APPROVED
-]);
-$paid = (int)$stmt->fetchColumn();
+$paidStmt = $pdo->prepare("
+    SELECT IFNULL(SUM(AMOUNT), 0)
+    FROM application
+    WHERE STID = :student_id AND RESULT = '通過'
+");
+$paidStmt->execute(array(":student_id" => $studentId));
+$paid = (int)$paidStmt->fetchColumn();
 
-// ====== 我的申請列表（最新 5 筆） ======
-/*$sqlList = "SELECT {$COL_APNO} AS APNO,
-                   {$COL_DATE} AS APDATE,
-                   {$COL_AMT}  AS AMOUNT,
-                   {$COL_RES}  AS RESULT
-            FROM {$TABLE_APP}
-            WHERE {$COL_STID} = :st
-            ORDER BY {$COL_DATE} DESC
-            LIMIT 5";
-$stmt = $pdo->prepare($sqlList);
-$stmt->execute([":st" => $stId]);
-$apps = $stmt->fetchAll();*/
+$appsStmt = $pdo->prepare("
+    SELECT
+        a.APNO,
+        a.APDATE,
+        a.AMOUNT,
+        a.RESULT,
+        s.NAME AS SCH_NAME,
+        r.content,
+        r.draft_content,
+        r.status,
+        r.rejected_reason,
+        r.rejected_source,
+        r.submitted_at,
+        r.rejected_at
+    FROM application a
+    JOIN scholarship s ON a.SCID = s.id
+    LEFT JOIN recommendations r ON r.application_id = a.APNO
+    WHERE a.STID = :student_id
+    ORDER BY a.APDATE DESC, a.APNO DESC
+    LIMIT 10
+");
+$appsStmt->execute(array(":student_id" => $studentId));
+$apps = $appsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// ====== 我的申請列表（最新 5 筆） ====== 
-$sqlList = "SELECT a.{$COL_APNO} AS APNO, 
-                   a.{$COL_DATE} AS APDATE, 
-                   a.{$COL_AMT} AS AMOUNT, 
-                   a.{$COL_RES} AS RESULT, 
-                   s.NAME AS SCH_NAME 
-            FROM {$TABLE_APP} a 
-            JOIN scholarship s 
-            ON a.SCID = s.id 
-            WHERE a.{$COL_STID} = :st 
-            ORDER BY a.{$COL_DATE} DESC 
-            LIMIT 5"; 
-$stmt = $pdo->prepare($sqlList); 
-$stmt->execute([":st" => $stId]); 
-$apps = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$notiStmt = $pdo->prepare("
+    SELECT APNO, APDATE, RESULT
+    FROM application
+    WHERE STID = :student_id
+      AND RESULT IN ('需補件', '不通過')
+    ORDER BY APDATE DESC, APNO DESC
+    LIMIT 3
+");
+$notiStmt->execute(array(":student_id" => $studentId));
+$notis = $notiStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// ====== 最新通知（需補件 / 退件） ======
-$sqlNoti = "SELECT {$COL_APNO} AS APNO,
-                   {$COL_DATE} AS APDATE,
-                   {$COL_RES}  AS RESULT
-            FROM {$TABLE_APP}
-            WHERE {$COL_STID} = :st
-              AND {$COL_RES} IN (:fix, :rej)
-            ORDER BY {$COL_DATE} DESC
-            LIMIT 3";
-$stmt = $pdo->prepare($sqlNoti);
-$stmt->execute([
-  ":st"  => $stId,
-  ":fix" => $STATUS_FIX,
-  ":rej" => $STATUS_REJECTED
-]);
-$notis = $stmt->fetchAll();
-$pageTitle = "學生主頁";
+$pageTitle = "學生總覽";
 $activeNav = "student-dashboard.php";
 $siteHeaderRequiredRole = 1;
 require __DIR__ . "/../header.php";
@@ -128,32 +94,40 @@ require __DIR__ . "/../header.php";
 
 <div class="card border-0 shadow-sm mb-3">
   <div class="card-body p-4">
-    <h1 class="h3 fw-bold mb-1">歡迎回來，<?= htmlspecialchars($userName) ?></h1>
-    <div class="text-secondary">查看近期申請狀態與需要處理的通知。</div>
+    <h1 class="h3 fw-bold mb-1">歡迎回來，<?= h($userName) ?></h1>
+    <div class="text-secondary">查看近期申請、推薦信狀態與待處理通知。</div>
   </div>
 </div>
 
 <div class="row g-3 mb-3">
-  <div class="col-md-4">
+  <div class="col-md-3">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body">
-        <div class="text-secondary">審核中案件</div>
+        <div class="text-secondary">審查中</div>
         <div class="display-6 fw-bold"><?= $pending ?></div>
       </div>
     </div>
   </div>
-  <div class="col-md-4">
+  <div class="col-md-3">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body">
-        <div class="text-secondary">本學期已通過</div>
+        <div class="text-secondary">需補件</div>
+        <div class="display-6 fw-bold"><?= $needFix ?></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-secondary">今年通過</div>
         <div class="display-6 fw-bold"><?= $approvedThisYear ?></div>
       </div>
     </div>
   </div>
-  <div class="col-md-4">
+  <div class="col-md-3">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body">
-        <div class="text-secondary">已發放金額</div>
+        <div class="text-secondary">核發總額</div>
         <div class="display-6 fw-bold">NT$ <?= number_format($paid) ?></div>
       </div>
     </div>
@@ -164,20 +138,20 @@ require __DIR__ . "/../header.php";
   <div class="col-lg-4">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body p-4">
-        <h2 class="h5 fw-bold mb-3">最新通知</h2>
+        <h2 class="h5 fw-bold mb-3">通知</h2>
         <?php if (empty($notis)): ?>
-          <div class="text-secondary">目前沒有需要處理的通知。</div>
+          <div class="text-secondary">目前沒有待處理通知。</div>
         <?php else: ?>
           <div class="list-group list-group-flush">
-          <?php foreach ($notis as $n): ?>
-            <div class="list-group-item px-0">
-              <div>
-                <span class="badge rounded-pill text-bg-warning"><?= htmlspecialchars($n["RESULT"]) ?></span>
-                申請編號 <?= htmlspecialchars($n["APNO"]) ?>
+            <?php foreach ($notis as $n): ?>
+              <div class="list-group-item px-0">
+                <div>
+                  <?= site_status_badge($n["RESULT"]) ?>
+                  申請編號 <?= h($n["APNO"]) ?>
+                </div>
+                <div class="text-secondary small mt-1"><?= h($n["APDATE"]) ?></div>
               </div>
-              <div class="text-secondary small mt-1"><?= htmlspecialchars($n["APDATE"]) ?></div>
-            </div>
-          <?php endforeach; ?>
+            <?php endforeach; ?>
           </div>
         <?php endif; ?>
       </div>
@@ -187,32 +161,45 @@ require __DIR__ . "/../header.php";
   <div class="col-lg-8">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body p-4">
-        <h2 class="h5 fw-bold mb-3">我的申請</h2>
+        <h2 class="h5 fw-bold mb-3">近期申請</h2>
         <?php if (empty($apps)): ?>
-          <div class="text-secondary">目前尚無申請紀錄。</div>
+          <div class="text-secondary">目前沒有申請資料。</div>
         <?php else: ?>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead>
-              <tr>
-                <th>獎助學金名稱</th>
-                <th>申請日期</th>
-                <th>申請金額</th>
-                <th>狀態</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($apps as $a): ?>
-              <tr>
-                <td><?= htmlspecialchars(isset($a["SCH_NAME"]) ? $a["SCH_NAME"] : ("APNO ".$a["APNO"])) ?></td>
-                <td><?= htmlspecialchars($a["APDATE"]) ?></td>
-                <td>NT$ <?= number_format((int)$a["AMOUNT"]) ?></td>
-                <td><span class="badge rounded-pill text-bg-light border"><?= htmlspecialchars($a["RESULT"]) ?></span></td>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>獎助學金</th>
+                  <th>申請日期</th>
+                  <th>申請金額</th>
+                  <th>審核狀態</th>
+                  <th>推薦信狀態</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($apps as $a): ?>
+                  <tr>
+                    <td><?= h($a["SCH_NAME"] ?: ("APNO " . $a["APNO"])) ?></td>
+                    <td><?= h($a["APDATE"]) ?></td>
+                    <td>NT$ <?= number_format((int)$a["AMOUNT"]) ?></td>
+                    <td><?= site_status_badge($a["RESULT"]) ?></td>
+                    <td>
+                      <?php if (empty($a["status"]) && empty($a["content"])): ?>
+                        <span class="text-secondary">尚未建立推薦信請求</span>
+                      <?php else: ?>
+                        <?= site_status_badge(tar_recommendation_status_label($a), "recommendation") ?>
+                        <?php if (($a["status"] ?? "") === "rejected" && !empty($a["rejected_reason"])): ?>
+                          <div class="small text-secondary mt-1">
+                            <?= h($a["rejected_source"] === "system" ? "系統自動駁回" : "推薦人駁回") ?>：<?= h($a["rejected_reason"]) ?>
+                          </div>
+                        <?php endif; ?>
+                      <?php endif; ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
         <?php endif; ?>
       </div>
     </div>
@@ -221,4 +208,5 @@ require __DIR__ . "/../header.php";
 
 </main>
 </body>
+
 </html>

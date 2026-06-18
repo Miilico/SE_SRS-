@@ -14,9 +14,16 @@ ensure_application_files_table($pdo);
 if (isset($_GET['action']) && $_GET['action'] == 'delete') {
     $id = $_GET['id'];
     try {
+        $files = fetch_uploaded_files($pdo, 1, "announcement_id", $id);
+        $fileIds = array();
+        foreach ($files as $file) {
+            $fileIds[] = $file["id"];
+        }
+        delete_uploaded_files($pdo, $fileIds, 1, "announcement_id", $id);
+
         $stmt = $pdo->prepare("DELETE FROM announcement WHERE id = ?");
         $stmt->execute([$id]);
-        echo "<script>alert('公告已刪除'); window.location.href='post_management.php';</script>";
+        site_flash_redirect("post_management.php", "公告已刪除", "success");
     } catch (PDOException $e) {
         die("刪除失敗：" . $e->getMessage());
     }
@@ -26,7 +33,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
 // 處理 POST 提交 (新增/修改)
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $mode     = $_POST['mode'];
-    $id       = $_POST['id']; 
+    $id       = $_POST['id'];
     $category = $_POST['category'];
     $title    = $_POST['title']; // 例如：【結果公告】校內優秀獎學金 獲獎名單
     $content  = $_POST['content'];
@@ -57,21 +64,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $msg = "公告發佈成功！";
 
             // --- 標記已公告狀態邏輯 ---
-            if ($category == 1) { 
+            if ($category == 1) {
                 // 從標題提取 SCNAME，假設格式為「【結果公告】獎學金名稱 獲獎名單」
                 // 也可以更簡單地將所有 RESULT='通過' 且 IS_POSTED=0 的全部標記
                 $updateApp = $pdo->prepare("UPDATE application SET IS_POSTED = 1 WHERE RESULT = '通過' AND IS_POSTED = 0");
                 $updateApp->execute();
             }
         }
-        if (!empty($_FILES["ANNOUNCEMENT_FILE"]) && $_FILES["ANNOUNCEMENT_FILE"]["error"] !== UPLOAD_ERR_NO_FILE) {
-            store_uploaded_file($pdo, $_FILES["ANNOUNCEMENT_FILE"], 1, $aid, array(
-                "announcement_id" => $announcementId
-            ));
+        $announcementFileContext = array("announcement_id" => $announcementId);
+        if ($mode == 'edit' && !empty($_POST["delete_announcement_files"])) {
+            delete_uploaded_files($pdo, $_POST["delete_announcement_files"], 1, "announcement_id", $announcementId);
         }
-        echo "<script>alert('$msg'); window.location.href='post_management.php';</script>";
+        if (!empty($_FILES["ANNOUNCEMENT_FILES"])) {
+            store_uploaded_files($pdo, $_FILES["ANNOUNCEMENT_FILES"], 1, $aid, $announcementFileContext);
+        }
+        if (!empty($_FILES["ANNOUNCEMENT_FILE"])) {
+            store_uploaded_files($pdo, $_FILES["ANNOUNCEMENT_FILE"], 1, $aid, $announcementFileContext);
+        }
+        site_flash_redirect("post_management.php", $msg, "success");
     } catch (Exception $e) {
         die("操作失敗：" . $e->getMessage());
     }
 }
-?>

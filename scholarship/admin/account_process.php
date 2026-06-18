@@ -1,12 +1,13 @@
 <?php
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/../file_helpers.php";
 
 require_role(3);
+ensure_teachers_table($pdo);
 
-function account_redirect($message) {
-    header("Location: account_management.php?msg=" . urlencode($message));
-    exit;
+function account_redirect($message, $type = "success") {
+    site_flash_redirect("account_management.php", $message, $type);
 }
 
 function account_clean_phone_list($raw) {
@@ -29,20 +30,23 @@ function account_validate_phone($phone, $label) {
 if (isset($_GET["action"]) && $_GET["action"] === "delete") {
     $id = isset($_GET["id"]) ? trim($_GET["id"]) : "";
     if ($id === "") {
-        account_redirect("缺少帳號 ID");
+        account_redirect("缺少帳號 ID", "danger");
     }
 
     try {
         $stmt = $pdo->prepare("DELETE FROM users WHERE ID = ? AND ROLE <> 3");
         $stmt->execute([$id]);
-        account_redirect($stmt->rowCount() > 0 ? "刪除完成" : "找不到可刪除的帳號");
+        if ($stmt->rowCount() > 0) {
+            account_redirect("刪除完成");
+        }
+        account_redirect("找不到可刪除的帳號", "warning");
     } catch (PDOException $e) {
         die("刪除失敗：" . $e->getMessage());
     }
 }
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    account_redirect("不支援的操作");
+    account_redirect("不支援的操作", "danger");
 }
 
 $mode = isset($_POST["mode"]) ? trim($_POST["mode"]) : "";
@@ -56,6 +60,8 @@ $status = isset($_POST["status"]) ? trim($_POST["status"]) : "active";
 $sid = isset($_POST["sid"]) ? trim($_POST["sid"]) : "";
 $studentDept = isset($_POST["student_dept"]) ? trim($_POST["student_dept"]) : "";
 $teacherDept = isset($_POST["teacher_dept"]) ? trim($_POST["teacher_dept"]) : "";
+$teacherUnit = isset($_POST["teacher_unit"]) ? trim($_POST["teacher_unit"]) : "";
+$teacherTitle = isset($_POST["teacher_title"]) ? trim($_POST["teacher_title"]) : "";
 $contactPerson = isset($_POST["contact_person"]) ? trim($_POST["contact_person"]) : "";
 $orgPhones = account_clean_phone_list(isset($_POST["org_phones"]) ? $_POST["org_phones"] : "");
 
@@ -100,8 +106,11 @@ try {
             throw new Exception("請填寫學生就讀系所。");
         }
     }
-    if ($role === 2 && $teacherDept === "") {
-        throw new Exception("請填寫教師所屬系所。");
+    if ($role === 2 && $teacherUnit === "") {
+        throw new Exception("請填寫推薦人單位名稱。");
+    }
+    if ($role === 2 && $teacherTitle === "") {
+        throw new Exception("請填寫推薦人職稱。");
     }
     if ($role === 4 && $contactPerson === "") {
         throw new Exception("請填寫獎助單位聯絡人。");
@@ -155,11 +164,11 @@ try {
         $stmt = $pdo->prepare("SELECT 1 FROM teachers WHERE ID = ?");
         $stmt->execute([$id]);
         if ($stmt->fetchColumn()) {
-            $stmt = $pdo->prepare("UPDATE teachers SET DNAME = ? WHERE ID = ?");
-            $stmt->execute([$teacherDept, $id]);
+            $stmt = $pdo->prepare("UPDATE teachers SET DNAME = ?, UNIT_NAME = ?, JOB_TITLE = ? WHERE ID = ?");
+            $stmt->execute([$teacherDept, $teacherUnit, $teacherTitle, $id]);
         } else {
-            $stmt = $pdo->prepare("INSERT INTO teachers (ID, DNAME) VALUES (?, ?)");
-            $stmt->execute([$id, $teacherDept]);
+            $stmt = $pdo->prepare("INSERT INTO teachers (ID, DNAME, UNIT_NAME, JOB_TITLE) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$id, $teacherDept, $teacherUnit, $teacherTitle]);
         }
     } elseif ($role === 4) {
         $stmt = $pdo->prepare("SELECT 1 FROM organization WHERE ID = ?");

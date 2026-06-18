@@ -93,9 +93,6 @@ require __DIR__ . "/../header.php";
             <?php endif; ?>
         </div>
     </div>
-
-<a href="student-dashboard.php" class="btn btn-outline-secondary mt-3">返回主頁</a>
-
 </main>
 </body>
 </html>

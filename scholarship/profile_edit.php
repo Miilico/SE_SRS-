@@ -1,8 +1,10 @@
 <?php
 require_once __DIR__ . "/config.php";
 require_once __DIR__ . "/auth.php";
+require_once __DIR__ . "/file_helpers.php";
 
 require_login();
+ensure_teachers_table($pdo);
 
 $target_id = isset($_SESSION["user"]["id"]) ? $_SESSION["user"]["id"] : null;
 $message = "";
@@ -17,7 +19,7 @@ function role_name($role) {
         case 1:
             return "學生";
         case 2:
-            return "教師";
+            return "推薦人";
         case 3:
             return "系統管理員";
         case 4:
@@ -82,8 +84,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $stmt2 = $pdo->prepare("UPDATE students SET SID = ?, DNAME = ? WHERE ID = ?");
             $stmt2->execute([$_POST["SID"], $_POST["DNAME"], $target_id]);
         } elseif ($role == 2) {
-            $stmt2 = $pdo->prepare("UPDATE teachers SET DNAME = ? WHERE ID = ?");
-            $stmt2->execute([$_POST["DNAME"], $target_id]);
+            $stmt2 = $pdo->prepare("UPDATE teachers SET DNAME = ?, UNIT_NAME = ?, JOB_TITLE = ? WHERE ID = ?");
+            $stmt2->execute([$_POST["DNAME"], $_POST["UNIT_NAME"], $_POST["JOB_TITLE"], $target_id]);
         } elseif ($role == 4) {
             $stmt2 = $pdo->prepare("UPDATE organization SET ONAME = ?, CONTACT = ? WHERE ID = ?");
             $stmt2->execute([$_POST["NAME"], $_POST["CONTACT"], $target_id]);
@@ -154,7 +156,7 @@ try {
 $pageTitle = "修改個人資料";
 $activeNav = "profile.php";
 $siteHeaderRequireLogin = true;
-$siteHeaderMainClass = "container py-5";
+$siteHeaderMainClass = "site-shell py-5";
 require __DIR__ . "/header.php";
 ?>
     <div class="row justify-content-center">
@@ -186,7 +188,7 @@ require __DIR__ . "/header.php";
                             </div>
 
                             <div class="mb-3">
-                                <label for="NAME" class="form-label fw-semibold">單位/姓名</label>
+                                <label for="NAME" class="form-label fw-semibold">單位/姓名 <span class="text-danger" aria-label="必填">*</span></label>
                                 <input type="text" id="NAME" name="NAME" class="form-control" value="<?php echo h($user["NAME"]); ?>" required>
                             </div>
 
@@ -223,6 +225,16 @@ require __DIR__ . "/header.php";
                                     教職資料
                                 </div>
 
+                                <div class="mb-3">
+                                    <label for="UNIT_NAME" class="form-label fw-semibold">單位名稱 <span class="text-danger" aria-label="必填">*</span></label>
+                                    <input type="text" id="UNIT_NAME" name="UNIT_NAME" class="form-control" maxlength="100" value="<?php echo h(isset($extra["UNIT_NAME"]) ? $extra["UNIT_NAME"] : ""); ?>" placeholder="例如：國立成功大學、XX科技股份有限公司" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="JOB_TITLE" class="form-label fw-semibold">職稱 <span class="text-danger" aria-label="必填">*</span></label>
+                                    <input type="text" id="JOB_TITLE" name="JOB_TITLE" class="form-control" maxlength="100" value="<?php echo h(isset($extra["JOB_TITLE"]) ? $extra["JOB_TITLE"] : ""); ?>" placeholder="例如：副教授、講師、高級工程師" required>
+                                </div>
+
                                 <div class="mb-0">
                                     <label for="DNAME" class="form-label fw-semibold">所屬系所</label>
                                     <input type="text" id="DNAME" name="DNAME" class="form-control" value="<?php echo h(isset($extra["DNAME"]) ? $extra["DNAME"] : ""); ?>">
@@ -250,6 +262,7 @@ require __DIR__ . "/header.php";
                             <div class="border-start border-4 border-primary bg-body-tertiary px-3 py-2 fw-bold mb-3">
                                 修改密碼
                             </div>
+                            <div class="text-secondary small mb-3"><span class="text-danger" aria-label="條件式必填">*</span> 如需修改密碼，目前密碼、新密碼與確認新密碼皆需填寫。</div>
 
                             <div class="mb-3">
                                 <label for="CURRENT_PWD" class="form-label fw-semibold">目前密碼</label>
@@ -269,7 +282,7 @@ require __DIR__ . "/header.php";
 
                         <div class="d-flex flex-column flex-sm-row gap-2 pt-2">
                             <button type="submit" class="btn btn-primary">儲存修改</button>
-                            <a href="profile.php" class="btn btn-outline-secondary">取消返回</a>
+                            <a href="profile.php" class="btn btn-outline-secondary">取消</a>
                         </div>
                     </form>
                 </div>

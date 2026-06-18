@@ -24,18 +24,21 @@ $activeNav = "post_management.php";
 ?>
 <?php require __DIR__ . "/../header.php"; ?>
 
-    <div class="post-container">
-        <div class="post-title"><?php echo htmlspecialchars($post['title']); ?></div>
-        <div class="post-meta">
+    <div class="row justify-content-center">
+    <div class="col-12 col-lg-9">
+    <article class="card border-0 shadow-sm">
+        <div class="card-body p-4 p-md-5">
+        <h1 class="h3 fw-bold border-bottom pb-3 mb-3"><?php echo htmlspecialchars($post['title']); ?></h1>
+        <div class="text-secondary small mb-4">
             發佈日期：<?php echo $post['ADATE']; ?> <?php echo $post['ATIME']; ?> | 
             管理員：<?php echo htmlspecialchars($post['AID']); ?>
         </div>
-        <div class="post-content"><?php echo htmlspecialchars($post['CONTENT']); ?></div>
+        <div class="fs-6 lh-lg mb-4"><?php echo nl2br(htmlspecialchars($post['CONTENT'])); ?></div>
 
         <?php if (!empty($files)): ?>
-            <div class="admin-section-gap">
+            <div class="mt-4">
                 <strong>附件：</strong>
-                <ul>
+                <ul class="mt-2">
                     <?php foreach ($files as $file): ?>
                         <li>
                             <a href="/scholarship/file_view.php?id=<?php echo urlencode($file["id"]); ?>">
@@ -47,9 +50,9 @@ $activeNav = "post_management.php";
             </div>
         <?php endif; ?>
         
-        <div class="admin-actions admin-actions-bottom">
-            <a href="post_management.php">← 返回列表</a>
         </div>
+    </article>
+    </div>
     </div>
 </main>
 </body>

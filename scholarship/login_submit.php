@@ -11,8 +11,7 @@ $id = isset($_POST["id"]) ? trim($_POST["id"]) : "";
 $pwd = isset($_POST["pwd"]) ? $_POST["pwd"] : "";
 
 if ($id === "" || $pwd === "") {
-  header("Location: login.php?msg=" . urlencode("請輸入帳號與密碼"));
-  exit;
+  site_flash_redirect("login.php", "請輸入帳號與密碼", "danger");
 } 
 
 /**
@@ -37,24 +36,17 @@ $u = $stmt->fetch();
 
 
 if (!$u) {
-  header("Location: login.php?msg=" . urlencode("帳號不存在"));
-  exit;
+  site_flash_redirect("login.php", "帳號不存在", "danger");
 }
 
 // ✅ 密碼用 password_verify（因為你 PWD 裡是 $2y$... hash）
 if (!password_verify($pwd, $u["pwd"])) {
-  header("Location: login.php?msg=" . urlencode("密碼錯誤"));
-  exit;
+  site_flash_redirect("login.php", "密碼錯誤", "danger");
 }
 
 // ✅ 檢查狀態
-/*if (($u["status"] ?? "") !== "active") {
-  header("Location: login.php?msg=" . urlencode("此帳號尚未啟用（請等待管理員審核）"));
-  exit;
-}*/
 if ((!isset($u["status"]) || $u["status"] !== "active")) {
-    header("Location: login.php?msg=" . urlencode("此帳號尚未啟用（請等待管理員審核）"));
-    exit;
+    site_flash_redirect("login.php", "此帳號尚未啟用（請等待管理員審核）", "warning");
 }
 
 

@@ -1,176 +1,195 @@
 <?php
 require_once __DIR__ . "/config.php";
-/*
-$id    = trim($_POST["id"] ?? "");          // 學號/教職員編號
-$role  = trim($_POST["role"] ?? "");        // student / professor
-$name  = trim($_POST["name"] ?? "");
-$email = trim($_POST["email"] ?? "");
-$tel   = trim($_POST["tel"] ?? "");
-$pwd   = $_POST["pwd"] ?? "";
-$pwd2  = $_POST["pwd2"] ?? "";
-*/
-$id    = isset($_POST["id"])    ? trim($_POST["id"])    : "";   // 學號/教職員編號
-$role  = isset($_POST["role"])  ? trim($_POST["role"])  : "";   // student / professor
-$name  = isset($_POST["name"])  ? trim($_POST["name"])  : "";
-$dept = isset($_POST["dept"]) ? trim($_POST["dept"]) : ""; // 新增科系欄位
-$contact_person = isset($_POST["contact_person"]) ? trim($_POST["contact_person"]) : "";
-$org_phones_raw = isset($_POST["org_phones"]) ? trim($_POST["org_phones"]) : "";
+require_once __DIR__ . "/department_options.php";
+require_once __DIR__ . "/file_helpers.php";
+
+$id = isset($_POST["id"]) ? trim($_POST["id"]) : "";
+$roleInput = isset($_POST["role"]) ? trim($_POST["role"]) : "";
+$role = (int)$roleInput;
+$name = isset($_POST["name"]) ? trim($_POST["name"]) : "";
+$dept = isset($_POST["dept"]) ? trim($_POST["dept"]) : "";
+$teacherDept = isset($_POST["teacher_dept"]) ? trim($_POST["teacher_dept"]) : "";
+$teacherUnit = isset($_POST["teacher_unit"]) ? trim($_POST["teacher_unit"]) : "";
+$teacherTitle = isset($_POST["teacher_title"]) ? trim($_POST["teacher_title"]) : "";
+$contactPerson = isset($_POST["contact_person"]) ? trim($_POST["contact_person"]) : "";
+$orgPhonesRaw = isset($_POST["org_phones"]) ? trim($_POST["org_phones"]) : "";
 $email = isset($_POST["email"]) ? trim($_POST["email"]) : "";
-$tel   = isset($_POST["tel"])   ? trim($_POST["tel"])   : "";
-$pwd   = isset($_POST["pwd"])   ? $_POST["pwd"]         : "";
-$pwd2  = isset($_POST["pwd2"])  ? $_POST["pwd2"]        : "";
+$tel = isset($_POST["tel"]) ? trim($_POST["tel"]) : "";
+$pwd = isset($_POST["pwd"]) ? $_POST["pwd"] : "";
+$pwd2 = isset($_POST["pwd2"]) ? $_POST["pwd2"] : "";
 
-/*
-function back_err(string $msg): void {
-  header("Location: register.php?err=" . urlencode($msg));
-  exit;
+function register_old_input()
+{
+    return array(
+        "role" => isset($_POST["role"]) ? trim($_POST["role"]) : "",
+        "id" => isset($_POST["id"]) ? trim($_POST["id"]) : "",
+        "name" => isset($_POST["name"]) ? trim($_POST["name"]) : "",
+        "dept" => isset($_POST["dept"]) ? trim($_POST["dept"]) : "",
+        "teacher_dept" => isset($_POST["teacher_dept"]) ? trim($_POST["teacher_dept"]) : "",
+        "teacher_unit" => isset($_POST["teacher_unit"]) ? trim($_POST["teacher_unit"]) : "",
+        "teacher_title" => isset($_POST["teacher_title"]) ? trim($_POST["teacher_title"]) : "",
+        "contact_person" => isset($_POST["contact_person"]) ? trim($_POST["contact_person"]) : "",
+        "org_phones" => isset($_POST["org_phones"]) ? trim($_POST["org_phones"]) : "",
+        "email" => isset($_POST["email"]) ? trim($_POST["email"]) : "",
+        "tel" => isset($_POST["tel"]) ? trim($_POST["tel"]) : "",
+    );
 }
-*/
-function back_err($msg) {
-    header("Location: register.php?err=" . urlencode($msg));
-    exit;
+
+function back_err($msg, $field)
+{
+    $_SESSION["register_old"] = register_old_input();
+    $_SESSION["register_error_field"] = $field;
+    $_SESSION["register_error_message"] = $msg;
+    site_flash_redirect("register.php", $msg, "danger");
 }
 
-
-// 1) 必填檢查
-if ($id === "" || $role === "" || $name === "" || $email === "" || $tel === "" || $pwd === "" || $pwd2 === "") {
-  back_err("請完整填寫所有欄位。");
+function first_empty_required_field($id, $roleInput, $name, $email, $tel, $pwd, $pwd2)
+{
+    if ($id === "") return "id";
+    if ($roleInput === "") return "role";
+    if ($name === "") return "name";
+    if ($email === "") return "email";
+    if ($tel === "") return "tel";
+    if ($pwd === "") return "pwd";
+    if ($pwd2 === "") return "pwd2";
+    return "id";
 }
 
-// 2) id 格式（英數 1~10）
+$validDepts = scholarship_department_values();
+
+if ($id === "" || $roleInput === "" || $name === "" || $email === "" || $tel === "" || $pwd === "" || $pwd2 === "") {
+    back_err("請完整填寫所有欄位。", first_empty_required_field($id, $roleInput, $name, $email, $tel, $pwd, $pwd2));
+}
+
 if (!preg_match('/^[A-Za-z0-9]{1,10}$/', $id)) {
-  back_err("使用者 ID 只能是英數，且長度最多 10。");
+    back_err("使用者 ID 只能是英數字，且長度最多 10 碼。", "id");
 }
 
-// 3) 角色限制：允許學生、教授、獎助單位自註冊
-//$role = (int)($_POST["role"] ?? 0);
-$role = isset($_POST["role"]) ? (int)$_POST["role"] : 0;
-
-
-if (!in_array($role, [1, 2, 4], true)) {
-  back_err("身分不合法。");
+if (!in_array($role, array(1, 2, 4), true)) {
+    back_err("身分不合法。", "role");
 }
 
-if (($role === 1 || $role === 2) && $dept === "") {
-  back_err("請填寫科系。");
+if ($role === 1 && $dept === "") {
+    back_err("請選擇科系。", "dept");
 }
 
-if ($role === 4 && $contact_person === "") {
-  back_err("請填寫單位聯絡人姓名。");
+if ($role === 1 && !in_array($dept, $validDepts, true)) {
+    back_err("請選擇有效的科系。", "dept");
 }
 
-// 4) email 格式（基本檢查）
+if ($role === 2 && $teacherUnit === "") {
+    back_err("請填寫推薦人單位名稱。", "teacher_unit");
+}
+
+if ($role === 2 && $teacherTitle === "") {
+    back_err("請填寫推薦人職稱。", "teacher_title");
+}
+
+if ($role === 4 && $contactPerson === "") {
+    back_err("請填寫單位聯絡人姓名。", "contact_person");
+}
+
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-  back_err("Email 格式不正確。");
+    back_err("Email 格式不正確。", "email");
 }
 
-// 學生與教師需使用校內信箱；獎助單位可使用單位信箱。
-if (($role === 1 || $role === 2) && !preg_match('/@mail\.nuk\.edu\.tw$/i', $email)) {
-  back_err("請使用學校信箱註冊。");
+if ($role === 1 && !preg_match('/@mail\.nuk\.edu\.tw$/i', $email)) {
+    back_err("請使用學校信箱註冊。", "email");
 }
 
-// 5) tel 格式（資料庫欄位目前是 varchar(10)，避免寫入時被截斷）
 if (!preg_match('/^[0-9+\-\s()]{6,10}$/', $tel)) {
-  back_err("電話格式不正確。");
+    back_err("電話格式不正確。", "tel");
 }
 
-$org_phones = [];
+$orgPhones = array();
 if ($role === 4) {
-  $phone_candidates = array_merge([$tel], $org_phones_raw === "" ? [] : explode(",", $org_phones_raw));
-  foreach ($phone_candidates as $phone) {
-    $phone = trim($phone);
-    if ($phone === "") {
-      continue;
+    $phoneCandidates = array_merge(array($tel), $orgPhonesRaw === "" ? array() : explode(",", $orgPhonesRaw));
+    foreach ($phoneCandidates as $phone) {
+        $phone = trim($phone);
+        if ($phone === "") {
+            continue;
+        }
+        if (!preg_match('/^[0-9+\-\s()]{6,10}$/', $phone)) {
+            back_err("單位電話格式不正確。", "org_phones");
+        }
+        if (!in_array($phone, $orgPhones, true)) {
+            $orgPhones[] = $phone;
+        }
     }
-    if (!preg_match('/^[0-9+\-\s()]{6,10}$/', $phone)) {
-      back_err("單位電話格式不正確。");
-    }
-    if (!in_array($phone, $org_phones, true)) {
-      $org_phones[] = $phone;
-    }
-  }
 }
 
-// 6) 密碼一致與長度
 if ($pwd !== $pwd2) {
-  back_err("兩次密碼不一致。");
-}
-if (mb_strlen($pwd) < 6) {
-  back_err("密碼至少 6 碼。");
+    back_err("兩次密碼不一致。", "pwd2");
 }
 
-// 7) 檢查 id 是否重複
+if (mb_strlen($pwd, "UTF-8") < 6) {
+    back_err("密碼至少 6 碼。", "pwd");
+}
+
 $stmt = $pdo->prepare("SELECT 1 FROM users WHERE id = ?");
-$stmt->execute([$id]);
+$stmt->execute(array($id));
 if ($stmt->fetchColumn()) {
-  back_err("此 ID 已存在。");
+    back_err("此 ID 已存在。", "id");
 }
 
-//email 唯一的話
 $stmt = $pdo->prepare("SELECT 1 FROM users WHERE email = ?");
-$stmt->execute([$email]);
+$stmt->execute(array($email));
 if ($stmt->fetchColumn()) {
-  back_err("此 Email 已被使用。");
+    back_err("此 Email 已被使用。", "email");
 }
 
 $stmt = $pdo->prepare("SELECT 1 FROM users WHERE name = ?");
-$stmt->execute([$name]);
+$stmt->execute(array($name));
 if ($stmt->fetchColumn()) {
-  back_err("此姓名或單位名稱已被使用。");
+    back_err("此姓名或單位名稱已被使用。", "name");
 }
 
 $hash = password_hash($pwd, PASSWORD_DEFAULT);
-
-// 學生、教師免審核；獎助單位需管理員審核。
 $status = ($role === 4) ? "pending" : "active";
 
 try {
-  $pdo->beginTransaction();
+    ensure_teachers_table($pdo);
 
-  // 8) 寫入 users
-  $stmt = $pdo->prepare("
-    INSERT INTO users (id, role, name, email, tel, pwd, status, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-  ");
-  $stmt->execute([$id, $role, $name, $email, $tel, $hash, $status]);
+    $pdo->beginTransaction();
 
-  // 9) 如果是學生，建立 students 表紀錄
-  if ($role === 1) {
-   $stmt = $pdo->prepare(" INSERT INTO students (ID, SID, DNAME) VALUES (?, ?, ?) ");
-   // ID = users.id (外鍵), SID = 學號 (這裡預設等於 user id), DNAME = 科系
-   $stmt->execute([$id, $id, $dept]);
-  }
+    $stmt = $pdo->prepare("
+        INSERT INTO users (id, role, name, email, tel, pwd, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+    ");
+    $stmt->execute(array($id, $role, $name, $email, $tel, $hash, $status));
 
-  // 10) 如果是老師，建立 teachers 表紀錄
-  if ($role === 2) {
-   $stmt = $pdo->prepare(" INSERT INTO teachers (ID, DNAME) VALUES (?, ?) ");
-   // ID = users.id (外鍵), DNAME = 科系
-   $stmt->execute([$id, $dept]);
-  }
-
-  // 11) 如果是獎助單位，建立 organization 與 ophone 表紀錄
-  if ($role === 4) {
-    $stmt = $pdo->prepare(" INSERT INTO organization (ID, ONAME, CONTACT) VALUES (?, ?, ?) ");
-    $stmt->execute([$id, $name, $contact_person]);
-
-    $stmt = $pdo->prepare(" INSERT INTO ophone (ID, TEL) VALUES (?, ?) ");
-    foreach ($org_phones as $phone) {
-      $stmt->execute([$id, $phone]);
+    if ($role === 1) {
+        $stmt = $pdo->prepare("INSERT INTO students (ID, SID, DNAME) VALUES (?, ?, ?)");
+        $stmt->execute(array($id, $id, $dept));
     }
-  }
 
-  $pdo->commit();
+    if ($role === 2) {
+        $stmt = $pdo->prepare("INSERT INTO teachers (ID, DNAME, UNIT_NAME, JOB_TITLE) VALUES (?, ?, ?, ?)");
+        $stmt->execute(array($id, $teacherDept, $teacherUnit, $teacherTitle));
+    }
+
+    if ($role === 4) {
+        $stmt = $pdo->prepare("INSERT INTO organization (ID, ONAME, CONTACT) VALUES (?, ?, ?)");
+        $stmt->execute(array($id, $name, $contactPerson));
+
+        $stmt = $pdo->prepare("INSERT INTO ophone (ID, TEL) VALUES (?, ?)");
+        foreach ($orgPhones as $phone) {
+            $stmt->execute(array($id, $phone));
+        }
+    }
+
+    $pdo->commit();
 } catch (Exception $e) {
-  if ($pdo->inTransaction()) {
-    $pdo->rollBack();
-  }
-  back_err("註冊失敗，請確認資料是否完整或已被使用。");
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    back_err("註冊失敗，請確認資料是否完整或已被使用。", "id");
 }
 
-$msg = ($role === 4)
-  ? "註冊成功！請等待管理員審核後再登入。"
-  : "註冊成功！請直接登入。";
+unset($_SESSION["register_old"], $_SESSION["register_error_field"]);
 
-header("Location: login.php?msg=" . urlencode($msg));
-exit;
-?>
+$msg = ($role === 4)
+    ? "註冊成功！請等待管理員審核後再登入。"
+    : "註冊成功！請直接登入。";
+
+site_flash_redirect("login.php", $msg, "success");

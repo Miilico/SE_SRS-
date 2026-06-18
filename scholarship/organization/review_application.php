@@ -22,7 +22,6 @@ $ok = $stmt->execute(array($new_status, $application_id, $provider_id));
 
 $pageTitle = "更新結果";
 $activeNav = "view_applicants.php";
-$siteHeaderMaxWidth = "760px";
 require __DIR__ . "/../header.php";
 ?>
     <h1 class="h3 fw-bold mb-4">更新結果</h1>

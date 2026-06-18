@@ -15,18 +15,22 @@ $user = $_SESSION["user"];
 $userId = $user["id"];
 $isAdmin = ((int)$user["role"] === 3);
 $ticketId = isset($_POST["ticket_id"]) ? (int)$_POST["ticket_id"] : 0;
+$isNewTicket = ($ticketId <= 0);
 $title = isset($_POST["title"]) ? trim($_POST["title"]) : "";
 $message = isset($_POST["message"]) ? trim($_POST["message"]) : "";
+$relatedUserId = isset($_POST["related_user_id"]) ? trim($_POST["related_user_id"]) : "";
 
 if ($message === "") {
-    $redirect = "/scholarship/ticket.php" . ($ticketId > 0 ? "?id=" . urlencode($ticketId) . "&" : "?");
-    header("Location: " . $redirect . "error=" . urlencode("請輸入內容"));
-    exit;
+    $redirect = "/scholarship/ticket.php" . ($ticketId > 0 ? "?id=" . urlencode($ticketId) : "");
+    site_flash_redirect($redirect, "請輸入內容", "danger");
 }
 
 if ($ticketId <= 0 && $title === "") {
-    header("Location: /scholarship/ticket.php?error=" . urlencode("請輸入標題"));
-    exit;
+    site_flash_redirect("/scholarship/ticket.php", "請輸入標題", "danger");
+}
+
+if ($isAdmin && $isNewTicket && $relatedUserId === "") {
+    site_flash_redirect("/scholarship/ticket.php", "請選擇工單相關人", "danger");
 }
 
 try {
@@ -68,15 +72,38 @@ try {
             }
         }
     } else {
-        $status = $isAdmin ? "closed" : "open";
-        $adminId = $isAdmin ? $userId : null;
+        $ticketOwnerId = $userId;
+        $status = "open";
+        $adminId = null;
+
+        if ($isAdmin) {
+            $stmt = $pdo->prepare("
+                SELECT ID
+                FROM users
+                WHERE ID = :id
+                  AND ROLE <> 3
+                  AND status = 'active'
+                LIMIT 1
+            ");
+            $stmt->execute([":id" => $relatedUserId]);
+            $relatedUser = $stmt->fetch();
+
+            if (!$relatedUser) {
+                $pdo->rollBack();
+                site_flash_redirect("/scholarship/ticket.php", "找不到可使用的工單相關人", "danger");
+            }
+
+            $ticketOwnerId = $relatedUser["ID"];
+            $adminId = $userId;
+            $status = "pending";
+        }
 
         $stmt = $pdo->prepare("
             INSERT INTO tickets (USER_ID, ADMIN_ID, TITLE, STATUS)
             VALUES (:user_id, :admin_id, :title, :status)
         ");
         $stmt->execute([
-            ":user_id" => $userId,
+            ":user_id" => $ticketOwnerId,
             ":admin_id" => $adminId,
             ":title" => $title,
             ":status" => $status
@@ -100,7 +127,7 @@ try {
         ));
     }
 
-    if ($isAdmin) {
+    if ($isAdmin && !$isNewTicket) {
         $stmt = $pdo->prepare("
             UPDATE tickets
             SET STATUS = 'closed',

@@ -3,14 +3,32 @@ require_once __DIR__ . "/config.php";
 require_once __DIR__ . "/auth.php";
 require_once __DIR__ . "/file_helpers.php";
 
-function deny_file_download($message, $status) {
+function deny_file_download($message, $status)
+{
     http_response_code($status);
     exit($message);
 }
 
+function recommendation_token_can_download_file($pdo, $file, $token)
+{
+    if ($token === "" || empty($file["application_id"])) {
+        return false;
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT 1
+        FROM recommendations
+        WHERE token = ? AND application_id = ?
+        LIMIT 1
+    ");
+    $stmt->execute(array($token, $file["application_id"]));
+
+    return (bool)$stmt->fetchColumn();
+}
+
 $fileId = isset($_GET["id"]) ? (int)$_GET["id"] : 0;
 if ($fileId <= 0) {
-    deny_file_download("未指定檔案。", 400);
+    deny_file_download("無效的檔案編號。", 400);
 }
 
 ensure_application_files_table($pdo);
@@ -24,22 +42,15 @@ if (!$file) {
 }
 
 $user = isset($_SESSION["user"]) ? $_SESSION["user"] : array();
-if (!user_can_download_file($pdo, $file, $user)) {
-    deny_file_download("您沒有權限下載此檔案。", 403);
+$recToken = isset($_GET["rec_token"]) ? trim($_GET["rec_token"]) : "";
+if (!user_can_download_file($pdo, $file, $user) && !recommendation_token_can_download_file($pdo, $file, $recToken)) {
+    deny_file_download("沒有權限下載此檔案。", 403);
 }
 
-$baseDir = realpath(__DIR__ . DIRECTORY_SEPARATOR . "user_file");
-$filePath = !empty($file["file_path"]) ? $file["file_path"] : $file["path"];
-$fullPath = realpath(__DIR__ . DIRECTORY_SEPARATOR . $filePath);
+$fullPath = uploaded_file_full_path($file);
 
-if (!$baseDir || !$fullPath) {
+if (!$fullPath) {
     deny_file_download("檔案不存在。", 404);
-}
-
-$baseDirCheck = strtolower($baseDir . DIRECTORY_SEPARATOR);
-$fullPathCheck = strtolower($fullPath);
-if (strpos($fullPathCheck, $baseDirCheck) !== 0 || !is_file($fullPath)) {
-    deny_file_download("檔案路徑不合法。", 403);
 }
 
 $mimeType = !empty($file["mime_type"]) ? $file["mime_type"] : "application/octet-stream";
