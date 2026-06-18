@@ -32,6 +32,12 @@ $activeNav = "admin_dashboard.php";
     <a class="btn" href="/scholarship/admin/post_management.php">前往</a>
   </div>
 
+  <div class="card">
+    <h3>文件管理</h3>
+    <p class="muted">篩選、預覽與批量管理系統文件</p>
+    <a class="btn" href="/scholarship/admin/document_management.php">前往</a>
+  </div>
+
     <div class="card">
     <h3>獎助學金申請管理</h3>
     <p class="muted">查看獎助學金申請情形、發布與管理獎助學金申請結果公告</p>
