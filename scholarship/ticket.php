@@ -14,6 +14,7 @@ $ticket = null;
 $messages = [];
 $ticketFiles = [];
 $filesByMessageId = [];
+$relatedUsers = [];
 
 $statusMap = [
     "open" => "已開啟",
@@ -23,6 +24,18 @@ $statusMap = [
 
 function h($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
+}
+
+function ticket_role_name($role) {
+    $roleMap = [
+        1 => "學生",
+        2 => "推薦人",
+        3 => "管理員",
+        4 => "獎助單位"
+    ];
+
+    $role = (int)$role;
+    return isset($roleMap[$role]) ? $roleMap[$role] : "未知";
 }
 
 function dashboard_url($role) {
@@ -144,6 +157,16 @@ if ($ticketId > 0) {
     $messages = $stmt->fetchAll();
     $ticketFiles = fetch_uploaded_files($pdo, 3, "ticket_id", $ticketId);
     $filesByMessageId = build_ticket_file_map($messages, $ticketFiles);
+} elseif ($isAdmin) {
+    $stmt = $pdo->prepare("
+        SELECT ID, NAME, ROLE, EMAIL
+        FROM users
+        WHERE ROLE <> 3
+          AND status = 'active'
+        ORDER BY ROLE ASC, NAME ASC, ID ASC
+    ");
+    $stmt->execute();
+    $relatedUsers = $stmt->fetchAll();
 }
 
 $status = $ticket ? $ticket["STATUS"] : "open";
@@ -167,7 +190,7 @@ require __DIR__ . "/header.php";
           <h1 class="h3 fw-bold mb-2"><?= h($ticket["TITLE"]) ?></h1>
           <div class="text-secondary">
             工單 #<?= h($ticket["TICKET_ID"]) ?>｜
-            開單者 <?= h($ticket["USER_NAME"]) ?>（<?= h($ticket["USER_ID"]) ?>）
+            相關人 <?= h($ticket["USER_NAME"]) ?>（<?= h($ticket["USER_ID"]) ?>）
           </div>
         </div>
         <span class="badge rounded-pill <?= h($badgeClass) ?> align-self-start"><?= h($statusText) ?></span>
@@ -243,6 +266,29 @@ require __DIR__ . "/header.php";
       <div class="card-body p-4">
       <h1 class="h3 fw-bold mb-3">新增工單</h1>
       <form method="post" action="/scholarship/submit_ticket.php" enctype="multipart/form-data">
+        <?php if ($isAdmin): ?>
+          <div class="mb-3 position-relative">
+            <label class="form-label fw-semibold" for="related_user_filter">工單相關人</label>
+            <input class="form-control" type="search" id="related_user_filter" placeholder="輸入姓名、ID 或 Email">
+            <input type="hidden" id="related_user_id" name="related_user_id">
+            <div class="list-group position-absolute start-0 end-0 shadow-sm" id="related_user_results" style="z-index: 1050; max-height: 16rem; overflow-y: auto; display: none;"></div>
+            <select class="d-none" id="related_user_source" aria-hidden="true" tabindex="-1">
+              <option value="">請選擇相關人</option>
+              <?php foreach ($relatedUsers as $relatedUser): ?>
+                <option
+                  value="<?= h($relatedUser["ID"]) ?>"
+                  data-search="<?= h($relatedUser["NAME"] . " " . $relatedUser["ID"] . " " . $relatedUser["EMAIL"]) ?>"
+                  data-name="<?= h($relatedUser["NAME"]) ?>"
+                  data-email="<?= h($relatedUser["EMAIL"]) ?>"
+                  data-role="<?= h(ticket_role_name($relatedUser["ROLE"])) ?>"
+                >
+                  <?= h($relatedUser["NAME"]) ?>（<?= h($relatedUser["ID"]) ?> / <?= h($relatedUser["EMAIL"]) ?> / <?= h(ticket_role_name($relatedUser["ROLE"])) ?>）
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        <?php endif; ?>
+
         <div class="mb-3">
           <label class="form-label fw-semibold" for="title">標題</label>
           <input class="form-control" type="text" id="title" name="title" maxlength="255" required>
@@ -272,43 +318,151 @@ require __DIR__ . "/header.php";
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   var form = document.getElementById("ticketReplyForm");
+  var relatedUserFilter = document.getElementById("related_user_filter");
+  var relatedUserInput = document.getElementById("related_user_id");
+  var relatedUserSource = document.getElementById("related_user_source");
+  var relatedUserResults = document.getElementById("related_user_results");
 
-  if (!form) {
-    return;
-  }
-
-  var message = form.querySelector('textarea[name="message"]');
-  var file = form.querySelector('input[name="TICKET_FILE"]');
-
-  function clearMessageValidity() {
-    if (message) {
-      message.setCustomValidity("");
-    }
-  }
-
-  if (message) {
-    message.addEventListener("input", clearMessageValidity);
-  }
-
-  if (file) {
-    file.addEventListener("change", clearMessageValidity);
-  }
-
-  form.addEventListener("submit", function (event) {
-    var hasMessage = message && message.value.trim() !== "";
-    var hasFile = file && file.files && file.files.length > 0;
-
-    if (!hasMessage && hasFile) {
-      message.value = "上傳附件：";
-      return;
+  if (relatedUserFilter && relatedUserInput && relatedUserSource && relatedUserResults) {
+    function hideRelatedUserResults() {
+      relatedUserResults.style.display = "none";
+      relatedUserResults.innerHTML = "";
     }
 
-    if (!hasMessage) {
+    function renderRelatedUserResults(clearSelected) {
+      var keyword = relatedUserFilter.value.trim().toLowerCase();
+      var visibleCount = 0;
+      var renderedCount = 0;
+      var maxResults = 8;
+
+      relatedUserResults.innerHTML = "";
+
+      if (clearSelected) {
+        relatedUserInput.value = "";
+        relatedUserFilter.setCustomValidity("");
+      }
+
+      if (keyword === "") {
+        hideRelatedUserResults();
+        return;
+      }
+
+      Array.prototype.forEach.call(relatedUserSource.options, function (option, index) {
+        if (index === 0) {
+          return;
+        }
+
+        var searchText = (option.getAttribute("data-search") || option.textContent || "").toLowerCase();
+        var isVisible = searchText.indexOf(keyword) !== -1;
+
+        if (isVisible) {
+          visibleCount += 1;
+
+          if (renderedCount < maxResults) {
+            var button = document.createElement("button");
+            var name = option.getAttribute("data-name") || "";
+            var email = option.getAttribute("data-email") || "";
+            var role = option.getAttribute("data-role") || "";
+
+            button.type = "button";
+            button.className = "list-group-item list-group-item-action";
+            button.dataset.userId = option.value;
+            button.dataset.userLabel = name + "（" + option.value + "）";
+            button.innerHTML = '<div class="fw-semibold"></div><div class="small text-secondary"></div>';
+            button.querySelector(".fw-semibold").textContent = name + "（" + option.value + "）";
+            button.querySelector(".small").textContent = email + " / " + role;
+            relatedUserResults.appendChild(button);
+            renderedCount += 1;
+          }
+        }
+      });
+
+      if (visibleCount === 0) {
+        var emptyItem = document.createElement("div");
+        emptyItem.className = "list-group-item text-secondary";
+        emptyItem.textContent = "沒有符合的相關人";
+        relatedUserResults.appendChild(emptyItem);
+      } else if (visibleCount > maxResults) {
+        var moreItem = document.createElement("div");
+        moreItem.className = "list-group-item small text-secondary";
+        moreItem.textContent = "另有 " + (visibleCount - maxResults) + " 筆結果，請輸入更多關鍵字縮小範圍。";
+        relatedUserResults.appendChild(moreItem);
+      }
+
+      relatedUserResults.style.display = "block";
+    }
+
+    relatedUserFilter.addEventListener("input", function () {
+      renderRelatedUserResults(true);
+    });
+    relatedUserFilter.addEventListener("focus", function () {
+      renderRelatedUserResults(false);
+    });
+
+    relatedUserResults.addEventListener("click", function (event) {
+      var button = event.target.closest("button[data-user-id]");
+
+      if (!button) {
+        return;
+      }
+
+      relatedUserInput.value = button.dataset.userId;
+      relatedUserFilter.value = button.dataset.userLabel;
+      relatedUserFilter.setCustomValidity("");
+      hideRelatedUserResults();
+    });
+
+    document.addEventListener("click", function (event) {
+      if (!relatedUserFilter.contains(event.target) && !relatedUserResults.contains(event.target)) {
+        hideRelatedUserResults();
+      }
+    });
+
+    relatedUserFilter.form.addEventListener("submit", function (event) {
+      if (relatedUserInput.value !== "") {
+        return;
+      }
+
       event.preventDefault();
-      message.setCustomValidity("請輸入內容或上傳附件。");
-      message.reportValidity();
+      relatedUserFilter.setCustomValidity("請從搜尋結果選擇工單相關人。");
+      relatedUserFilter.reportValidity();
+    });
+  }
+
+  if (form) {
+    var message = form.querySelector('textarea[name="message"]');
+    var file = form.querySelector('input[name="TICKET_FILE"]');
+
+    function clearMessageValidity() {
+      if (message) {
+        message.setCustomValidity("");
+      }
     }
-  });
+
+    if (message) {
+      message.addEventListener("input", clearMessageValidity);
+    }
+
+    if (file) {
+      file.addEventListener("change", clearMessageValidity);
+    }
+
+    form.addEventListener("submit", function (event) {
+      var hasMessage = message && message.value.trim() !== "";
+      var hasFile = file && file.files && file.files.length > 0;
+
+      if (!hasMessage && hasFile) {
+        message.value = "上傳附件：";
+        return;
+      }
+
+      if (!hasMessage) {
+        event.preventDefault();
+        message.setCustomValidity("請輸入內容或上傳附件。");
+        message.reportValidity();
+      }
+    });
+  }
 });
 </script>
 
