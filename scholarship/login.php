@@ -4,6 +4,7 @@ require_once __DIR__ . "/config.php";
 $pageTitle = "登入";
 $activeNav = "login.php";
 $siteHeaderMainClass = "site-shell py-4";
+$siteHeaderBrandHref = "/";
 $breadcrumbs = array();
 require __DIR__ . "/header.php";
 ?>
