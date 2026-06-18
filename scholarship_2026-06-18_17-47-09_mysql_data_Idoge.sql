@@ -204,6 +204,7 @@ INSERT INTO `ophone` VALUES
 ('aaa111','0201111999'),
 ('JXJ777','0206555444'),
 ('K2993388','0202222111'),
+('O8218712','0200999999'),
 ('S1111111','11111111'),
 ('S2222222','22222222'),
 ('S3333333','33333333'),
@@ -242,6 +243,7 @@ INSERT INTO `organization` VALUES
 ('aaa111','孫中山基金會','王先生'),
 ('JXJ777','臺北市關帝廟聯誼會','張小姐'),
 ('K2993388','池濟','張大師'),
+('O8218712','XXX基金會','張小姐'),
 ('S1111111','S111','S111聯絡人'),
 ('S2222222','S222','S222聯絡人'),
 ('S3333333','S333','S333聯絡人'),
@@ -264,6 +266,8 @@ CREATE TABLE `recommendations` (
   `teacher_id` char(10) DEFAULT NULL,
   `teacher_name` varchar(100) NOT NULL,
   `teacher_email` varchar(255) NOT NULL,
+  `teacher_unit` varchar(100) DEFAULT NULL,
+  `teacher_title` varchar(100) DEFAULT NULL,
   `rec_rel` varchar(100) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp(),
   `expires_at` datetime DEFAULT NULL,
@@ -291,8 +295,8 @@ CREATE TABLE `recommendations` (
 LOCK TABLES `recommendations` WRITE;
 /*!40000 ALTER TABLE `recommendations` DISABLE KEYS */;
 INSERT INTO `recommendations` VALUES
-(1,'通過',NULL,'Test0001','TestTeaher01','TESTTEA01@mail.nuk.edu.tw','指導教授','2026-06-17 22:32:13','2026-07-01 22:32:13','2026-06-17 22:34:17','submitted',NULL,NULL,NULL,41,'402aed3d24b633a157a1df2210be96cea9f156f230104c8f46cd17d920ca05cb','測試學生02'),
-(2,NULL,NULL,'Test0001','TestTeaher01','a1125547@mail.nuk.edu.tw','專題教授','2026-06-18 13:12:06',NULL,NULL,'pending',NULL,NULL,NULL,42,'3ac1bed2bd182e3176b9f844a783a159','Fiona');
+(1,'通過',NULL,'Test0001','TestTeaher01','TESTTEA01@mail.nuk.edu.tw',NULL,NULL,'指導教授','2026-06-17 22:32:13','2026-07-01 22:32:13','2026-06-17 22:34:17','submitted',NULL,NULL,NULL,41,'402aed3d24b633a157a1df2210be96cea9f156f230104c8f46cd17d920ca05cb','測試學生02'),
+(2,NULL,NULL,'Test0001','TestTeaher01','a1125547@mail.nuk.edu.tw',NULL,NULL,'專題教授','2026-06-18 13:12:06',NULL,NULL,'pending',NULL,NULL,NULL,42,'3ac1bed2bd182e3176b9f844a783a159','Fiona');
 /*!40000 ALTER TABLE `recommendations` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -385,6 +389,8 @@ DROP TABLE IF EXISTS `teachers`;
 CREATE TABLE `teachers` (
   `ID` char(10) NOT NULL,
   `DNAME` varchar(50) NOT NULL,
+  `UNIT_NAME` varchar(100) DEFAULT NULL,
+  `JOB_TITLE` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`ID`),
   CONSTRAINT `teachers_ibfk_1` FOREIGN KEY (`ID`) REFERENCES `users` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
@@ -397,10 +403,10 @@ CREATE TABLE `teachers` (
 LOCK TABLES `teachers` WRITE;
 /*!40000 ALTER TABLE `teachers` DISABLE KEYS */;
 INSERT INTO `teachers` VALUES
-('T1111111','財法系'),
-('T2222222','東語系'),
-('T3333333','化材系'),
-('Test0001','資訊工程學系');
+('T1111111','財法系',NULL,NULL),
+('T2222222','東語系',NULL,NULL),
+('T3333333','化材系',NULL,NULL),
+('Test0001','資訊工程學系',NULL,NULL);
 /*!40000 ALTER TABLE `teachers` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -520,6 +526,7 @@ INSERT INTO `users` VALUES
 ('JXJ777',4,'臺北市關帝廟聯誼會','JXJ777@443.gs','0206555444','$2y$10$EGxLbYz1XF6vwfFMJSt44uLlRxDPTtDaDJKCzUL4X2uhlwn9VcYtq','active','2026-06-16 15:47:10'),
 ('K2993388',4,'池濟','cj@443.gs','0202222111','$2y$10$EP9hB8v2vZO4hLFy/GAB.Ok0IRs9ikdpM.dC8VYXLNw60XORJzCqG','pending','2026-06-18 08:18:04'),
 ('manager',3,'管理員','manager@mail.nuk.edu.tw','0900000000','$2y$10$CjCiuVuX/3Lv/OEqLzEN9.2/NhfawQhsrARpNicX0GosofG64FgxS','active','2026-06-17 12:35:00'),
+('O8218712',4,'XXX基金會','x_X@443.gs','0200999999','$2y$10$tq/eY.x7.0fxHlL0BvhTm.xMRCaQ3rrH.TPtXjaMe9TuH24myFgeu','active','2026-06-18 09:14:34'),
 ('S1111111',4,'S111','S1111111@gmail.com','11111111','$2y$10$qirkHzwKMnshSMxVfVPusuKKdXgaIWTh5UfP.UjDbd8NAU7pWfJXW','active','2026-01-11 11:17:32'),
 ('S2222222',4,'S222','S2222222@gmail.com','22222222','$2y$10$tW.fCY93JDdyRgTxGoWIcebcaBtZaOobfieuqQpd6hodD.VDu9Pk.','active','2026-01-11 11:16:23'),
 ('S3333333',4,'S333','S3333333@gmail.com','33333333','$2y$10$eruG0GBHbtSml6VXbTqVOu3Sz3D/r8S5t0/bI.Elj2gEMKDlMJnhy','active','2026-01-11 11:26:08'),
@@ -551,4 +558,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-18 16:42:39
+-- Dump completed on 2026-06-18 17:47:10
