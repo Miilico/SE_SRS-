@@ -213,12 +213,12 @@ require __DIR__ . "/header.php";
     <div class="card border-0 shadow-sm">
       <div class="card-body p-4">
       <h2 class="h5 fw-bold mb-3">回覆</h2>
-      <form method="post" action="/scholarship/submit_ticket.php" enctype="multipart/form-data">
+      <form id="ticketReplyForm" method="post" action="/scholarship/submit_ticket.php" enctype="multipart/form-data">
         <input type="hidden" name="ticket_id" value="<?= h($ticket["TICKET_ID"]) ?>">
 
         <div class="mb-3">
           <label class="form-label fw-semibold" for="message">內容</label>
-          <textarea class="form-control" id="message" name="message" rows="7" required></textarea>
+          <textarea class="form-control" id="message" name="message" rows="7"></textarea>
         </div>
 
         <div class="mb-3">
@@ -237,8 +237,8 @@ require __DIR__ . "/header.php";
   </div>
   </div>
 <?php else: ?>
-  <div class="row g-3">
-    <div class="col-lg-8">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
     <div class="card border-0 shadow-sm">
       <div class="card-body p-4">
       <h1 class="h3 fw-bold mb-3">新增工單</h1>
@@ -266,17 +266,51 @@ require __DIR__ . "/header.php";
       </div>
     </div>
     </div>
-
-    <div class="col-lg-4">
-    <div class="card border-0 shadow-sm">
-      <div class="card-body p-4">
-      <h2 class="h5 fw-bold mb-2">對話紀錄</h2>
-      <div class="text-secondary">送出後會建立新的工單對話。</div>
-      </div>
-    </div>
-    </div>
   </div>
 <?php endif; ?>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var form = document.getElementById("ticketReplyForm");
+
+  if (!form) {
+    return;
+  }
+
+  var message = form.querySelector('textarea[name="message"]');
+  var file = form.querySelector('input[name="TICKET_FILE"]');
+
+  function clearMessageValidity() {
+    if (message) {
+      message.setCustomValidity("");
+    }
+  }
+
+  if (message) {
+    message.addEventListener("input", clearMessageValidity);
+  }
+
+  if (file) {
+    file.addEventListener("change", clearMessageValidity);
+  }
+
+  form.addEventListener("submit", function (event) {
+    var hasMessage = message && message.value.trim() !== "";
+    var hasFile = file && file.files && file.files.length > 0;
+
+    if (!hasMessage && hasFile) {
+      message.value = "上傳附件：";
+      return;
+    }
+
+    if (!hasMessage) {
+      event.preventDefault();
+      message.setCustomValidity("請輸入內容或上傳附件。");
+      message.reportValidity();
+    }
+  });
+});
+</script>
 
 </main>
 </body>
