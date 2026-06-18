@@ -190,7 +190,7 @@ require __DIR__ . "/../header.php";
                         <?= site_status_badge(tar_recommendation_status_label($a), "recommendation") ?>
                         <?php if (($a["status"] ?? "") === "rejected" && !empty($a["rejected_reason"])): ?>
                           <div class="small text-secondary mt-1">
-                            <?= h($a["rejected_source"] === "system" ? "系統自動駁回" : "導師駁回") ?>：<?= h($a["rejected_reason"]) ?>
+                            <?= h($a["rejected_source"] === "system" ? "系統自動駁回" : "推薦人駁回") ?>：<?= h($a["rejected_reason"]) ?>
                           </div>
                         <?php endif; ?>
                       <?php endif; ?>

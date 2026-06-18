@@ -2,13 +2,16 @@
 $adminHeaderBootstrapOnly = true;
 require __DIR__ . "/../header.php";
 unset($adminHeaderBootstrapOnly);
+require_once __DIR__ . "/../file_helpers.php";
+
+ensure_teachers_table($pdo);
 
 function account_form_role_name($role) {
     switch ((int)$role) {
         case 1:
             return "學生";
         case 2:
-            return "教師";
+            return "推薦人";
         case 4:
             return "獎助單位";
         default:
@@ -27,6 +30,8 @@ $account = [
     "SID" => "",
     "STUDENT_DEPT" => "",
     "TEACHER_DEPT" => "",
+    "TEACHER_UNIT" => "",
+    "TEACHER_TITLE" => "",
     "CONTACT" => "",
 ];
 $orgPhones = "";
@@ -35,7 +40,7 @@ $mode = "add";
 if ($id !== "") {
     $stmt = $pdo->prepare("SELECT u.ID, u.NAME, u.ROLE, u.TEL, u.EMAIL, u.status,
                                   s.SID, s.DNAME AS STUDENT_DEPT,
-                                  t.DNAME AS TEACHER_DEPT,
+                                  t.DNAME AS TEACHER_DEPT, t.UNIT_NAME AS TEACHER_UNIT, t.JOB_TITLE AS TEACHER_TITLE,
                                   o.CONTACT
                            FROM users u
                            LEFT JOIN students s ON u.ID = s.ID
@@ -66,7 +71,7 @@ $activeNav = "account_management.php";
 
     <div class="form-container">
         <h1 class="admin-page-title"><?php echo ($mode === "add") ? "新增帳號" : "修改帳號"; ?></h1>
-        <div class="admin-page-subtitle admin-form-lead">建立或更新學生、教師與獎助單位帳號資料。</div>
+        <div class="admin-page-subtitle admin-form-lead">建立或更新學生、推薦人與獎助單位帳號資料。</div>
         <form action="account_process.php" method="post">
             <input type="hidden" name="mode" value="<?php echo htmlspecialchars($mode); ?>">
             <?php if ($mode === "edit"): ?>
@@ -81,7 +86,7 @@ $activeNav = "account_management.php";
             <?php if ($mode === "add"): ?>
                 <select name="role" id="accountRole" required>
                     <option value="1" <?php echo ((int)$account["ROLE"] === 1) ? "selected" : ""; ?>>學生</option>
-                    <option value="2" <?php echo ((int)$account["ROLE"] === 2) ? "selected" : ""; ?>>教師</option>
+                    <option value="2" <?php echo ((int)$account["ROLE"] === 2) ? "selected" : ""; ?>>推薦人</option>
                     <option value="4" <?php echo ((int)$account["ROLE"] === 4) ? "selected" : ""; ?>>獎助單位</option>
                 </select>
             <?php else: ?>
@@ -115,9 +120,15 @@ $activeNav = "account_management.php";
                 <input type="text" name="student_dept" value="<?php echo htmlspecialchars($account["STUDENT_DEPT"]); ?>">
             </div>
 
-            <div class="sub-title" data-role-block="2">教師資料</div>
+            <div class="sub-title" data-role-block="2">推薦人資料</div>
             <div data-role-block="2">
-                <label>所屬系所:</label>
+                <label>單位名稱:</label>
+                <input type="text" name="teacher_unit" value="<?php echo htmlspecialchars($account["TEACHER_UNIT"]); ?>" placeholder="例如：國立成功大學、XX科技股份有限公司">
+
+                <label>職稱:</label>
+                <input type="text" name="teacher_title" value="<?php echo htmlspecialchars($account["TEACHER_TITLE"]); ?>" placeholder="例如：副教授、講師、高級工程師">
+
+                <label>系所 / 部門:</label>
                 <input type="text" name="teacher_dept" value="<?php echo htmlspecialchars($account["TEACHER_DEPT"]); ?>">
             </div>
 

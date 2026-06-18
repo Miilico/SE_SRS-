@@ -1,7 +1,10 @@
 <?php
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/../file_helpers.php";
 require_role(1); // 1=學生
+
+ensure_teachers_table($pdo);
 
 $stId = $_SESSION["user"]["id"];
 //$userName = $_SESSION["user"]["name"] ?? "";
@@ -15,10 +18,10 @@ $schs = $pdo->query("SELECT id, NAME, DEADLINE, AMOUNT
   ->fetchAll(PDO::FETCH_ASSOC);
 
 $stmt = $pdo->query(" 
-  SELECT t.ID, u.NAME AS teacher_name, t.DNAME AS dept_name 
+  SELECT t.ID, u.NAME AS teacher_name, u.EMAIL, t.DNAME AS dept_name, t.UNIT_NAME, t.JOB_TITLE
   FROM teachers t 
   JOIN users u ON t.ID = u.ID 
-  ORDER BY t.DNAME, u.NAME 
+  ORDER BY COALESCE(t.UNIT_NAME, ''), t.DNAME, u.NAME
 ");
 $teachers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -50,7 +53,7 @@ require __DIR__ . "/../header.php";
   <?php if ($recommendLink): ?>
     <div class="alert alert-info mt-3 mb-0">
       <!--<div class="fw-semibold">教授推薦連結（Demo 用）</div>-->
-      <div class="fw-semibold">已傳送推薦信連結至教授的信箱</div>
+      <div class="fw-semibold">已傳送推薦信連結至推薦人的信箱</div>
       <!--<div class="small muted">把這個連結貼給教授，他不用註冊也能填推薦信。</div>-->
       <!--<div class="mt-2">
           <a href="<?= htmlspecialchars($recommendLink) ?>" target="_blank" class="text-decoration-none">
@@ -121,35 +124,55 @@ require __DIR__ . "/../header.php";
     </div>
   </div>
 
-  <!-- 4. 推薦信（教授免註冊） -->
+  <!-- 4. 推薦信（推薦人免註冊） -->
   <div class="mb-4">
     <div class="section-title mb-2">4. 推薦信</div>
     <!--<div class="section-title mb-2">4. 推薦信（教授免註冊填寫）</div>-->
     <div class="row g-3">
-      <!--<div class="col-md-4">
-          <label class="form-label fw-semibold">推薦人姓名（可空）</label>
-          <input class="form-control" name="REC_NAME" maxlength="50" placeholder="例如：王小明">
-        </div>-->
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">推薦教授</label>
-        <select class="form-select" name="teacher_id">
-          <option value="">請選擇教授（可空）</option>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">推薦人（已註冊帳號可選）</label>
+        <select class="form-select" name="teacher_id" id="teacher_id">
+          <option value="">不從帳號選擇，改填外部推薦人</option>
           <?php foreach ($teachers as $t): ?>
-            <option value="<?= htmlspecialchars($t['ID']) ?>">
-              <?= htmlspecialchars($t['teacher_name']) ?>（<?= htmlspecialchars($t['dept_name']) ?>）
+            <?php
+              $unit = $t["UNIT_NAME"] ?: $t["dept_name"];
+              $labelParts = array_filter(array($unit, $t["JOB_TITLE"]));
+            ?>
+            <option
+              value="<?= htmlspecialchars($t['ID']) ?>"
+              data-name="<?= htmlspecialchars($t['teacher_name']) ?>"
+              data-email="<?= htmlspecialchars($t['EMAIL']) ?>"
+              data-unit="<?= htmlspecialchars($unit) ?>"
+              data-title="<?= htmlspecialchars($t['JOB_TITLE']) ?>">
+              <?= htmlspecialchars($t['teacher_name']) ?><?= $labelParts ? "（" . htmlspecialchars(implode(" / ", $labelParts)) . "）" : "" ?>
             </option>
           <?php endforeach; ?>
         </select>
       </div>
 
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">推薦人 Email（可空）</label>
-        <input class="form-control" type="email" name="REC_EMAIL" maxlength="100" placeholder="xxx@mail.nuk.edu.tw">
-        <!--<div class="form-text">填了才會建立推薦連結</div>-->
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">推薦人姓名</label>
+        <input class="form-control" id="rec_name" name="REC_NAME" maxlength="100" placeholder="例如：王小明">
       </div>
+
       <div class="col-md-4">
+        <label class="form-label fw-semibold">單位名稱</label>
+        <input class="form-control" id="rec_unit" name="REC_UNIT" maxlength="100" placeholder="例如：國立成功大學、XX科技股份有限公司">
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">職稱</label>
+        <input class="form-control" id="rec_title" name="REC_TITLE" maxlength="100" placeholder="例如：副教授、講師、高級工程師">
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">推薦人 Email</label>
+        <input class="form-control" id="rec_email" type="email" name="REC_EMAIL" maxlength="100" placeholder="xxx@example.com">
+      </div>
+
+      <div class="col-md-12">
         <label class="form-label fw-semibold">關係（可空）</label>
-        <input class="form-control" name="REC_REL" maxlength="50" placeholder="例如：專題指導教授">
+        <input class="form-control" name="REC_REL" maxlength="50" placeholder="例如：專題指導教授、實習主管">
       </div>
     </div>
   </div>
@@ -191,6 +214,30 @@ require __DIR__ . "/../header.php";
   </div>
 </form>
 
+<script>
+  (function() {
+    var teacherSelect = document.getElementById("teacher_id");
+    if (!teacherSelect) return;
+
+    var fields = {
+      name: document.getElementById("rec_name"),
+      email: document.getElementById("rec_email"),
+      unit: document.getElementById("rec_unit"),
+      title: document.getElementById("rec_title")
+    };
+
+    teacherSelect.addEventListener("change", function() {
+      var option = teacherSelect.options[teacherSelect.selectedIndex];
+      if (!option || !option.value) return;
+
+      Object.keys(fields).forEach(function(key) {
+        if (fields[key]) {
+          fields[key].value = option.getAttribute("data-" + key) || "";
+        }
+      });
+    });
+  }());
+</script>
 </main>
 </body>
 

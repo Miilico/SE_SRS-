@@ -25,6 +25,8 @@ $stmt = $pdo->prepare("
         r.teacher_id,
         r.teacher_name,
         r.teacher_email,
+        r.teacher_unit,
+        r.teacher_title,
         r.rec_rel,
         r.created_at,
         r.expires_at,
@@ -100,7 +102,7 @@ require __DIR__ . "/../header.php";
     <h1 class="h3 fw-bold mb-0">推薦信處理</h1>
   </div>
   <?php if (!empty($_SESSION["user"])): ?>
-    <a class="btn btn-outline-secondary" href="tea_dashboard.php">返回導師總覽</a>
+    <a class="btn btn-outline-secondary" href="tea_dashboard.php">返回推薦人總覽</a>
   <?php endif; ?>
 </div>
 
@@ -146,6 +148,18 @@ require __DIR__ . "/../header.php";
             <td><?= h($recommendation["RANK"] ?? "") ?></td>
           </tr>
           <tr>
+            <th class="table-light">推薦人</th>
+            <td><?= h($recommendation["teacher_name"] ?? "") ?></td>
+          </tr>
+          <tr>
+            <th class="table-light">推薦人單位</th>
+            <td><?= h($recommendation["teacher_unit"] ?? "") ?></td>
+          </tr>
+          <tr>
+            <th class="table-light">推薦人職稱</th>
+            <td><?= h($recommendation["teacher_title"] ?? "") ?></td>
+          </tr>
+          <tr>
             <th class="table-light">推薦關係</th>
             <td><?= h($recommendation["rec_rel"] ?? "") ?></td>
           </tr>
@@ -156,7 +170,7 @@ require __DIR__ . "/../header.php";
           <?php if ($statusLabel === "已駁回"): ?>
             <tr>
               <th class="table-light">駁回來源</th>
-              <td><?= h($recommendation["rejected_source"] === "system" ? "系統自動" : "導師手動") ?></td>
+              <td><?= h($recommendation["rejected_source"] === "system" ? "系統自動" : "推薦人手動") ?></td>
             </tr>
             <tr>
               <th class="table-light">駁回原因</th>
@@ -211,6 +225,24 @@ require __DIR__ . "/../header.php";
       <h2 class="h5 fw-bold mb-3">推薦內容</h2>
       <form method="post" action="submit_recommendation.php" enctype="multipart/form-data">
         <input type="hidden" name="token" value="<?= h($token) ?>">
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label for="teacher_name" class="form-label">推薦人姓名</label>
+            <input type="text" name="teacher_name" id="teacher_name" class="form-control" maxlength="100" value="<?= h($recommendation["teacher_name"] ?? "") ?>" required>
+          </div>
+          <div class="col-md-6">
+            <label for="teacher_email" class="form-label">推薦人 Email</label>
+            <input type="email" name="teacher_email" id="teacher_email" class="form-control" maxlength="255" value="<?= h($recommendation["teacher_email"] ?? "") ?>">
+          </div>
+          <div class="col-md-6">
+            <label for="teacher_unit" class="form-label">單位名稱</label>
+            <input type="text" name="teacher_unit" id="teacher_unit" class="form-control" maxlength="100" value="<?= h($recommendation["teacher_unit"] ?? "") ?>" placeholder="例如：國立成功大學、XX科技股份有限公司" required>
+          </div>
+          <div class="col-md-6">
+            <label for="teacher_title" class="form-label">職稱</label>
+            <input type="text" name="teacher_title" id="teacher_title" class="form-control" maxlength="100" value="<?= h($recommendation["teacher_title"] ?? "") ?>" placeholder="例如：副教授、講師、高級工程師" required>
+          </div>
+        </div>
         <div class="mb-3">
           <label for="content" class="form-label">推薦信內容</label>
           <textarea name="content" id="content" class="form-control" rows="8" required><?= h($draftText) ?></textarea>

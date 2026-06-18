@@ -96,7 +96,7 @@ try {
         array(
             "{$safeStudent} 您好：",
             "",
-            "您申請 <strong>{$safeScholarship}</strong> 的推薦信撰寫請求已被導師駁回。",
+            "您申請 <strong>{$safeScholarship}</strong> 的推薦信撰寫請求已被推薦人駁回。",
             "原因：{$safeReason}",
             "您可以回到獎助學金系統查詢申請狀態。"
         )

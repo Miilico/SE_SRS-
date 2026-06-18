@@ -22,7 +22,7 @@ $activeNav = "admin_dashboard.php";
 
   <div class="card">
     <h3>帳號管理</h3>
-    <p class="muted">新增、編輯學生、教師與獎助單位帳號</p>
+    <p class="muted">新增、編輯學生、推薦人與獎助單位帳號</p>
     <a class="btn" href="/scholarship/admin/account_management.php">前往</a>
   </div>
 

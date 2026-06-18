@@ -30,6 +30,10 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 
 $token = isset($_POST["token"]) ? trim($_POST["token"]) : "";
 $content = isset($_POST["content"]) ? trim($_POST["content"]) : "";
+$teacherNameInput = isset($_POST["teacher_name"]) ? trim($_POST["teacher_name"]) : "";
+$teacherEmailInput = isset($_POST["teacher_email"]) ? trim($_POST["teacher_email"]) : "";
+$teacherUnitInput = isset($_POST["teacher_unit"]) ? trim($_POST["teacher_unit"]) : "";
+$teacherTitleInput = isset($_POST["teacher_title"]) ? trim($_POST["teacher_title"]) : "";
 $action = isset($_POST["action"]) ? trim($_POST["action"]) : "submit";
 
 if ($token === "") {
@@ -48,6 +52,9 @@ $stmt = $pdo->prepare("
         r.id AS recommendation_id,
         r.teacher_id,
         r.teacher_name,
+        r.teacher_email,
+        r.teacher_unit,
+        r.teacher_title,
         r.content,
         r.draft_content,
         r.status,
@@ -91,10 +98,23 @@ if (!empty($record["expires_at"]) && strtotime($record["expires_at"]) < time()) 
     fail_and_back("此推薦信請求已逾期。", $token);
 }
 
+$teacherNameValue = $teacherNameInput !== "" ? $teacherNameInput : (string)($record["teacher_name"] ?? "");
+$teacherEmailValue = $teacherEmailInput !== "" ? $teacherEmailInput : (string)($record["teacher_email"] ?? "");
+$teacherUnitValue = $teacherUnitInput !== "" ? $teacherUnitInput : (string)($record["teacher_unit"] ?? "");
+$teacherTitleValue = $teacherTitleInput !== "" ? $teacherTitleInput : (string)($record["teacher_title"] ?? "");
+
+if ($teacherEmailValue !== "" && !filter_var($teacherEmailValue, FILTER_VALIDATE_EMAIL)) {
+    fail_and_back("推薦人 Email 格式不正確。", $token);
+}
+
 if ($action === "save_draft") {
     $update = $pdo->prepare("
         UPDATE recommendations
         SET draft_content = :content,
+            teacher_name = :teacher_name,
+            teacher_email = :teacher_email,
+            teacher_unit = :teacher_unit,
+            teacher_title = :teacher_title,
             status = CASE WHEN :content_check = '' THEN 'pending' ELSE 'draft' END
         WHERE token = :token
           AND COALESCE(status, 'pending') IN ('pending', 'draft')
@@ -102,6 +122,10 @@ if ($action === "save_draft") {
     ");
     $update->execute(array(
         ":content" => $content,
+        ":teacher_name" => $teacherNameValue === "" ? "推薦人" : $teacherNameValue,
+        ":teacher_email" => $teacherEmailValue,
+        ":teacher_unit" => $teacherUnitValue === "" ? null : $teacherUnitValue,
+        ":teacher_title" => $teacherTitleValue === "" ? null : $teacherTitleValue,
         ":content_check" => $content,
         ":token" => $token,
     ));
@@ -113,12 +137,28 @@ if ($content === "") {
     fail_and_back("請先填寫推薦信內容。", $token);
 }
 
+if ($teacherNameValue === "") {
+    fail_and_back("請填寫推薦人姓名。", $token);
+}
+
+if ($teacherUnitValue === "") {
+    fail_and_back("請填寫推薦人單位名稱。", $token);
+}
+
+if ($teacherTitleValue === "") {
+    fail_and_back("請填寫推薦人職稱。", $token);
+}
+
 try {
     $pdo->beginTransaction();
 
     $update = $pdo->prepare("
         UPDATE recommendations
         SET content = :content,
+            teacher_name = :teacher_name,
+            teacher_email = :teacher_email,
+            teacher_unit = :teacher_unit,
+            teacher_title = :teacher_title,
             draft_content = NULL,
             status = 'submitted',
             submitted_at = NOW()
@@ -128,6 +168,10 @@ try {
     ");
     $update->execute(array(
         ":content" => $content,
+        ":teacher_name" => $teacherNameValue,
+        ":teacher_email" => $teacherEmailValue,
+        ":teacher_unit" => $teacherUnitValue,
+        ":teacher_title" => $teacherTitleValue,
         ":token" => $token,
     ));
 
@@ -147,7 +191,7 @@ try {
         ));
     }
 
-    $teacherName = trim((string)$record["teacher_name"]) === "" ? "推薦老師" : $record["teacher_name"];
+    $teacherName = trim($teacherNameValue) === "" ? "推薦人" : $teacherNameValue;
     $safeTeacher = htmlspecialchars($teacherName, ENT_QUOTES, "UTF-8");
     $safeStudent = htmlspecialchars($record["student_name"], ENT_QUOTES, "UTF-8");
     $safeScholarship = htmlspecialchars($record["SCNAME"], ENT_QUOTES, "UTF-8");

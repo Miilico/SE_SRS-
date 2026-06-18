@@ -101,7 +101,7 @@ $requestsStmt = $pdo->prepare("
 $requestsStmt->execute(array(":teacher_id" => $userId));
 $recentRequests = $requestsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-$pageTitle = "導師子系統";
+$pageTitle = "推薦人子系統";
 $activeNav = "tea_dashboard.php";
 $siteHeaderRequiredRole = array(2, 3);
 require __DIR__ . "/../header.php";
@@ -109,9 +109,9 @@ require __DIR__ . "/../header.php";
 
 <div class="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-end mb-4">
   <div>
-    <p class="text-secondary mb-1">TAR 導師與推薦信子系統</p>
+    <p class="text-secondary mb-1">TAR 推薦人與推薦信子系統</p>
     <h1 class="h3 fw-bold mb-1"><?= h($userName) ?>，您好</h1>
-    <p class="text-secondary mb-0">查看指導學生申請資料，並管理推薦信草稿、提交與駁回。</p>
+    <p class="text-secondary mb-0">查看學生申請資料，並管理推薦信草稿、提交與駁回。</p>
   </div>
   <a class="btn btn-outline-secondary" href="/scholarship/profile.php">個人檔案</a>
 </div>
@@ -140,7 +140,7 @@ require __DIR__ . "/../header.php";
 
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-body p-4">
-    <h2 class="h5 fw-bold mb-3">查詢指導學生申請資料</h2>
+    <h2 class="h5 fw-bold mb-3">查詢學生申請資料</h2>
     <form action="student_view.php" method="get" class="row g-2 align-items-end">
       <div class="col-md-8 col-lg-5">
         <label class="form-label fw-semibold" for="sid">學生帳號或學號</label>
@@ -209,7 +209,7 @@ require __DIR__ . "/../header.php";
   <div class="col-lg-5">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body p-4">
-        <h2 class="h5 fw-bold mb-3">指導學生</h2>
+        <h2 class="h5 fw-bold mb-3">推薦關聯學生</h2>
         <?php if (empty($myStudents)): ?>
           <p class="text-secondary mb-0">尚無推薦請求關聯學生。</p>
         <?php else: ?>
