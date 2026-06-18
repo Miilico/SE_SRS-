@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/../custom_form_helpers.php";
 require_role(1);
 
 function h($value) {
@@ -43,25 +44,42 @@ $fileStmt = $pdo->prepare("
         created_at
     FROM application_files
     WHERE COALESCE(application_id, apno) = :apno
-      AND file_type = 'support'
+      AND file_type IN ('autobi', 'support')
     ORDER BY created_at DESC, id DESC
 ");
 
 $fileStmt->execute(array(":apno" => $apno));
-$supportFiles = $fileStmt->fetchAll(PDO::FETCH_ASSOC);
-
-function application_file_size($bytes) {
-    $bytes = (int)$bytes;
-
-    if ($bytes <= 0) {
-        return "大小未記錄";
+$autobiFiles = array();
+$supportFiles = array();
+foreach ($fileStmt->fetchAll(PDO::FETCH_ASSOC) as $file) {
+    if ($file["file_type"] === "autobi") {
+        $autobiFiles[] = $file;
+    } elseif ($file["file_type"] === "support") {
+        $supportFiles[] = $file;
     }
+}
 
-    if ($bytes >= 1024 * 1024) {
-        return number_format($bytes / (1024 * 1024), 2) . " MB";
+if (empty($autobiFiles) && !empty($app["AUTOBI"])) {
+    $autobiFiles[] = array(
+        "original_name" => "目前的自傳文件",
+        "path" => $app["AUTOBI"],
+        "file_size" => 0,
+        "created_at" => null,
+    );
+}
+
+$customFields = custom_form_fields_for_scholarship($pdo, $app["SCID"]);
+$customValues = array();
+if (custom_form_tables_ready($pdo)) {
+    $customAnswerStmt = $pdo->prepare("
+        SELECT field_id, answer_value
+        FROM application_custom_answers
+        WHERE application_id = ?
+    ");
+    $customAnswerStmt->execute(array($apno));
+    foreach ($customAnswerStmt->fetchAll(PDO::FETCH_ASSOC) as $answer) {
+        $customValues[(int)$answer["field_id"]] = (string)$answer["answer_value"];
     }
-
-    return number_format($bytes / 1024, 1) . " KB";
 }
 
 if (empty($_SESSION["csrf_token"])) {
@@ -124,18 +142,22 @@ require __DIR__ . "/../header.php";
              value="<?= h($app["rec_rel"]) ?>">
     </div>
 
+    <?php require __DIR__ . "/partials/application_custom_fields.php"; ?>
+
     <hr class="my-4">
 
     <div class="mb-4">
-      <label class="form-label fw-semibold">更換自傳文件</label>
+      <label class="form-label fw-semibold">目前的自傳文件</label>
+      <?php
+      $applicationFiles = $autobiFiles;
+      $emptyFilesMessage = "目前沒有自傳文件。";
+      $allowFileDeletion = false;
+      require __DIR__ . "/partials/application_file_list.php";
+      ?>
+    </div>
 
-      <?php if (!empty($app["AUTOBI"])): ?>
-        <div class="mb-2">
-          <a href="<?= h($app["AUTOBI"]) ?>" target="_blank">
-            查看目前的自傳文件
-          </a>
-        </div>
-      <?php endif; ?>
+    <div class="mb-4">
+      <label class="form-label fw-semibold">更換自傳文件</label>
 
       <input class="form-control"
             type="file"
@@ -149,38 +171,14 @@ require __DIR__ . "/../header.php";
 
     <div class="mb-4">
       <label class="form-label fw-semibold">目前的其他有利審查資料</label>
-
-      <?php if (empty($supportFiles)): ?>
-        <div class="text-secondary border rounded p-3">
-          尚未上傳其他有利審查資料。
-        </div>
-      <?php else: ?>
-        <div class="list-group">
-          <?php foreach ($supportFiles as $file): ?>
-            <div class="list-group-item d-flex justify-content-between align-items-center gap-3">
-              <div class="text-truncate">
-                <div class="fw-semibold text-truncate">
-                  <?= h($file["original_name"]) ?>
-                </div>
-
-                <div class="small text-secondary">
-                  <?= h(application_file_size($file["file_size"])) ?>
-
-                  <?php if (!empty($file["created_at"])): ?>
-                    · <?= h($file["created_at"]) ?>
-                  <?php endif; ?>
-                </div>
-              </div>
-
-              <a class="btn btn-sm btn-outline-primary flex-shrink-0"
-                href="<?= h($file["path"]) ?>"
-                target="_blank"
-                rel="noopener">
-                查看
-              </a>
-            </div>
-          <?php endforeach; ?>
-        </div>
+      <?php
+      $applicationFiles = $supportFiles;
+      $emptyFilesMessage = "尚未上傳其他有利審查資料。";
+      $allowFileDeletion = true;
+      require __DIR__ . "/partials/application_file_list.php";
+      ?>
+      <?php if (!empty($supportFiles)): ?>
+        <div class="form-text">勾選要刪除的附件，再按下方「確認修改」。</div>
       <?php endif; ?>
     </div>
 

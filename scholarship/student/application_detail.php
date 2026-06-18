@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/../custom_form_helpers.php";
 require_role(1);
 
 function h($value) {
@@ -34,7 +35,7 @@ if (!$app) {
 $stmt = $pdo->prepare("
     SELECT id, file_type, original_name, path
     FROM application_files
-    WHERE apno = :apno
+    WHERE COALESCE(application_id, apno) = :apno
     ORDER BY id
 ");
 $stmt->execute(array(":apno" => $apno));
@@ -48,6 +49,20 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute(array(":apno" => $apno));
 $recommendation = $stmt->fetch();
+
+$customAnswers = array();
+if (custom_form_tables_ready($pdo)) {
+    $stmt = $pdo->prepare("
+        SELECT f.field_label, f.field_type, a.answer_value
+        FROM scholarship_fields f
+        LEFT JOIN application_custom_answers a
+          ON a.field_id = f.id AND a.application_id = :apno
+        WHERE f.scholarship_id = :scid
+        ORDER BY f.sort_order, f.id
+    ");
+    $stmt->execute(array(":apno" => $apno, ":scid" => $app["SCID"]));
+    $customAnswers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
 $status = $app["RESULT"];
 $canEdit = !in_array($status, array("通過", "不通過"), true);
@@ -85,6 +100,22 @@ require __DIR__ . "/../header.php";
       <tr><th>審核狀態</th><td><span class="badge bg-secondary"><?= h($status) ?></span></td></tr>
       <tr><th>申請條件</th><td><?= nl2br(h($app["CONDI"])) ?></td></tr>
     </table>
+
+    <?php if (!empty($customAnswers)): ?>
+      <h2 class="h5 fw-bold mt-4">獎助單位自訂申請資料</h2>
+      <div class="list-group">
+        <?php foreach ($customAnswers as $answer): ?>
+          <div class="list-group-item">
+            <div class="small text-secondary mb-1"><?= h($answer["field_label"]) ?></div>
+            <?php if ($answer["field_type"] === "file" && !empty($answer["answer_value"])): ?>
+              <a class="btn btn-sm btn-outline-primary" href="<?= h($answer["answer_value"]) ?>" target="_blank" rel="noopener">查看檔案</a>
+            <?php else: ?>
+              <div><?= $answer["answer_value"] !== null && $answer["answer_value"] !== "" ? nl2br(h($answer["answer_value"])) : "未填寫" ?></div>
+            <?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
 
     <h2 class="h5 fw-bold mt-4">申請文件</h2>
     <?php if (empty($files)): ?>

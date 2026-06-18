@@ -6,6 +6,7 @@ exit;*/
 
 session_start();
 require_once "db.php";
+require_once __DIR__ . "/../custom_form_helpers.php";
 
 // 權限檢查
 /*if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'provider') {
@@ -64,11 +65,26 @@ if ($startDateObj > $deadlineObj) {
 }
 
 try {
+    $pdo->beginTransaction();
     $sql = "INSERT INTO scholarship (NAME, provider_id, DEADLINE, CONDI, AMOUNT, start_date) 
             VALUES (?, ?, ?, ?, ?, ?)"; 
-            $stmt = $pdo->prepare($sql); 
-            $stmt->execute([$name, $provider_id, $deadline, $condi, $amount, $start_date]); 
-            site_flash_redirect("add_scholarship.php", "新增成功！", "success");
-} catch (PDOException $e) { 
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$name, $provider_id, $deadline, $condi, $amount, $start_date]);
+
+    $scholarshipId = (int)$pdo->lastInsertId();
+    custom_form_replace_fields(
+        $pdo,
+        $scholarshipId,
+        isset($_POST["custom_labels"]) ? $_POST["custom_labels"] : array(),
+        isset($_POST["custom_types"]) ? $_POST["custom_types"] : array(),
+        isset($_POST["custom_required"]) ? $_POST["custom_required"] : array()
+    );
+
+    $pdo->commit();
+    site_flash_redirect("add_scholarship.php", "新增成功！", "success");
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     site_flash_redirect("add_scholarship.php", "新增失敗：" . $e->getMessage(), "danger");
 }

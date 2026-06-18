@@ -2,6 +2,7 @@
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/../file_helpers.php";
+require_once __DIR__ . "/../custom_form_helpers.php";
 require_role(1);
 
 function back_to_edit($apno, $message) {
@@ -26,6 +27,9 @@ $rank = isset($_POST["rank"]) ? trim($_POST["rank"]) : "";
 $teacherEmail = isset($_POST["teacher_email"]) ? trim($_POST["teacher_email"]) : "";
 $recRel = isset($_POST["rec_rel"]) ? trim($_POST["rec_rel"]) : "";
 $csrfToken = isset($_POST["csrf_token"]) ? $_POST["csrf_token"] : "";
+$deleteFileIds = isset($_POST["delete_file_ids"]) && is_array($_POST["delete_file_ids"])
+    ? $_POST["delete_file_ids"]
+    : array();
 
 if (
     empty($_SESSION["csrf_token"]) ||
@@ -83,6 +87,15 @@ try {
         isset($_FILES["AUTOBI_FILE"]["error"]) &&
         $_FILES["AUTOBI_FILE"]["error"] !== UPLOAD_ERR_NO_FILE
     ) {
+        $oldAutobiStmt = $pdo->prepare("
+            SELECT id
+            FROM application_files
+            WHERE COALESCE(application_id, apno) = ?
+              AND file_type = 'autobi'
+        ");
+        $oldAutobiStmt->execute(array($apno));
+        $oldAutobiFileIds = $oldAutobiStmt->fetchAll(PDO::FETCH_COLUMN);
+
         $saved = store_uploaded_file(
             $pdo,
             $_FILES["AUTOBI_FILE"],
@@ -109,6 +122,8 @@ try {
             ":apno" => $apno,
             ":stid" => $stId
         ));
+
+        delete_uploaded_files($pdo, $oldAutobiFileIds, 2, "application_id", $apno);
     }
 
     $stmt = $pdo->prepare("
@@ -160,6 +175,29 @@ try {
             );
         }
     }
+
+    $customFields = custom_form_fields_for_scholarship($pdo, $application["SCID"]);
+    custom_form_save_answers(
+        $pdo,
+        $customFields,
+        $apno,
+        $stId,
+        $application["SCID"],
+        $application["OID"]
+    );
+
+    $supportFileStmt = $pdo->prepare("
+        SELECT id
+        FROM application_files
+        WHERE COALESCE(application_id, apno) = ?
+          AND file_category = 2
+          AND file_type = 'support'
+    ");
+    $supportFileStmt->execute(array($apno));
+    $supportFileIds = array_map("intval", $supportFileStmt->fetchAll(PDO::FETCH_COLUMN));
+    $requestedDeleteIds = array_map("intval", $deleteFileIds);
+    $allowedDeleteIds = array_values(array_intersect($requestedDeleteIds, $supportFileIds));
+    delete_uploaded_files($pdo, $allowedDeleteIds, 2, "application_id", $apno);
 
     $pdo->commit();
     unset($_SESSION["csrf_token"]);

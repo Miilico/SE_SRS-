@@ -278,6 +278,10 @@ $siteHeaderBodyClasses = trim("site-bg " . ($siteHeaderIsAdmin ? "site-admin" : 
         <link rel="stylesheet" href="<?php echo site_header_h($stylesheet); ?>">
     <?php endforeach; ?>
     <style>
+        html {
+            scrollbar-gutter: stable;
+        }
+
         :root {
             --site-bg: #f5f7fb;
             --site-surface: #ffffff;
@@ -309,6 +313,7 @@ $siteHeaderBodyClasses = trim("site-bg " . ($siteHeaderIsAdmin ? "site-admin" : 
 
         .site-topbar .container-fluid {
             max-width: <?php echo site_header_h($siteHeaderMaxWidth); ?>;
+            width: 100%;
         }
 
         .site-topbar .nav-link {
@@ -338,6 +343,7 @@ $siteHeaderBodyClasses = trim("site-bg " . ($siteHeaderIsAdmin ? "site-admin" : 
         .site-shell,
         .admin-shell {
             max-width: <?php echo site_header_h($siteHeaderMaxWidth); ?>;
+            width: 100%;
             margin: 0 auto;
             padding: 28px 24px 44px;
         }
