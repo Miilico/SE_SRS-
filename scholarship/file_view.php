@@ -47,18 +47,10 @@ if (!user_can_download_file($pdo, $file, $user) && !recommendation_token_can_dow
     deny_file_download("沒有權限下載此檔案。", 403);
 }
 
-$baseDir = realpath(__DIR__ . DIRECTORY_SEPARATOR . "user_file");
-$filePath = !empty($file["file_path"]) ? $file["file_path"] : $file["path"];
-$fullPath = realpath(__DIR__ . DIRECTORY_SEPARATOR . $filePath);
+$fullPath = uploaded_file_full_path($file);
 
-if (!$baseDir || !$fullPath) {
+if (!$fullPath) {
     deny_file_download("檔案不存在。", 404);
-}
-
-$baseDirCheck = strtolower($baseDir . DIRECTORY_SEPARATOR);
-$fullPathCheck = strtolower($fullPath);
-if (strpos($fullPathCheck, $baseDirCheck) !== 0 || !is_file($fullPath)) {
-    deny_file_download("檔案路徑不合法。", 403);
 }
 
 $mimeType = !empty($file["mime_type"]) ? $file["mime_type"] : "application/octet-stream";

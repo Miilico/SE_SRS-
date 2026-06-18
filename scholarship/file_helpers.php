@@ -131,6 +131,118 @@ function uploaded_file_view_url($fileId)
     return "/scholarship/file_view.php?id=" . urlencode((string)$fileId);
 }
 
+function uploaded_file_preview_url($fileId)
+{
+    return "/scholarship/file_preview.php?id=" . urlencode((string)$fileId);
+}
+
+function uploaded_file_category_label($fileCategory)
+{
+    switch ((int)$fileCategory) {
+        case 1:
+            return "公告附件";
+        case 2:
+            return "申請者上傳";
+        case 3:
+            return "工單附件";
+        case 4:
+            return "導師推薦信";
+        default:
+            return "其他文件";
+    }
+}
+
+function uploaded_file_extension($file)
+{
+    $name = "";
+    if (!empty($file["original_name"])) {
+        $name = (string)$file["original_name"];
+    } elseif (!empty($file["stored_name"])) {
+        $name = (string)$file["stored_name"];
+    } elseif (!empty($file["file_path"])) {
+        $name = (string)$file["file_path"];
+    } elseif (!empty($file["path"])) {
+        $name = (string)$file["path"];
+    }
+
+    return strtolower((string)pathinfo($name, PATHINFO_EXTENSION));
+}
+
+function uploaded_file_preview_kind($file)
+{
+    $ext = uploaded_file_extension($file);
+    $mimeType = isset($file["mime_type"]) ? strtolower((string)$file["mime_type"]) : "";
+
+    if (strpos($mimeType, "image/") === 0 || in_array($ext, array("jpg", "jpeg", "png", "gif", "webp"))) {
+        return "image";
+    }
+
+    if ($mimeType === "application/pdf" || $ext === "pdf") {
+        return "pdf";
+    }
+
+    if ($ext === "docx") {
+        return "docx";
+    }
+
+    if ($ext === "doc") {
+        return "doc";
+    }
+
+    if (strpos($mimeType, "text/") === 0 || in_array($ext, array("txt", "csv"))) {
+        return "text";
+    }
+
+    return "download";
+}
+
+function uploaded_file_full_path($file)
+{
+    $baseDir = realpath(__DIR__ . DIRECTORY_SEPARATOR . "user_file");
+    $filePath = !empty($file["file_path"]) ? $file["file_path"] : (isset($file["path"]) ? $file["path"] : "");
+
+    if (!$baseDir || $filePath === "" || strpos($filePath, "://") !== false) {
+        return false;
+    }
+
+    $fullPath = realpath(__DIR__ . DIRECTORY_SEPARATOR . $filePath);
+    if (!$fullPath) {
+        return false;
+    }
+
+    $baseDirCheck = strtolower($baseDir . DIRECTORY_SEPARATOR);
+    $fullPathCheck = strtolower($fullPath);
+    if (strpos($fullPathCheck, $baseDirCheck) !== 0 || !is_file($fullPath)) {
+        return false;
+    }
+
+    return $fullPath;
+}
+
+function delete_uploaded_file_record($pdo, $fileId)
+{
+    ensure_application_files_table($pdo);
+
+    $stmt = $pdo->prepare("SELECT * FROM application_files WHERE id = ? LIMIT 1");
+    $stmt->execute(array((int)$fileId));
+    $file = $stmt->fetch();
+
+    if (!$file) {
+        return false;
+    }
+
+    $fullPath = uploaded_file_full_path($file);
+
+    $deleteStmt = $pdo->prepare("DELETE FROM application_files WHERE id = ?");
+    $deleteStmt->execute(array((int)$fileId));
+
+    if ($fullPath && is_file($fullPath)) {
+        @unlink($fullPath);
+    }
+
+    return true;
+}
+
 function normalize_uploaded_context($context)
 {
     return array(

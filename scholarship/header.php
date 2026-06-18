@@ -60,6 +60,7 @@ if (!defined("SITE_HEADER_FUNCTIONS_LOADED")) {
                 array("/scholarship/admin/admin_users_pending.php", "帳號審核"),
                 array("/scholarship/admin/account_management.php", "帳號管理"),
                 array("/scholarship/admin/post_management.php", "公告管理"),
+                array("/scholarship/admin/document_management.php", "文件管理"),
                 array("/scholarship/admin/app_management.php", "申請管理"),
                 array("/scholarship/profile.php", "個人檔案"),
                 array("/scholarship/ticket_list.php", "回報問題"),
@@ -695,7 +696,7 @@ $siteHeaderBodyClasses = trim("site-bg " . ($siteHeaderIsAdmin ? "site-admin" : 
         }
 
         .site-admin .kpi {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         }
 
         .site-admin .post-title {
