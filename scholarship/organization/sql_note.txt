@@ -1,0 +1,20 @@
+新增表格：
+-- 1. 記錄獎助單位自訂的題目
+CREATE TABLE `scholarship_fields` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `scholarship_id` INT NOT NULL,
+  `field_label` VARCHAR(255) NOT NULL COMMENT '題目名稱(如: 清寒證明、多益分數)',
+  `field_type` ENUM('text', 'number', 'textarea', 'file') NOT NULL COMMENT '欄位型態',
+  `is_required` TINYINT(1) DEFAULT 1 COMMENT '是否必填',
+  FOREIGN KEY (`scholarship_id`) REFERENCES `scholarship`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2. 記錄學生填寫的動態答案
+CREATE TABLE `application_custom_answers` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `application_id` INT NOT NULL COMMENT '關聯到你的 application.APNO',
+  `field_id` INT NOT NULL COMMENT '關聯到 scholarship_fields.id',
+  `answer_value` TEXT NULL COMMENT '學生的文字答案或上傳的檔案路徑',
+  FOREIGN KEY (`application_id`) REFERENCES `application`(`APNO`) ON DELETE CASCADE,
+  FOREIGN KEY (`field_id`) REFERENCES `scholarship_fields`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

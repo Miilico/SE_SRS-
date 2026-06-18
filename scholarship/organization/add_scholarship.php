@@ -19,7 +19,7 @@ require __DIR__ . "/../header.php";
     <div class="card-body p-4 p-md-5">
     <h1 class="h3 fw-bold mb-4">新增獎助學金</h1>
 
-    <form action="insert_scholarship.php" method="post" class="vstack gap-3">
+    <form action="insert_scholarship.php" enctype="multipart/form-data" method="post" class="vstack gap-3">
         <div>
             <label class="form-label fw-semibold">獎助學金名稱</label>
             <input class="form-control" type="text" name="scholarship_name" placeholder="請輸入獎助學金名稱" required>
@@ -45,6 +45,28 @@ require __DIR__ . "/../header.php";
             <input class="form-control" type="date" name="deadline" required>
         </div>
 
+        <div class="card bg-light border-0 mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">🛠️ 學生申請表單——自訂收集項目設定</h5>
+                    <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" id="btn-add-custom-field">
+                        ＋ 增加審查項目
+                    </button>
+                </div>
+        
+            <div id="custom-fields-container" class="vstack gap-3">
+            </div>
+            
+            <div class="text-muted small mt-2">
+                💡 提示：您可以根據此獎學金的需求，要求學生填寫特定文字、數字或上傳相關證明文件（如：清寒證明 PDF）。
+            </div>
+            </div>
+        </div>
+        <div>
+            <label class="form-label fw-semibold">上傳官方附件 (非必填)</label>
+            <input class="form-control" type="file" name="scholarship_attachment" accept=".pdf,.doc,.docx,.zip">
+            <div class="form-text">可上傳獎學金簡章、空白切結書或推薦信公版供學生下載 (限制 PDF/Word/ZIP)。</div>
+        </div>
         <div class="d-flex flex-column flex-sm-row gap-2 pt-2">
             <button type="submit" class="btn btn-primary">新增獎助學金</button>
         </div>
@@ -93,6 +115,49 @@ document.querySelector("form").addEventListener("submit", function(e) {
     }
 });
 
+// 動態計數器，用來產生唯一的 ID
+let fieldIdx = 0;
+
+document.getElementById('btn-add-custom-field').addEventListener('click', function() {
+    fieldIdx++;
+    const container = document.getElementById('custom-fields-container');
+    
+    // 建立新的一列項目
+    const row = document.createElement('div');
+    row.className = 'row g-2 align-items-center bg-white p-3 rounded border position-relative';
+    row.id = 'custom-field-row-' + fieldIdx;
+    
+    row.innerHTML = `
+        <div class="col-md-5">
+            <label class="form-label small text-secondary fw-semibold">項目名稱 (例如：多益成績單、清寒證明)</label>
+            <input type="text" name="custom_labels[]" class="form-control" placeholder="請輸入項目名稱" required>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small text-secondary fw-semibold">欄位型態</label>
+            <select name="custom_types[]" class="form-select">
+                <option value="text">單行文字輸入框</option>
+                <option value="number">數字輸入框</option>
+                <option value="textarea">多行文字區塊</option>
+                <option value="file">檔案上傳 (限制 PDF/JPG/PNG 10MB 內)</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-secondary fw-semibold">是否必填</label>
+            <select name="custom_required[]" class="form-select">
+                <option value="1">必填</option>
+                <option value="0">選填</option>
+            </select>
+        </div>
+        <div class="col-md-1 text-end mt-4">
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="document.getElementById('custom-field-row-${fieldIdx}').remove()">
+                移除
+            </button>
+        </div>
+    `;
+    
+    container.appendChild(row);
+});
+
 // 顯示 Modal 提示
 document.addEventListener("DOMContentLoaded", function() {
     <?php if ($error || $success): ?>
@@ -100,6 +165,8 @@ document.addEventListener("DOMContentLoaded", function() {
         myModal.show();
     <?php endif; ?>
 });
+
+
 </script>
 
 </main>

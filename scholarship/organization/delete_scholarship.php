@@ -23,12 +23,14 @@ try {
     $stmt->execute([$scholarship_id, $provider_id]);
 
     if ($stmt->rowCount() > 0) {
-        header("Location: my_scholarships.php?msg=" . urlencode("獎助學金已刪除"));
+        header("Location: my_scholarships.php?success=delete");
     } else {
         header("Location: my_scholarships.php?error=" . urlencode("刪除失敗：找不到該項目或您無權限刪除"));
     }
     exit;
+
 } catch (PDOException $e) {
     header("Location: my_scholarships.php?error=" . urlencode("無法刪除：已有學生申請此獎學金或系統錯誤"));
     exit;
 }
+?>

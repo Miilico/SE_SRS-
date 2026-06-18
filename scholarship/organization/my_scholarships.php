@@ -35,6 +35,8 @@ if ($selected_id === 'all') {
 }
 $scholarships = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+
+
 // 取得所有獎助學金供選單使用
 $stmt = $pdo->prepare("SELECT id, NAME FROM scholarship WHERE provider_id = ?");
 $stmt->execute(array($provider_id));
@@ -44,6 +46,12 @@ $pageTitle = "我的獎助學金";
 $activeNav = "my_scholarships.php";
 require __DIR__ . "/../header.php";
 ?>
+<?php if (isset($_GET['broadcast_success'])): ?>
+    <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+        <strong>✅ 廣播發送完成！</strong> 成功寄出了 <?= intval($_GET['count']) ?> 封通知信給符合條件的學生。
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<?php endif; ?>
 <h1 class="h3 mb-4 fw-bold">我提供的獎助學金清單</h1>
 
 <!-- 選擇獎助學金 -->
@@ -93,10 +101,23 @@ require __DIR__ . "/../header.php";
                         <p class="mb-2"><strong>狀態：</strong>
                             <?= site_status_badge($status, "scholarship") ?>
                         </p>
-                        <a href="view_applicants.php?provider_id=<?php echo urlencode($provider_id); ?>&scholarship_id=<?php echo $s['id']; ?>"
-                            class="btn btn-outline-primary btn-sm w-100">
-                            瀏覽申請資料
-                        </a>
+                        
+                        <div class="d-flex gap-2 mt-3">
+                            <a href="edit_scholarship.php?id=<?php echo $s['id']; ?>" 
+                               class="btn btn-outline-secondary btn-sm w-50">
+                                ✏️ 編輯
+                            </a>
+                            <a href="view_applicants.php?provider_id=<?php echo urlencode($provider_id); ?>&scholarship_id=<?php echo $s['id']; ?>"
+                               class="btn btn-outline-primary btn-sm w-50">
+                                瀏覽申請資料
+                            </a>
+                            <a href="broadcast_scholarship.php?id=<?php echo $s['id']; ?>" 
+                            class="btn btn-info btn-sm w-100 text-white shadow-sm fw-semibold">
+                            📣 發送廣播通知
+                            </a>
+                        </div>
+                        
+                        
                     </div>
                 </div>
             </div>
