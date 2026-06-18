@@ -156,14 +156,14 @@ ID char(10) PK, FK -> users.ID
 ```text
 ID char(10) PK, FK -> users.ID
 SID char(8) UNIQUE
-DNAME varchar(10)
+DNAME varchar(50)
 ```
 
 `teachers`：教師擴充表。
 
 ```text
 ID char(10) PK, FK -> users.ID
-DNAME varchar(10)
+DNAME varchar(50)
 ```
 
 `organization`：獎助單位擴充表。
