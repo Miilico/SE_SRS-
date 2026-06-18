@@ -2,6 +2,9 @@
 $adminHeaderBootstrapOnly = true;
 require __DIR__ . "/../header.php";
 unset($adminHeaderBootstrapOnly);
+require_once __DIR__ . "/../file_helpers.php";
+
+ensure_teachers_table($pdo);
 
 function account_role_name($role)
 {
@@ -9,7 +12,7 @@ function account_role_name($role)
         case 1:
             return "學生";
         case 2:
-            return "教師";
+            return "推薦人";
         case 4:
             return "獎助單位";
         default:
@@ -20,7 +23,7 @@ function account_role_name($role)
 $role_filter_options = [
     "all" => "全部",
     "1" => "學生",
-    "2" => "教師",
+    "2" => "推薦人",
     "4" => "獎助單位",
 ];
 $role_counts = [
@@ -32,7 +35,7 @@ $role_counts = [
 try {
     $sql = "SELECT u.ID, u.NAME, u.ROLE, u.TEL, u.EMAIL, u.status, u.created_at,
                    s.SID, s.DNAME AS STUDENT_DEPT,
-                   t.DNAME AS TEACHER_DEPT,
+                   t.DNAME AS TEACHER_DEPT, t.UNIT_NAME AS TEACHER_UNIT, t.JOB_TITLE AS TEACHER_TITLE,
                    o.ONAME, o.CONTACT,
                    GROUP_CONCAT(p.TEL SEPARATOR ', ') AS ORG_PHONES
             FROM users u
@@ -42,7 +45,7 @@ try {
             LEFT JOIN ophone p ON u.ID = p.ID
             WHERE u.ROLE <> 3
             GROUP BY u.ID, u.NAME, u.ROLE, u.TEL, u.EMAIL, u.status, u.created_at,
-                     s.SID, s.DNAME, t.DNAME, o.ONAME, o.CONTACT
+                     s.SID, s.DNAME, t.DNAME, t.UNIT_NAME, t.JOB_TITLE, o.ONAME, o.CONTACT
             ORDER BY u.ROLE ASC, u.ID ASC";
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
@@ -66,7 +69,7 @@ $activeNav = "account_management.php";
 <div class="admin-page-head">
     <div>
         <h1 class="admin-page-title">帳號管理</h1>
-        <div class="admin-page-subtitle">管理學生、教師與獎助單位帳號；管理員帳號不在此頁開放操作。</div>
+        <div class="admin-page-subtitle">管理學生、推薦人與獎助單位帳號；管理員帳號不在此頁開放操作。</div>
     </div>
 </div>
 
@@ -108,7 +111,10 @@ $activeNav = "account_management.php";
                 if ($role === 1) {
                     $roleInfo = "學號：" . ($account["SID"] ?: "未填") . " / 系所：" . ($account["STUDENT_DEPT"] ?: "未填");
                 } elseif ($role === 2) {
-                    $roleInfo = "系所：" . ($account["TEACHER_DEPT"] ?: "未填");
+                    $roleInfo = "單位：" . ($account["TEACHER_UNIT"] ?: "未填") . " / 職稱：" . ($account["TEACHER_TITLE"] ?: "未填");
+                    if (!empty($account["TEACHER_DEPT"])) {
+                        $roleInfo .= " / 系所部門：" . $account["TEACHER_DEPT"];
+                    }
                 } elseif ($role === 4) {
                     $roleInfo = "聯絡人：" . ($account["CONTACT"] ?: "未填");
                 } else {

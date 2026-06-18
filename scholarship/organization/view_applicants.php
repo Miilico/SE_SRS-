@@ -5,6 +5,7 @@ session_start();
 require_once "db.php";
 require_once __DIR__ . "/../file_helpers.php";
 ensure_application_files_table($pdo);
+ensure_teachers_table($pdo);
 
 function h($value)
 {
@@ -39,7 +40,9 @@ if ($scholarship_id) {
     $sql = "SELECT a.APNO AS app_id, a.AUTOBI, a.RANK, a.GRADE, a.RESULT,
                    u.name AS student_name, s.NAME AS scholarship_name,
                    r.content AS recommendation,
-                   tu.name AS teacher_name, t.DNAME AS department_name
+                   COALESCE(NULLIF(r.teacher_name, ''), tu.name) AS teacher_name,
+                   COALESCE(NULLIF(r.teacher_unit, ''), t.UNIT_NAME, t.DNAME) AS teacher_unit,
+                   COALESCE(NULLIF(r.teacher_title, ''), t.JOB_TITLE) AS teacher_title
             FROM application a
             JOIN scholarship s ON a.SCID = s.id
             JOIN users u ON a.STID = u.ID
@@ -117,7 +120,13 @@ require __DIR__ . "/../header.php";
                         <!--<p><strong>自傳：</strong><br>?php echo nl2br(htmlspecialchars($row['AUTOBI'])); ?></p>-->
                         <p><strong>排名：</strong> <?php echo h($row['RANK']); ?></p>
                         <p><strong>成績：</strong> <?php echo h($row['GRADE']); ?></p>
-                        <p><strong>推薦老師：</strong> <?php echo h($row['teacher_name']); ?> <?php echo h($row['department_name']); ?></p>
+                        <p>
+                            <strong>推薦人：</strong>
+                            <?php echo h($row['teacher_name'] ?: "未指定"); ?>
+                            <?php if (!empty($row['teacher_unit']) || !empty($row['teacher_title'])): ?>
+                                （<?php echo h(trim(($row['teacher_unit'] ?: "") . " " . ($row['teacher_title'] ?: ""))); ?>）
+                            <?php endif; ?>
+                        </p>
                         <?php if (trim((string)$row['recommendation']) === ""): ?>
                             <p><strong>推薦信內容：</strong><br><span class="text-muted">尚未填寫推薦信</span></p>
                         <?php else: ?>

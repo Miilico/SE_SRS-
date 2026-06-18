@@ -92,7 +92,7 @@ function ensure_can_upload($pdo, $fileType, $user, $context) {
             ");
             $stmt->execute(array($context["application_id"], $userId));
             if (!$stmt->fetchColumn()) {
-                upload_fail("只有對應導師或管理員可以上傳推薦信附件。", 403);
+                upload_fail("只有對應推薦人或管理員可以上傳推薦信附件。", 403);
             }
         }
         $context["scholarship_id"] = $app["SCID"];
@@ -122,7 +122,7 @@ if ($_SERVER["REQUEST_METHOD"] === "GET") {
       <option value="1">公告附帶文件</option>
       <option value="2">學生申請獎學金附件</option>
       <option value="3">工單附件</option>
-      <option value="4">導師推薦信附件</option>
+      <option value="4">推薦人推薦信附件</option>
     </select>
     </div>
     <div>

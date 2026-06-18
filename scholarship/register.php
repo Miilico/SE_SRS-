@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . "/config.php";
 require_once __DIR__ . "/department_options.php";
+require_once __DIR__ . "/file_helpers.php";
+
+ensure_teachers_table($pdo);
 
 $old = isset($_SESSION["register_old"]) && is_array($_SESSION["register_old"]) ? $_SESSION["register_old"] : array();
 $errorField = isset($_SESSION["register_error_field"]) ? $_SESSION["register_error_field"] : "";
@@ -48,10 +51,10 @@ require __DIR__ . "/header.php";
         <label class="form-label fw-semibold" for="role">身分</label>
         <select class="form-select<?= field_invalid_class("role", $errorField) ?>" name="role" id="role" required>
           <option value="1" <?= selected_attr($old, "role", "1", "1") ?>>學生</option>
-          <option value="2" <?= selected_attr($old, "role", "2", "1") ?>>教授</option>
+          <option value="2" <?= selected_attr($old, "role", "2", "1") ?>>推薦人</option>
           <option value="4" <?= selected_attr($old, "role", "4", "1") ?>>獎助單位</option>
         </select>
-        <div class="form-text" id="roleHelp">學生與教師註冊後可直接登入；獎助單位需管理員審核通過。</div>
+        <div class="form-text" id="roleHelp">學生與推薦人註冊後可直接登入；獎助單位需管理員審核通過。</div>
       </div>
 
       <div>
@@ -64,7 +67,7 @@ require __DIR__ . "/header.php";
         <input class="form-control<?= field_invalid_class("name", $errorField) ?>" id="name" name="name" maxlength="50" value="<?= h(old_value($old, "name")) ?>" required>
       </div>
 
-      <div data-role-section="school">
+      <div data-role-section="student">
         <label class="form-label fw-semibold" for="dept">科系</label>
         <select class="form-select<?= field_invalid_class("dept", $errorField) ?>" name="dept" id="dept">
           <option value="">請選擇科系</option>
@@ -76,6 +79,21 @@ require __DIR__ . "/header.php";
             </optgroup>
           <?php endforeach; ?>
         </select>
+      </div>
+
+      <div data-role-section="recommender" class="d-none">
+        <label class="form-label fw-semibold" for="teacher_unit">單位名稱</label>
+        <input class="form-control<?= field_invalid_class("teacher_unit", $errorField) ?>" id="teacher_unit" name="teacher_unit" maxlength="100" placeholder="例如：國立成功大學、XX科技股份有限公司" value="<?= h(old_value($old, "teacher_unit")) ?>">
+      </div>
+
+      <div data-role-section="recommender" class="d-none">
+        <label class="form-label fw-semibold" for="teacher_title">職稱</label>
+        <input class="form-control<?= field_invalid_class("teacher_title", $errorField) ?>" id="teacher_title" name="teacher_title" maxlength="100" placeholder="例如：副教授、講師、高級工程師" value="<?= h(old_value($old, "teacher_title")) ?>">
+      </div>
+
+      <div data-role-section="recommender" class="d-none">
+        <label class="form-label fw-semibold" for="teacher_dept">系所 / 部門（選填）</label>
+        <input class="form-control<?= field_invalid_class("dept", $errorField) ?>" id="teacher_dept" name="teacher_dept" maxlength="50" placeholder="例如：資訊工程學系、研發部" value="<?= h(old_value($old, "teacher_dept", old_value($old, "dept"))) ?>">
       </div>
 
       <div data-role-section="organization" class="d-none">
@@ -91,7 +109,7 @@ require __DIR__ . "/header.php";
       <div>
         <label class="form-label fw-semibold" for="email">Email</label>
         <input class="form-control<?= field_invalid_class("email", $errorField) ?>" id="email" type="email" name="email" maxlength="100" placeholder="example@mail.nuk.edu.tw" value="<?= h(old_value($old, "email")) ?>" required>
-        <div class="form-text" id="emailHelp">學生與教授請使用學校信箱，格式為 @mail.nuk.edu.tw。</div>
+        <div class="form-text" id="emailHelp">學生請使用學校信箱，格式為 @mail.nuk.edu.tw。</div>
       </div>
 
       <div>
@@ -133,9 +151,13 @@ require __DIR__ . "/header.php";
     var idLabel = document.getElementById("idLabel");
     var nameLabel = document.getElementById("nameLabel");
     var deptInput = document.querySelector('select[name="dept"]');
+    var teacherUnitInput = document.querySelector('input[name="teacher_unit"]');
+    var teacherTitleInput = document.querySelector('input[name="teacher_title"]');
     var contactInput = document.querySelector('input[name="contact_person"]');
-    var schoolSections = document.querySelectorAll('[data-role-section="school"]');
+    var studentSections = document.querySelectorAll('[data-role-section="student"]');
+    var recommenderSections = document.querySelectorAll('[data-role-section="recommender"]');
     var orgSections = document.querySelectorAll('[data-role-section="organization"]');
+    var emailHelp = document.getElementById("emailHelp");
     var errorField = <?= json_encode($errorField, JSON_UNESCAPED_UNICODE) ?>;
 
     function setSectionVisible(sections, visible) {
@@ -146,12 +168,18 @@ require __DIR__ . "/header.php";
 
     function syncRoleFields() {
       var isOrg = role.value === "4";
+      var isStudent = role.value === "1";
+      var isRecommender = role.value === "2";
       idLabel.textContent = isOrg ? "使用者 ID（單位帳號）" : "使用者 ID（學號/教職員編號）";
       nameLabel.textContent = isOrg ? "單位名稱" : "姓名";
-      setSectionVisible(schoolSections, !isOrg);
+      setSectionVisible(studentSections, isStudent);
+      setSectionVisible(recommenderSections, isRecommender);
       setSectionVisible(orgSections, isOrg);
-      deptInput.required = !isOrg;
+      deptInput.required = isStudent;
+      teacherUnitInput.required = isRecommender;
+      teacherTitleInput.required = isRecommender;
       contactInput.required = isOrg;
+      emailHelp.textContent = isStudent ? "學生請使用學校信箱，格式為 @mail.nuk.edu.tw。" : "請填寫可收信的 Email。";
     }
 
     function focusErrorField() {

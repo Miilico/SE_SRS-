@@ -1,12 +1,16 @@
 <?php
 require_once __DIR__ . "/config.php";
 require_once __DIR__ . "/department_options.php";
+require_once __DIR__ . "/file_helpers.php";
 
 $id = isset($_POST["id"]) ? trim($_POST["id"]) : "";
 $roleInput = isset($_POST["role"]) ? trim($_POST["role"]) : "";
 $role = (int)$roleInput;
 $name = isset($_POST["name"]) ? trim($_POST["name"]) : "";
 $dept = isset($_POST["dept"]) ? trim($_POST["dept"]) : "";
+$teacherDept = isset($_POST["teacher_dept"]) ? trim($_POST["teacher_dept"]) : "";
+$teacherUnit = isset($_POST["teacher_unit"]) ? trim($_POST["teacher_unit"]) : "";
+$teacherTitle = isset($_POST["teacher_title"]) ? trim($_POST["teacher_title"]) : "";
 $contactPerson = isset($_POST["contact_person"]) ? trim($_POST["contact_person"]) : "";
 $orgPhonesRaw = isset($_POST["org_phones"]) ? trim($_POST["org_phones"]) : "";
 $email = isset($_POST["email"]) ? trim($_POST["email"]) : "";
@@ -21,6 +25,9 @@ function register_old_input()
         "id" => isset($_POST["id"]) ? trim($_POST["id"]) : "",
         "name" => isset($_POST["name"]) ? trim($_POST["name"]) : "",
         "dept" => isset($_POST["dept"]) ? trim($_POST["dept"]) : "",
+        "teacher_dept" => isset($_POST["teacher_dept"]) ? trim($_POST["teacher_dept"]) : "",
+        "teacher_unit" => isset($_POST["teacher_unit"]) ? trim($_POST["teacher_unit"]) : "",
+        "teacher_title" => isset($_POST["teacher_title"]) ? trim($_POST["teacher_title"]) : "",
         "contact_person" => isset($_POST["contact_person"]) ? trim($_POST["contact_person"]) : "",
         "org_phones" => isset($_POST["org_phones"]) ? trim($_POST["org_phones"]) : "",
         "email" => isset($_POST["email"]) ? trim($_POST["email"]) : "",
@@ -62,12 +69,20 @@ if (!in_array($role, array(1, 2, 4), true)) {
     back_err("身分不合法。", "role");
 }
 
-if (($role === 1 || $role === 2) && $dept === "") {
+if ($role === 1 && $dept === "") {
     back_err("請選擇科系。", "dept");
 }
 
-if (($role === 1 || $role === 2) && !in_array($dept, $validDepts, true)) {
+if ($role === 1 && !in_array($dept, $validDepts, true)) {
     back_err("請選擇有效的科系。", "dept");
+}
+
+if ($role === 2 && $teacherUnit === "") {
+    back_err("請填寫推薦人單位名稱。", "teacher_unit");
+}
+
+if ($role === 2 && $teacherTitle === "") {
+    back_err("請填寫推薦人職稱。", "teacher_title");
 }
 
 if ($role === 4 && $contactPerson === "") {
@@ -78,7 +93,7 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     back_err("Email 格式不正確。", "email");
 }
 
-if (($role === 1 || $role === 2) && !preg_match('/@mail\.nuk\.edu\.tw$/i', $email)) {
+if ($role === 1 && !preg_match('/@mail\.nuk\.edu\.tw$/i', $email)) {
     back_err("請使用學校信箱註冊。", "email");
 }
 
@@ -133,6 +148,8 @@ $hash = password_hash($pwd, PASSWORD_DEFAULT);
 $status = ($role === 4) ? "pending" : "active";
 
 try {
+    ensure_teachers_table($pdo);
+
     $pdo->beginTransaction();
 
     $stmt = $pdo->prepare("
@@ -147,8 +164,8 @@ try {
     }
 
     if ($role === 2) {
-        $stmt = $pdo->prepare("INSERT INTO teachers (ID, DNAME) VALUES (?, ?)");
-        $stmt->execute(array($id, $dept));
+        $stmt = $pdo->prepare("INSERT INTO teachers (ID, DNAME, UNIT_NAME, JOB_TITLE) VALUES (?, ?, ?, ?)");
+        $stmt->execute(array($id, $teacherDept, $teacherUnit, $teacherTitle));
     }
 
     if ($role === 4) {

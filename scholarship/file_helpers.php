@@ -47,6 +47,21 @@ function ensure_application_files_table($pdo)
     ensure_recommendations_table($pdo);
 }
 
+function ensure_teachers_table($pdo)
+{
+    if (!table_has_column($pdo, "teachers", "DNAME")) {
+        return;
+    }
+
+    if (!table_has_column($pdo, "teachers", "UNIT_NAME")) {
+        $pdo->exec("ALTER TABLE teachers ADD COLUMN UNIT_NAME varchar(100) NULL AFTER DNAME");
+    }
+
+    if (!table_has_column($pdo, "teachers", "JOB_TITLE")) {
+        $pdo->exec("ALTER TABLE teachers ADD COLUMN JOB_TITLE varchar(100) NULL AFTER UNIT_NAME");
+    }
+}
+
 function ensure_recommendations_table($pdo)
 {
     if (!table_has_column($pdo, "recommendations", "content")) {
@@ -85,6 +100,14 @@ function ensure_recommendations_table($pdo)
 
     if (!table_has_column($pdo, "recommendations", "rejected_at")) {
         $pdo->exec("ALTER TABLE recommendations ADD COLUMN rejected_at datetime NULL AFTER rejected_source");
+    }
+
+    if (!table_has_column($pdo, "recommendations", "teacher_unit")) {
+        $pdo->exec("ALTER TABLE recommendations ADD COLUMN teacher_unit varchar(100) NULL AFTER teacher_email");
+    }
+
+    if (!table_has_column($pdo, "recommendations", "teacher_title")) {
+        $pdo->exec("ALTER TABLE recommendations ADD COLUMN teacher_title varchar(100) NULL AFTER teacher_unit");
     }
 
     if (!table_has_index($pdo, "recommendations", "uq_recommendations_application_id")) {

@@ -1,8 +1,10 @@
 <?php
 require_once __DIR__ . "/config.php";
 require_once __DIR__ . "/auth.php";
+require_once __DIR__ . "/file_helpers.php";
 
 require_login();
+ensure_teachers_table($pdo);
 
 $target_id = isset($_SESSION["user"]["id"]) ? $_SESSION["user"]["id"] : null;
 
@@ -15,7 +17,7 @@ function role_name($role) {
         case 1:
             return "學生";
         case 2:
-            return "教師";
+            return "推薦人";
         case 3:
             return "系統管理員";
         case 4:
@@ -79,6 +81,8 @@ try {
 
             $items = [
                 "姓名" => $user["NAME"],
+                "單位名稱" => $teacher ? $teacher["UNIT_NAME"] : "尚未填寫",
+                "職稱" => $teacher ? $teacher["JOB_TITLE"] : "尚未填寫",
                 "所屬系所" => $teacher ? $teacher["DNAME"] : "尚未填寫",
                 "連絡電話" => $user["TEL"],
             ];

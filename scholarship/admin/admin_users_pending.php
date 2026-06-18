@@ -28,7 +28,7 @@ $rows = $stmt->fetchAll();
 // role 對照表（顯示用）
 $role_map = [
   1 => "學生",
-  2 => "教授",
+  2 => "推薦人",
   3 => "管理員",
   4 => "獎助學金單位"
 ];
@@ -40,7 +40,7 @@ $activeNav = "admin_users_pending.php";
 <div class="admin-page-head">
   <div>
     <h1 class="admin-page-title">待審核帳號</h1>
-    <div class="admin-page-subtitle">審核獎助學金單位註冊申請；學生與教師註冊後可直接登入。</div>
+    <div class="admin-page-subtitle">審核獎助學金單位註冊申請；學生與推薦人註冊後可直接登入。</div>
   </div>
 </div>
 
