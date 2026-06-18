@@ -52,22 +52,23 @@ $activeNav = "app_management.php";
 ?>
 <?php require __DIR__ . "/../header.php"; ?>
 
-<div class="admin-container">
-    <div class="admin-page-head">
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+    <div class="mb-4">
         <div>
-            <h1 class="admin-page-title">獎助學金申請管理</h1>
-            <div class="admin-page-subtitle">依審查狀態查看申請案與發布錄取公告。</div>
+            <h1 class="h3 fw-bold mb-1">獎助學金申請管理</h1>
+            <div class="text-secondary">依審查狀態查看申請案與發布錄取公告。</div>
         </div>
     </div>
 
-    <div class="filters app-status-filters" aria-label="申請狀態篩選">
+    <div class="d-flex flex-wrap gap-2 mb-3 app-status-filters" aria-label="申請狀態篩選">
         <?php foreach ($status_filter_options as $status => $label): ?>
             <button
                 type="button"
-                class="filter-btn <?php echo $status_filter === $status ? 'active' : ''; ?>"
+                class="btn btn-outline-primary filter-btn <?php echo $status_filter === $status ? 'active' : ''; ?>"
                 data-status="<?php echo htmlspecialchars($status); ?>">
                 <span><?php echo htmlspecialchars($label); ?></span>
-                <span class="filter-count"><?php echo $status === 'all' ? count($apps) : $status_counts[$status]; ?></span>
+                <span class="badge text-bg-light ms-2"><?php echo $status === 'all' ? count($apps) : $status_counts[$status]; ?></span>
             </button>
         <?php endforeach; ?>
     </div>
@@ -103,20 +104,20 @@ $activeNav = "app_management.php";
             $default_title = urlencode("【結果公告】獎學金獲獎名單公告");
             $default_content = urlencode($content_text); // 將組合好的內容傳入
     ?>
-            <div class="admin-actions app-filter-panel" data-panel-status="通過">
+            <div class="mb-3 app-filter-panel" data-panel-status="通過">
                 <a href="post_info.php?title=<?php echo $default_title; ?>&content=<?php echo $default_content; ?>&cat=1"
                     class="btn btn-success">
                     根據「新名單」發布公告 (含獎項名稱)
                 </a>
             </div>
         <?php else: ?>
-            <div class="admin-note app-filter-panel" data-panel-status="通過">
-                ✅ 所有通過名單皆已發布公告
+            <div class="alert alert-secondary app-filter-panel" data-panel-status="通過">
+                所有通過名單皆已發布公告
             </div>
         <?php endif; ?>
     <?php endif; ?>
-    <div class="admin-table-wrap">
-        <table>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
             <thead>
                 <tr>
                     <th>申請號</th>
@@ -141,6 +142,7 @@ $activeNav = "app_management.php";
 
             </tbody>
         </table>
+    </div>
     </div>
 </div>
 

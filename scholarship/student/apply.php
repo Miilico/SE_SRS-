@@ -33,8 +33,6 @@ unset($_SESSION["recommend_link"]);
 $pageTitle = "申請獎助學金";
 $activeNav = "apply.php";
 $siteHeaderRequiredRole = 1;
-$siteHeaderMaxWidth = "980px";
-$siteHeaderExtraHead = '<style>.section-title{font-weight:800}.upload-box{border:2px dashed #d7dce5;border-radius:14px;padding:16px;background:#fff}.upload-box:hover{border-color:#2563eb}.muted{color:#667085}</style>';
 require __DIR__ . "/../header.php";
 ?>
 
@@ -43,7 +41,7 @@ require __DIR__ . "/../header.php";
     <div>
       <div class="text-muted small">Application Form</div>
       <h1 class="h4 fw-bold mb-1">獎助學金申請表</h1>
-      <div class="muted small">學生 ID：<?= htmlspecialchars($stId) ?></div>
+      <div class="text-secondary small">學生 ID：<?= htmlspecialchars($stId) ?></div>
     </div>
     <span class="badge text-bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2">
       Scholarship
@@ -69,7 +67,7 @@ require __DIR__ . "/../header.php";
 
   <!-- 1. 選擇獎學金 -->
   <div class="mb-4">
-    <div class="section-title mb-2">1. 選擇獎助學金</div>
+    <div class="fw-bold mb-2">1. 選擇獎助學金</div>
     <label class="form-label fw-semibold">獎助學金</label>
     <select class="form-select" name="SCID" required>
       <option value="" disabled selected>請選擇</option>
@@ -88,7 +86,7 @@ require __DIR__ . "/../header.php";
 
   <!-- 2. 基本資料 -->
   <div class="mb-4">
-    <div class="section-title mb-2">2. 基本資料</div>
+    <div class="fw-bold mb-2">2. 基本資料</div>
     <div class="row g-3">
       <div class="col-md-4">
         <label class="form-label fw-semibold">學號</label>
@@ -111,7 +109,7 @@ require __DIR__ . "/../header.php";
 
   <!-- 3. 學業/資格 -->
   <div class="mb-4">
-    <div class="section-title mb-2">3. 學業/資格資料</div>
+    <div class="fw-bold mb-2">3. 學業/資格資料</div>
     <div class="row g-3">
       <div class="col-md-6">
         <label class="form-label fw-semibold">GPA / 成績（可空）</label>
@@ -126,7 +124,7 @@ require __DIR__ . "/../header.php";
 
   <!-- 4. 推薦信（推薦人免註冊） -->
   <div class="mb-4">
-    <div class="section-title mb-2">4. 推薦信</div>
+    <div class="fw-bold mb-2">4. 推薦信</div>
     <!--<div class="section-title mb-2">4. 推薦信（教授免註冊填寫）</div>-->
     <div class="row g-3">
       <div class="col-md-6">
@@ -179,8 +177,8 @@ require __DIR__ . "/../header.php";
 
   <!-- 5. 自傳/讀書計畫 -->
   <div class="mb-4">
-    <div class="section-title mb-2">5. 自傳（必傳）</div>
-    <div class="upload-box">
+    <div class="fw-bold mb-2">5. 自傳（必傳）</div>
+    <div class="border border-2 rounded bg-white p-3">
       <input class="form-control" type="file" name="AUTOBI_FILE" accept=".pdf,.doc,.docx" required>
       <div class="text-muted small mt-2">PDF / DOC / DOCX（建議 10MB 內）</div>
     </div>
@@ -194,8 +192,8 @@ require __DIR__ . "/../header.php";
 
   <!-- 6. 其他有利審查資料 -->
   <div class="mb-2">
-    <div class="section-title mb-2">6. 其他有利審查資料（可多檔）</div>
-    <div class="upload-box">
+    <div class="fw-bold mb-2">6. 其他有利審查資料（可多檔）</div>
+    <div class="border border-2 rounded bg-white p-3">
       <input class="form-control" type="file" name="OTHER_FILES[]" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
       <div class="text-muted small mt-2">獎狀、證照、作品集、證明…可多個檔案</div>
     </div>
@@ -203,7 +201,7 @@ require __DIR__ . "/../header.php";
 
   <div class="form-check mt-4">
     <input class="form-check-input" type="checkbox" value="1" id="agree" required>
-    <label class="form-check-label muted" for="agree">
+    <label class="form-check-label text-secondary" for="agree">
       本人保證以上資料及文件皆屬實。
     </label>
   </div>

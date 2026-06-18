@@ -59,158 +59,33 @@ if ($isLoggedIn) {
         array("", $post["title"]),
     );
 }
-$siteHeaderMaxWidth = "900px";
-$siteHeaderMainClass = "site-shell announcement-detail-shell";
+$siteHeaderMainClass = "site-shell pt-4";
 if (!$isLoggedIn) {
     $siteHeaderBrandHref = "/index.php";
 }
-$siteHeaderExtraHead = <<<HTML
-<style>
-    .announcement-detail-shell {
-        padding-top: 24px;
-    }
-
-    .detail-article {
-        background: #fff;
-        border: 1px solid var(--site-border);
-        border-radius: 8px;
-        box-shadow: var(--site-shadow);
-        overflow: hidden;
-    }
-
-    .detail-head {
-        padding: 30px 34px 22px;
-        border-bottom: 1px solid var(--site-border);
-    }
-
-    .detail-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-        color: var(--site-muted);
-        font-size: 14px;
-        font-weight: 700;
-        margin-bottom: 14px;
-    }
-
-    .detail-badge {
-        display: inline-flex;
-        align-items: center;
-        min-height: 26px;
-        padding: 4px 9px;
-        border-radius: 999px;
-        background: #eaf1ff;
-        color: var(--site-primary-dark);
-        font-size: 12px;
-        font-weight: 850;
-    }
-
-    .detail-badge.result {
-        background: #e8f8ee;
-        color: #15803d;
-    }
-
-    .detail-title {
-        margin: 0;
-        font-size: 30px;
-        font-weight: 850;
-        line-height: 1.35;
-        letter-spacing: 0;
-    }
-
-    .detail-body {
-        padding: 30px 34px 34px;
-    }
-
-    .detail-content {
-        color: var(--site-text);
-        font-size: 18px;
-        line-height: 1.9;
-        white-space: pre-wrap;
-    }
-
-    .detail-files {
-        margin-top: 28px;
-        padding-top: 22px;
-        border-top: 1px solid var(--site-border);
-    }
-
-    .detail-file-list {
-        margin: 12px 0 0;
-        padding: 0;
-        list-style: none;
-    }
-
-    .detail-file-item {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        align-items: center;
-        padding: 12px 0;
-        border-bottom: 1px solid #edf2f7;
-    }
-
-    .detail-file-item:last-child {
-        border-bottom: 0;
-    }
-
-    .detail-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 24px;
-    }
-
-    @media (max-width: 700px) {
-        .detail-head,
-        .detail-body {
-            padding-left: 22px;
-            padding-right: 22px;
-        }
-
-        .detail-title {
-            font-size: 24px;
-        }
-
-        .detail-content {
-            font-size: 16px;
-        }
-
-        .detail-file-item {
-            display: block;
-        }
-
-        .detail-file-item a {
-            display: inline-block;
-            margin-top: 8px;
-        }
-    }
-</style>
-HTML;
 require __DIR__ . "/scholarship/header.php";
 ?>
 
-<article class="detail-article">
-    <header class="detail-head">
-        <div class="detail-meta">
-            <span class="detail-badge <?php echo (int)$post["CATEGORY"] === 1 ? "result" : ""; ?>">
+<article class="card border-0 shadow-sm">
+    <header class="card-header bg-white p-4 p-md-5">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3 text-secondary fw-semibold">
+            <span class="badge rounded-pill <?php echo (int)$post["CATEGORY"] === 1 ? "text-bg-success" : "text-bg-primary"; ?>">
                 <?php echo public_detail_h(public_detail_category_label($post["CATEGORY"])); ?>
             </span>
             <span><?php echo public_detail_h($post["ADATE"]); ?> <?php echo public_detail_h($post["ATIME"]); ?></span>
         </div>
-        <h1 class="detail-title"><?php echo public_detail_h($post["title"]); ?></h1>
+        <h1 class="h2 fw-bold lh-base mb-0"><?php echo public_detail_h($post["title"]); ?></h1>
     </header>
 
-    <div class="detail-body">
-        <div class="detail-content"><?php echo public_detail_h($post["CONTENT"]); ?></div>
+    <div class="card-body p-4 p-md-5">
+        <div class="fs-5 lh-lg"><?php echo nl2br(public_detail_h($post["CONTENT"])); ?></div>
 
         <?php if (!empty($files)): ?>
-            <section class="detail-files" aria-labelledby="filesTitle">
+            <section class="border-top mt-4 pt-4" aria-labelledby="filesTitle">
                 <h2 id="filesTitle" class="h5 fw-bold mb-0">附件</h2>
-                <ul class="detail-file-list">
+                <ul class="list-group list-group-flush mt-3">
                     <?php foreach ($files as $file): ?>
-                        <li class="detail-file-item">
+                        <li class="list-group-item px-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
                             <span><?php echo public_detail_h($file["original_name"]); ?></span>
                             <a href="/scholarship/file_view.php?id=<?php echo urlencode((string)$file["id"]); ?>" class="btn btn-sm btn-outline-primary">下載</a>
                         </li>
@@ -219,7 +94,7 @@ require __DIR__ . "/scholarship/header.php";
             </section>
         <?php endif; ?>
 
-        <div class="detail-actions">
+        <div class="d-flex flex-wrap gap-2 mt-4">
             <a href="/index.php#announcements" class="btn btn-outline-secondary">返回公告列表</a>
         </div>
     </div>

@@ -107,7 +107,6 @@ if ($_SERVER["REQUEST_METHOD"] === "GET") {
     require_login();
     $pageTitle = "上傳文件";
     $siteHeaderRequireLogin = true;
-    $siteHeaderMaxWidth = "760px";
     require __DIR__ . "/header.php";
     ?>
   <div class="card border-0 shadow-sm">

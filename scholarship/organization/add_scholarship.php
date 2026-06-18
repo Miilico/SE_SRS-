@@ -7,7 +7,6 @@ require_role(4);
 $pageTitle = "新增獎助學金";
 $activeNav = "add_scholarship.php";
 $siteHeaderRequiredRole = 4;
-$siteHeaderMaxWidth = "760px";
 require __DIR__ . "/../header.php";
 ?>
 

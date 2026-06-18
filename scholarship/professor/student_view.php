@@ -144,7 +144,6 @@ if ($sid !== "") {
 $pageTitle = "學生資料檢視";
 $activeNav = "tea_dashboard.php";
 $siteHeaderRequiredRole = array(2, 3);
-$siteHeaderMaxWidth = "980px";
 require __DIR__ . "/../header.php";
 ?>
 
@@ -170,7 +169,7 @@ require __DIR__ . "/../header.php";
         <table class="table table-bordered align-middle mb-0">
           <tbody>
             <tr>
-              <th class="table-light" style="width: 180px;">姓名</th>
+              <th class="table-light w-25">姓名</th>
               <td><?= h($student["NAME"]) ?></td>
             </tr>
             <tr>

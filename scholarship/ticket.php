@@ -157,7 +157,9 @@ require __DIR__ . "/header.php";
 ?>
 
 <?php if ($ticket): ?>
-  <div class="vstack gap-3 mx-auto" style="max-width: 980px;">
+  <div class="row justify-content-center">
+  <div class="col-12 col-xl-11">
+  <div class="vstack gap-3">
     <div class="card border-0 shadow-sm">
       <div class="card-body p-4">
       <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
@@ -185,7 +187,7 @@ require __DIR__ . "/header.php";
               <strong><?= h($message["SENDER_NAME"]) ?>（<?= h($message["SENDER_ID"]) ?>）</strong>
               <span class="text-secondary small"><?= h($message["CREATED_AT"]) ?></span>
             </div>
-            <div class="lh-lg" style="white-space: pre-wrap;"><?= h($message["MESSAGE"]) ?></div>
+            <div class="lh-lg"><?= nl2br(h($message["MESSAGE"])) ?></div>
             <?php $messageFiles = isset($filesByMessageId[(int)$message["MESSAGE_ID"]]) ? $filesByMessageId[(int)$message["MESSAGE_ID"]] : []; ?>
             <?php if ($messageFiles): ?>
               <div class="bg-body-tertiary rounded p-3 mt-3">
@@ -231,6 +233,8 @@ require __DIR__ . "/header.php";
       </form>
       </div>
     </div>
+  </div>
+  </div>
   </div>
 <?php else: ?>
   <div class="row g-3">

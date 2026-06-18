@@ -35,12 +35,13 @@ $departments = scholarship_departments_by_college();
 
 $pageTitle = "註冊";
 $activeNav = "register.php";
-$siteHeaderMainClass = "auth-wrap";
-$siteHeaderStylesheets = array("/scholarship/assets/css/auth.css");
+$siteHeaderMainClass = "site-shell py-4";
 require __DIR__ . "/header.php";
 ?>
-<div class="card auth-card">
-  <div class="auth-header p-4">
+<div class="row justify-content-center">
+<div class="col-12 col-lg-7">
+<div class="card border-0 shadow-sm overflow-hidden">
+  <div class="card-header bg-white p-4">
     <div class="text-muted small">Create account</div>
     <h1 class="h4 mb-0 fw-bold">註冊</h1>
   </div>
@@ -143,6 +144,8 @@ require __DIR__ . "/header.php";
       </div>
     </form>
   </div>
+</div>
+</div>
 </div>
 
 <script>
