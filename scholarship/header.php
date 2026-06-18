@@ -301,15 +301,6 @@ $siteHeaderBodyClasses = trim("site-bg " . ($siteHeaderIsAdmin ? "site-admin" : 
             letter-spacing: 0;
         }
 
-        .brand-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 999px;
-            background: var(--site-primary);
-            display: inline-block;
-            margin-right: 10px;
-            transform: translateY(1px);
-        }
 
         .site-topbar {
             background: rgba(255, 255, 255, .96);
@@ -784,7 +775,7 @@ $siteHeaderBodyClasses = trim("site-bg " . ($siteHeaderIsAdmin ? "site-admin" : 
         <header class="site-topbar navbar navbar-expand-lg border-bottom sticky-top">
             <div class="container-fluid px-3 px-md-4">
                 <a class="navbar-brand fw-bold" href="<?php echo site_header_h($siteHeaderBrandHref); ?>">
-                    <span class="brand-dot"></span>獎助學金系統
+                     獎助學金系統
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#siteHeaderNav" aria-controls="siteHeaderNav" aria-expanded="false" aria-label="切換導覽">
                     <span class="navbar-toggler-icon"></span>
