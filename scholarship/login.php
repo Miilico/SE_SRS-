@@ -34,7 +34,7 @@ require __DIR__ . "/header.php";
         <label class="form-label fw-semibold" for="pwd">密碼 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control" id="pwd" type="password" name="pwd" maxlength="64" required placeholder="請輸入密碼" autocomplete="current-password">
         <div class="text-end mt-2">
-          <a href="forgot_password.php" class="small text-decoration-none">忘記密碼？</a>
+          <a href="forgot_password.php" class="small text-decoration-none">忘記使用者ID / 密碼？</a>
         </div>
       </div>
 
