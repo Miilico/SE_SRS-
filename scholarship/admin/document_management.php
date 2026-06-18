@@ -124,35 +124,242 @@ function document_context_label($file)
     return empty($parts) ? "未關聯" : implode(" / ", $parts);
 }
 
+function document_request_value($name, $default = "")
+{
+    return isset($_GET[$name]) ? trim((string)$_GET[$name]) : $default;
+}
+
+function document_query_url($overrides)
+{
+    $params = $_GET;
+    foreach ($overrides as $key => $value) {
+        if ($value === null || $value === "") {
+            unset($params[$key]);
+        } else {
+            $params[$key] = $value;
+        }
+    }
+
+    $query = http_build_query($params);
+    return "document_management.php" . ($query === "" ? "" : "?" . $query);
+}
+
+function document_selected($current, $value)
+{
+    return (string)$current === (string)$value ? " selected" : "";
+}
+
+function document_input_value($name)
+{
+    return document_h(document_request_value($name));
+}
+
 $files = array();
 $formats = array();
 $uploaders = array();
-$detailTypes = array();
+$detailTypes = array(
+    "announcement" => "公告附件",
+    "application_autobi" => "申請自傳",
+    "application_support" => "申請佐證資料",
+    "application_other" => "申請檔案",
+    "ticket" => "工單附件",
+    "recommendation" => "推薦信附件",
+    "other" => "其他檔案",
+);
+$allowedPageSizes = array("10" => 10, "50" => 50, "100" => 100, "500" => 500, "all" => "all");
+$pageSizeParam = document_request_value("page_size", "50");
+if (!array_key_exists($pageSizeParam, $allowedPageSizes)) {
+    $pageSizeParam = "50";
+}
+$pageSize = $allowedPageSizes[$pageSizeParam];
+$page = max(1, (int)document_request_value("page", "1"));
+$totalFiles = 0;
+$totalPages = 1;
+$offset = 0;
+$startRow = 0;
+$endRow = 0;
+
+$filterFormat = document_request_value("format", "all");
+$filterUploader = document_request_value("uploader", "all");
+$filterDetailType = document_request_value("detail_type", "all");
+$filterUploaderRole = document_request_value("uploader_role", "all");
+$searchName = document_request_value("search_name");
+$searchUploaderId = document_request_value("search_uploader_id");
+$searchUploaderName = document_request_value("search_uploader_name");
+$searchUploaderEmail = document_request_value("search_uploader_email");
+$searchContext = document_request_value("search_context");
+$searchSystem = document_request_value("search_system");
 
 try {
-    $stmt = $pdo->prepare("
-        SELECT f.*, u.NAME AS uploader_name, u.EMAIL AS uploader_email, u.ROLE AS uploader_role
+    $extensionExpr = "LOWER(CASE
+        WHEN LOCATE('.', COALESCE(NULLIF(f.original_name, ''), NULLIF(f.stored_name, ''), NULLIF(f.file_path, ''), f.path)) > 0
+        THEN SUBSTRING_INDEX(COALESCE(NULLIF(f.original_name, ''), NULLIF(f.stored_name, ''), NULLIF(f.file_path, ''), f.path), '.', -1)
+        ELSE ''
+    END)";
+
+    $formatStmt = $pdo->query("
+        SELECT DISTINCT $extensionExpr AS ext
         FROM application_files f
-        LEFT JOIN users u ON f.uploader_id = u.ID
-        ORDER BY f.created_at DESC, f.id DESC
+        ORDER BY ext ASC
     ");
-    $stmt->execute();
-    $files = $stmt->fetchAll();
-
-    foreach ($files as $file) {
-        $format = document_format_label($file);
-        $uploader = document_uploader_label($file);
-        $category = uploaded_file_category_label(isset($file["file_category"]) ? $file["file_category"] : 0);
-        $detailType = document_detail_type_label($file);
-
-        $formats[$format] = $format;
-        $uploaders[$uploader] = $uploader;
-        $detailTypes[$detailType] = $detailType;
+    foreach ($formatStmt->fetchAll() as $row) {
+        $ext = isset($row["ext"]) ? trim((string)$row["ext"]) : "";
+        $formats[$ext === "" ? "no_ext" : $ext] = $ext === "" ? "無副檔名" : strtoupper($ext);
     }
 
-    ksort($formats);
-    ksort($uploaders);
-    ksort($detailTypes);
+    $uploaderStmt = $pdo->query("
+        SELECT DISTINCT f.uploader_id, u.NAME AS uploader_name
+        FROM application_files f
+        LEFT JOIN users u ON f.uploader_id = u.ID
+        ORDER BY u.NAME ASC, f.uploader_id ASC
+    ");
+    foreach ($uploaderStmt->fetchAll() as $row) {
+        $id = isset($row["uploader_id"]) ? trim((string)$row["uploader_id"]) : "";
+        $key = $id === "" ? "__unknown" : $id;
+        $uploaders[$key] = document_uploader_label($row);
+    }
+
+    $where = array();
+    $params = array();
+
+    if ($filterFormat !== "all") {
+        if ($filterFormat === "no_ext") {
+            $where[] = "$extensionExpr = ''";
+        } elseif (isset($formats[$filterFormat])) {
+            $where[] = "$extensionExpr = :format";
+            $params[":format"] = strtolower($filterFormat);
+        }
+    }
+
+    if ($filterUploader !== "all") {
+        if ($filterUploader === "__unknown") {
+            $where[] = "(f.uploader_id IS NULL OR f.uploader_id = '')";
+        } else {
+            $where[] = "f.uploader_id = :uploader";
+            $params[":uploader"] = $filterUploader;
+        }
+    }
+
+    if ($filterDetailType !== "all") {
+        switch ($filterDetailType) {
+            case "announcement":
+                $where[] = "f.file_category = 1";
+                break;
+            case "application_autobi":
+                $where[] = "f.file_category = 2 AND f.file_type = 'autobi'";
+                break;
+            case "application_support":
+                $where[] = "f.file_category = 2 AND f.file_type = 'support'";
+                break;
+            case "application_other":
+                $where[] = "f.file_category = 2 AND (f.file_type IS NULL OR f.file_type NOT IN ('autobi', 'support'))";
+                break;
+            case "ticket":
+                $where[] = "f.file_category = 3";
+                break;
+            case "recommendation":
+                $where[] = "f.file_category = 4";
+                break;
+            case "other":
+                $where[] = "(f.file_category IS NULL OR f.file_category NOT IN (1, 2, 3, 4))";
+                break;
+        }
+    }
+
+    if ($filterUploaderRole !== "all") {
+        if ($filterUploaderRole === "0") {
+            $where[] = "(u.ROLE IS NULL OR u.ROLE NOT IN (1, 2, 3, 4))";
+        } elseif (in_array($filterUploaderRole, array("1", "2", "3", "4"))) {
+            $where[] = "u.ROLE = :uploader_role";
+            $params[":uploader_role"] = (int)$filterUploaderRole;
+        }
+    }
+
+    if ($searchName !== "") {
+        $where[] = "(f.original_name LIKE :search_name_original OR f.stored_name LIKE :search_name_stored)";
+        $params[":search_name_original"] = "%" . $searchName . "%";
+        $params[":search_name_stored"] = "%" . $searchName . "%";
+    }
+
+    if ($searchUploaderId !== "") {
+        $where[] = "f.uploader_id LIKE :search_uploader_id";
+        $params[":search_uploader_id"] = "%" . $searchUploaderId . "%";
+    }
+
+    if ($searchUploaderName !== "") {
+        $where[] = "u.NAME LIKE :search_uploader_name";
+        $params[":search_uploader_name"] = "%" . $searchUploaderName . "%";
+    }
+
+    if ($searchUploaderEmail !== "") {
+        $where[] = "u.EMAIL LIKE :search_uploader_email";
+        $params[":search_uploader_email"] = "%" . $searchUploaderEmail . "%";
+    }
+
+    if ($searchContext !== "") {
+        $where[] = "(
+            CAST(f.announcement_id AS CHAR) LIKE :search_context_announcement OR
+            CAST(f.application_id AS CHAR) LIKE :search_context_application OR
+            CAST(f.scholarship_id AS CHAR) LIKE :search_context_scholarship OR
+            CAST(f.ticket_id AS CHAR) LIKE :search_context_ticket OR
+            CAST(f.recommendation_id AS CHAR) LIKE :search_context_recommendation
+        )";
+        $params[":search_context_announcement"] = "%" . $searchContext . "%";
+        $params[":search_context_application"] = "%" . $searchContext . "%";
+        $params[":search_context_scholarship"] = "%" . $searchContext . "%";
+        $params[":search_context_ticket"] = "%" . $searchContext . "%";
+        $params[":search_context_recommendation"] = "%" . $searchContext . "%";
+    }
+
+    if ($searchSystem !== "") {
+        $where[] = "(
+            CAST(f.id AS CHAR) LIKE :search_system_id OR
+            f.mime_type LIKE :search_system_mime OR
+            f.file_type LIKE :search_system_type OR
+            f.created_at LIKE :search_system_created OR
+            $extensionExpr LIKE :search_system_ext
+        )";
+        $params[":search_system_id"] = "%" . $searchSystem . "%";
+        $params[":search_system_mime"] = "%" . $searchSystem . "%";
+        $params[":search_system_type"] = "%" . $searchSystem . "%";
+        $params[":search_system_created"] = "%" . $searchSystem . "%";
+        $params[":search_system_ext"] = "%" . $searchSystem . "%";
+    }
+
+    $whereSql = empty($where) ? "" : " WHERE " . implode(" AND ", $where);
+    $fromSql = "
+        FROM application_files f
+        LEFT JOIN users u ON f.uploader_id = u.ID
+    ";
+
+    $countStmt = $pdo->prepare("SELECT COUNT(*) " . $fromSql . $whereSql);
+    $countStmt->execute($params);
+    $totalFiles = (int)$countStmt->fetchColumn();
+
+    if ($pageSize === "all") {
+        $totalPages = 1;
+        $page = 1;
+        $limitSql = "";
+    } else {
+        $totalPages = max(1, (int)ceil($totalFiles / $pageSize));
+        $page = min($page, $totalPages);
+        $offset = ($page - 1) * $pageSize;
+        $limitSql = " LIMIT " . (int)$pageSize . " OFFSET " . (int)$offset;
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT f.*, u.NAME AS uploader_name, u.EMAIL AS uploader_email, u.ROLE AS uploader_role
+        " . $fromSql . $whereSql . "
+        ORDER BY f.created_at DESC, f.id DESC
+        " . $limitSql
+    );
+    $stmt->execute($params);
+    $files = $stmt->fetchAll();
+
+    if ($totalFiles > 0) {
+        $startRow = $pageSize === "all" ? 1 : $offset + 1;
+        $endRow = $pageSize === "all" ? $totalFiles : min($offset + $pageSize, $totalFiles);
+    }
 } catch (PDOException $e) {
     die("查詢失敗：" . $e->getMessage());
 }
@@ -197,6 +404,115 @@ $siteHeaderExtraHead = '
         margin-bottom: 14px;
     }
 
+    .document-list-controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 14px;
+    }
+
+    .document-page-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .document-page-controls label {
+        margin: 0;
+        white-space: nowrap;
+    }
+
+    .document-page-controls select {
+        width: auto;
+        min-width: 92px;
+        height: 38px;
+        padding: 6px 32px 6px 12px;
+    }
+
+    .document-page-controls .btn {
+        min-height: 38px;
+    }
+
+    .document-filter-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .document-filter-actions .btn,
+    .document-bulkbar .btn,
+    .document-page-controls .btn,
+    #documentPreviewModal .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 38px;
+        min-width: 76px;
+        padding: 6px 12px;
+        border: var(--bs-btn-border-width) solid var(--bs-btn-border-color) !important;
+        border-radius: var(--bs-btn-border-radius);
+        background-color: var(--bs-btn-bg) !important;
+        color: var(--bs-btn-color) !important;
+        font-size: var(--bs-btn-font-size);
+        font-weight: var(--bs-btn-font-weight);
+        line-height: var(--bs-btn-line-height);
+        text-decoration: none;
+        filter: none;
+    }
+
+    .document-actions .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        flex: 0 0 58px;
+        width: 58px;
+        height: 32px;
+        min-height: 32px;
+        min-width: 58px;
+        max-width: 58px;
+        padding: 0;
+        border: 1px solid var(--bs-btn-border-color) !important;
+        border-radius: 6px;
+        background-color: var(--bs-btn-bg) !important;
+        color: var(--bs-btn-color) !important;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1;
+        text-decoration: none;
+        filter: none;
+        white-space: nowrap;
+        appearance: none;
+    }
+
+    .document-filter-actions .btn:hover,
+    .document-bulkbar .btn:hover,
+    .document-actions .btn:hover,
+    .document-page-controls .btn:hover,
+    #documentPreviewModal .btn:hover {
+        border-color: var(--bs-btn-hover-border-color) !important;
+        background-color: var(--bs-btn-hover-bg) !important;
+        color: var(--bs-btn-hover-color) !important;
+        text-decoration: none;
+        filter: none;
+    }
+
+    .document-filter-actions .btn:disabled,
+    .document-bulkbar .btn:disabled,
+    .document-actions .btn:disabled,
+    .document-page-controls .btn:disabled,
+    #documentPreviewModal .btn:disabled {
+        border-color: var(--bs-btn-disabled-border-color) !important;
+        background-color: var(--bs-btn-disabled-bg) !important;
+        color: var(--bs-btn-disabled-color) !important;
+        opacity: var(--bs-btn-disabled-opacity);
+    }
+
     .document-name {
         min-width: 220px;
         max-width: 340px;
@@ -222,8 +538,14 @@ $siteHeaderExtraHead = '
 
     .document-actions {
         display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
+        flex-wrap: nowrap;
+        gap: 6px;
+    }
+
+    .document-actions a,
+    #documentPreviewModal .document-download-link {
+        display: inline-flex;
+        text-decoration: none;
     }
 
     .document-check {
@@ -271,12 +593,25 @@ $siteHeaderExtraHead = '
         .document-bulkbar .btn {
             margin-top: 10px;
         }
+
+        .document-list-controls {
+            display: block;
+        }
+
+        .document-page-controls {
+            justify-content: flex-start;
+            margin-top: 10px;
+        }
     }
 
     @media (max-width: 640px) {
         .document-toolbar,
         .document-search-grid {
             grid-template-columns: 1fr;
+        }
+
+        .document-actions {
+            flex-wrap: wrap;
         }
     }
 </style>';
@@ -291,86 +626,98 @@ $siteHeaderExtraHead = '
 </div>
 
 <div class="admin-card">
-    <div class="document-filter-section">
-        <h2 class="document-filter-heading">篩選</h2>
-        <div class="document-toolbar" aria-label="檔案篩選">
-            <div>
-                <label for="documentFilterFormat">格式</label>
-                <select id="documentFilterFormat">
-                    <option value="all">全部格式</option>
-                    <?php foreach ($formats as $format): ?>
-                        <option value="<?php echo document_h($format); ?>"><?php echo document_h($format); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div>
-                <label for="documentFilterDetailType">檔案歸屬</label>
-                <select id="documentFilterDetailType">
-                    <option value="all">全部檔案歸屬</option>
-                    <?php foreach ($detailTypes as $detailType): ?>
-                        <option value="<?php echo document_h($detailType); ?>"><?php echo document_h($detailType); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div>
-                <label for="documentFilterUploader">上傳人</label>
-                <select id="documentFilterUploader">
-                    <option value="all">全部上傳人</option>
-                    <?php foreach ($uploaders as $uploader): ?>
-                        <option value="<?php echo document_h($uploader); ?>"><?php echo document_h($uploader); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div>
-                <label for="documentFilterUploaderRole">上傳人身分</label>
-                <select id="documentFilterUploaderRole">
-                    <option value="all">全部身分</option>
-                    <option value="學生">學生</option>
-                    <option value="推薦人">推薦人</option>
-                    <option value="管理員">管理員</option>
-                    <option value="獎助單位">獎助單位</option>
-                    <option value="未知">未知</option>
-                </select>
-            </div>
-        </div>
-    </div>
+    <form method="get" action="document_management.php">
+        <input type="hidden" name="page_size" value="<?php echo document_h($pageSizeParam); ?>">
+        <input type="hidden" name="page" value="1">
 
-    <div class="document-filter-section">
-        <h2 class="document-filter-heading">搜尋</h2>
-        <div class="document-search-grid" aria-label="檔案搜尋">
-            <div>
-                <label for="documentSearchName">檔案名</label>
-                <input id="documentSearchName" type="text" placeholder="原始檔名或儲存檔名">
-            </div>
-            <div>
-                <label for="documentSearchUploaderId">上傳人 ID</label>
-                <input id="documentSearchUploaderId" type="text" placeholder="帳號 ID">
-            </div>
-            <div>
-                <label for="documentSearchUploaderName">上傳人姓名</label>
-                <input id="documentSearchUploaderName" type="text" placeholder="姓名或單位名稱">
-            </div>
-            <div>
-                <label for="documentSearchUploaderEmail">上傳人 Email</label>
-                <input id="documentSearchUploaderEmail" type="text" placeholder="email">
-            </div>
-            <div>
-                <label for="documentSearchContext">關聯編號</label>
-                <input id="documentSearchContext" type="text" placeholder="公告、申請、獎學金、工單、推薦">
-            </div>
-            <div>
-                <label for="documentSearchSystem">系統欄位</label>
-                <input id="documentSearchSystem" type="text" placeholder="檔案 ID、MIME、子類型">
+        <div class="document-filter-section">
+            <h2 class="document-filter-heading">篩選</h2>
+            <div class="document-toolbar" aria-label="檔案篩選">
+                <div>
+                    <label for="documentFilterFormat">格式</label>
+                    <select id="documentFilterFormat" name="format">
+                        <option value="all">全部格式</option>
+                        <?php foreach ($formats as $formatValue => $formatLabel): ?>
+                            <option value="<?php echo document_h($formatValue); ?>"<?php echo document_selected($filterFormat, $formatValue); ?>>
+                                <?php echo document_h($formatLabel); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label for="documentFilterDetailType">檔案歸屬</label>
+                    <select id="documentFilterDetailType" name="detail_type">
+                        <option value="all">全部檔案歸屬</option>
+                        <?php foreach ($detailTypes as $detailValue => $detailLabel): ?>
+                            <option value="<?php echo document_h($detailValue); ?>"<?php echo document_selected($filterDetailType, $detailValue); ?>>
+                                <?php echo document_h($detailLabel); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label for="documentFilterUploader">上傳人</label>
+                    <select id="documentFilterUploader" name="uploader">
+                        <option value="all">全部上傳人</option>
+                        <?php foreach ($uploaders as $uploaderValue => $uploaderLabel): ?>
+                            <option value="<?php echo document_h($uploaderValue); ?>"<?php echo document_selected($filterUploader, $uploaderValue); ?>>
+                                <?php echo document_h($uploaderLabel); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label for="documentFilterUploaderRole">上傳人身分</label>
+                    <select id="documentFilterUploaderRole" name="uploader_role">
+                        <option value="all">全部身分</option>
+                        <option value="1"<?php echo document_selected($filterUploaderRole, "1"); ?>>學生</option>
+                        <option value="2"<?php echo document_selected($filterUploaderRole, "2"); ?>>推薦人</option>
+                        <option value="3"<?php echo document_selected($filterUploaderRole, "3"); ?>>管理員</option>
+                        <option value="4"<?php echo document_selected($filterUploaderRole, "4"); ?>>獎助單位</option>
+                        <option value="0"<?php echo document_selected($filterUploaderRole, "0"); ?>>未知</option>
+                    </select>
+                </div>
             </div>
         </div>
-    </div>
+
+        <div class="document-filter-section">
+            <h2 class="document-filter-heading">搜尋</h2>
+            <div class="document-search-grid" aria-label="檔案搜尋">
+                <div>
+                    <label for="documentSearchName">檔案名</label>
+                    <input id="documentSearchName" name="search_name" type="text" value="<?php echo document_input_value("search_name"); ?>" placeholder="原始檔名或儲存檔名">
+                </div>
+                <div>
+                    <label for="documentSearchUploaderId">上傳人 ID</label>
+                    <input id="documentSearchUploaderId" name="search_uploader_id" type="text" value="<?php echo document_input_value("search_uploader_id"); ?>" placeholder="帳號 ID">
+                </div>
+                <div>
+                    <label for="documentSearchUploaderName">上傳人姓名</label>
+                    <input id="documentSearchUploaderName" name="search_uploader_name" type="text" value="<?php echo document_input_value("search_uploader_name"); ?>" placeholder="姓名或單位名稱">
+                </div>
+                <div>
+                    <label for="documentSearchUploaderEmail">上傳人 Email</label>
+                    <input id="documentSearchUploaderEmail" name="search_uploader_email" type="text" value="<?php echo document_input_value("search_uploader_email"); ?>" placeholder="email">
+                </div>
+                <div>
+                    <label for="documentSearchContext">關聯編號</label>
+                    <input id="documentSearchContext" name="search_context" type="text" value="<?php echo document_input_value("search_context"); ?>" placeholder="公告、申請、獎學金、工單、推薦">
+                </div>
+                <div>
+                    <label for="documentSearchSystem">系統欄位</label>
+                    <input id="documentSearchSystem" name="search_system" type="text" value="<?php echo document_input_value("search_system"); ?>" placeholder="檔案 ID、MIME、子類型">
+                </div>
+            </div>
+            <div class="document-filter-actions">
+                <a class="btn btn-outline-secondary" href="document_management.php">清除</a>
+                <button class="btn btn-primary" type="submit">套用</button>
+            </div>
+        </div>
+    </form>
 
     <form method="post" action="document_process.php" data-document-form>
         <div class="document-bulkbar">
-            <div class="muted">
-                顯示 <span id="documentVisibleCount"><?php echo count($files); ?></span> / <?php echo count($files); ?> 份檔案，
-                已選 <span id="documentSelectedCount">0</span> 份
-            </div>
+            <div class="muted">批量操作套用於已勾選的檔案。</div>
             <button type="submit" name="bulk_delete" value="1" class="btn btn-danger" id="documentBulkDelete" disabled>批量刪除</button>
         </div>
 
@@ -456,19 +803,20 @@ $siteHeaderExtraHead = '
                             <td><?php echo document_h($createdAt); ?></td>
                             <td>
                                 <div class="document-actions">
-                                    <?php if ($previewKind !== "download"): ?>
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm btn-edit document-preview-btn"
-                                            data-preview-kind="<?php echo document_h($previewKind); ?>"
-                                            data-preview-url="<?php echo document_h($previewUrl); ?>"
-                                            data-download-url="<?php echo document_h($downloadUrl); ?>"
-                                            data-file-name="<?php echo document_h($file["original_name"]); ?>">
-                                            預覽
-                                        </button>
-                                    <?php endif; ?>
-                                    <a class="btn btn-sm btn-secondary" href="<?php echo document_h($downloadUrl); ?>">下載</a>
-                                    <button type="submit" name="delete_one" value="<?php echo (int)$file["id"]; ?>" class="btn btn-sm btn-danger document-delete-one">刪除</button>
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-primary document-preview-btn"
+                                        data-preview-kind="<?php echo document_h($previewKind); ?>"
+                                        data-preview-url="<?php echo document_h($previewUrl); ?>"
+                                        data-download-url="<?php echo document_h($downloadUrl); ?>"
+                                        data-file-name="<?php echo document_h($file["original_name"]); ?>"
+                                        <?php echo $previewKind === "download" ? 'disabled title="此檔案格式不支援預覽"' : ""; ?>>
+                                        預覽
+                                    </button>
+                                    <a class="document-download-link" href="<?php echo document_h($downloadUrl); ?>">
+                                        <button type="button" class="btn btn-sm btn-outline-success">下載</button>
+                                    </a>
+                                    <button type="submit" name="delete_one" value="<?php echo (int)$file["id"]; ?>" class="btn btn-sm btn-outline-danger document-delete-one">刪除</button>
                                 </div>
                             </td>
                         </tr>
@@ -480,6 +828,34 @@ $siteHeaderExtraHead = '
                     <?php endif; ?>
                 </tbody>
             </table>
+        </div>
+
+        <div class="document-list-controls">
+            <div class="muted">
+                顯示 <?php echo document_h($startRow); ?>-<?php echo document_h($endRow); ?> / <?php echo document_h($totalFiles); ?> 份檔案，
+                已選 <span id="documentSelectedCount">0</span> 份
+            </div>
+            <div class="document-page-controls" aria-label="檔案清單分頁">
+                <label for="documentPageSize">每頁</label>
+                <select id="documentPageSize" data-url-template="<?php echo document_h(document_query_url(array("page" => 1, "page_size" => "__PAGE_SIZE__"))); ?>">
+                    <option value="10"<?php echo document_selected($pageSizeParam, "10"); ?>>10</option>
+                    <option value="50"<?php echo document_selected($pageSizeParam, "50"); ?>>50</option>
+                    <option value="100"<?php echo document_selected($pageSizeParam, "100"); ?>>100</option>
+                    <option value="500"<?php echo document_selected($pageSizeParam, "500"); ?>>500</option>
+                    <option value="all"<?php echo document_selected($pageSizeParam, "all"); ?>>全部</option>
+                </select>
+                <?php if ($page > 1): ?>
+                    <a class="btn btn-outline-secondary" href="<?php echo document_h(document_query_url(array("page" => $page - 1))); ?>">上一頁</a>
+                <?php else: ?>
+                    <button type="button" class="btn btn-outline-secondary" disabled>上一頁</button>
+                <?php endif; ?>
+                <span class="muted">第 <?php echo document_h($page); ?> / <?php echo document_h($totalPages); ?> 頁</span>
+                <?php if ($page < $totalPages): ?>
+                    <a class="btn btn-outline-secondary" href="<?php echo document_h(document_query_url(array("page" => $page + 1))); ?>">下一頁</a>
+                <?php else: ?>
+                    <button type="button" class="btn btn-outline-secondary" disabled>下一頁</button>
+                <?php endif; ?>
+            </div>
         </div>
     </form>
 </div>
@@ -495,7 +871,9 @@ $siteHeaderExtraHead = '
                 <div id="documentPreviewBody"></div>
             </div>
             <div class="modal-footer">
-                <a id="documentPreviewDownload" class="btn btn-secondary" href="#">下載</a>
+                <a id="documentPreviewDownload" class="document-download-link" href="#">
+                    <button type="button" class="btn btn-outline-success">下載</button>
+                </a>
                 <button type="button" class="btn btn-primary" data-bs-dismiss="modal">關閉</button>
             </div>
         </div>
@@ -505,133 +883,50 @@ $siteHeaderExtraHead = '
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 <script>
     (function() {
-        var formatFilter = document.getElementById("documentFilterFormat");
-        var uploaderFilter = document.getElementById("documentFilterUploader");
-        var detailTypeFilter = document.getElementById("documentFilterDetailType");
-        var uploaderRoleFilter = document.getElementById("documentFilterUploaderRole");
-        var nameSearch = document.getElementById("documentSearchName");
-        var uploaderIdSearch = document.getElementById("documentSearchUploaderId");
-        var uploaderNameSearch = document.getElementById("documentSearchUploaderName");
-        var uploaderEmailSearch = document.getElementById("documentSearchUploaderEmail");
-        var contextSearch = document.getElementById("documentSearchContext");
-        var systemSearch = document.getElementById("documentSearchSystem");
-        var visibleCount = document.getElementById("documentVisibleCount");
         var selectedCount = document.getElementById("documentSelectedCount");
+        var pageSizeSelect = document.getElementById("documentPageSize");
         var bulkDelete = document.getElementById("documentBulkDelete");
         var selectAll = document.getElementById("documentSelectAll");
         var form = document.querySelector("[data-document-form]");
         var rows = Array.prototype.slice.call(document.querySelectorAll("[data-document-row]"));
 
-        function normalize(value) {
-            return String(value || "").toLowerCase();
-        }
-
-        function includesField(row, attribute, input) {
-            var query = normalize(input.value).trim();
-            if (query === "") {
-                return true;
-            }
-
-            return normalize(row.getAttribute(attribute)).indexOf(query) !== -1;
-        }
-
-        function rowVisible(row) {
-            var format = formatFilter.value;
-            var uploader = uploaderFilter.value;
-            var detailType = detailTypeFilter.value;
-            var uploaderRole = uploaderRoleFilter.value;
-
-            if (format !== "all" && row.getAttribute("data-format") !== format) {
-                return false;
-            }
-            if (uploader !== "all" && row.getAttribute("data-uploader") !== uploader) {
-                return false;
-            }
-            if (detailType !== "all" && row.getAttribute("data-detail-type") !== detailType) {
-                return false;
-            }
-            if (uploaderRole !== "all" && row.getAttribute("data-uploader-role") !== uploaderRole) {
-                return false;
-            }
-            if (!includesField(row, "data-name-search", nameSearch)) {
-                return false;
-            }
-            if (!includesField(row, "data-uploader-id", uploaderIdSearch)) {
-                return false;
-            }
-            if (!includesField(row, "data-uploader-name", uploaderNameSearch)) {
-                return false;
-            }
-            if (!includesField(row, "data-uploader-email", uploaderEmailSearch)) {
-                return false;
-            }
-            if (!includesField(row, "data-context-search", contextSearch)) {
-                return false;
-            }
-            if (!includesField(row, "data-system-search", systemSearch)) {
-                return false;
-            }
-
-            return true;
-        }
-
         function updateSelectionState() {
-            var visibleRows = rows.filter(function(row) {
-                return row.style.display !== "none";
-            });
-            var checkedRows = visibleRows.filter(function(row) {
+            var checkedRows = rows.filter(function(row) {
                 var checkbox = row.querySelector(".document-row-check");
                 return checkbox && checkbox.checked;
             });
-            var totalChecked = document.querySelectorAll(".document-row-check:checked").length;
 
-            visibleCount.textContent = String(visibleRows.length);
-            selectedCount.textContent = String(totalChecked);
-            bulkDelete.disabled = totalChecked === 0;
+            selectedCount.textContent = String(checkedRows.length);
+            bulkDelete.disabled = checkedRows.length === 0;
 
             if (selectAll) {
-                selectAll.checked = visibleRows.length > 0 && checkedRows.length === visibleRows.length;
-                selectAll.indeterminate = checkedRows.length > 0 && checkedRows.length < visibleRows.length;
+                selectAll.checked = rows.length > 0 && checkedRows.length === rows.length;
+                selectAll.indeterminate = checkedRows.length > 0 && checkedRows.length < rows.length;
             }
         }
 
-        function applyFilters() {
-            rows.forEach(function(row) {
-                row.style.display = rowVisible(row) ? "" : "none";
+        if (pageSizeSelect) {
+            pageSizeSelect.addEventListener("change", function() {
+                var template = pageSizeSelect.getAttribute("data-url-template");
+                if (template) {
+                    window.location.href = template.replace("__PAGE_SIZE__", encodeURIComponent(pageSizeSelect.value));
+                }
             });
-            updateSelectionState();
         }
 
-        [
-            formatFilter,
-            uploaderFilter,
-            detailTypeFilter,
-            uploaderRoleFilter,
-            nameSearch,
-            uploaderIdSearch,
-            uploaderNameSearch,
-            uploaderEmailSearch,
-            contextSearch,
-            systemSearch
-        ].forEach(function(control) {
-            control.addEventListener("input", applyFilters);
-            control.addEventListener("change", applyFilters);
-        });
-
-        document.addEventListener("change", function(event) {
-            if (event.target && event.target.classList.contains("document-row-check")) {
-                updateSelectionState();
+        rows.forEach(function(row) {
+            var checkbox = row.querySelector(".document-row-check");
+            if (checkbox) {
+                checkbox.addEventListener("change", updateSelectionState);
             }
         });
 
         if (selectAll) {
             selectAll.addEventListener("change", function() {
                 rows.forEach(function(row) {
-                    if (row.style.display !== "none") {
-                        var checkbox = row.querySelector(".document-row-check");
-                        if (checkbox) {
-                            checkbox.checked = selectAll.checked;
-                        }
+                    var checkbox = row.querySelector(".document-row-check");
+                    if (checkbox) {
+                        checkbox.checked = selectAll.checked;
                     }
                 });
                 updateSelectionState();
@@ -707,7 +1002,7 @@ $siteHeaderExtraHead = '
             });
         });
 
-        applyFilters();
+        updateSelectionState();
     })();
 </script>
 </main>
