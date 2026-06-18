@@ -26,12 +26,12 @@ require __DIR__ . "/header.php";
   <div class="p-4">
     <form method="post" action="login_submit.php" class="vstack gap-3">
       <div>
-        <label class="form-label fw-semibold" for="id">使用者 ID</label>
+        <label class="form-label fw-semibold" for="id">使用者 ID <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control" id="id" name="id" maxlength="10" required placeholder="例如 A1234567" autocomplete="username">
       </div>
 
       <div>
-        <label class="form-label fw-semibold" for="pwd">密碼</label>
+        <label class="form-label fw-semibold" for="pwd">密碼 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control" id="pwd" type="password" name="pwd" maxlength="64" required placeholder="請輸入密碼" autocomplete="current-password">
         <div class="text-end mt-2">
           <a href="forgot_password.php" class="small text-decoration-none">忘記密碼？</a>

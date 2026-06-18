@@ -242,11 +242,13 @@ require __DIR__ . "/header.php";
         <div class="mb-3">
           <label class="form-label fw-semibold" for="message">內容</label>
           <textarea class="form-control" id="message" name="message" rows="7"></textarea>
+          <div class="form-text"><span class="text-danger" aria-label="必填">*</span> 內容或附件至少填寫一項。</div>
         </div>
 
         <div class="mb-3">
-          <label class="form-label fw-semibold" for="ticket_file">附件（可空）</label>
-          <input class="form-control" type="file" id="ticket_file" name="TICKET_FILE">
+          <label class="form-label fw-semibold" for="ticket_file">附件</label>
+          <input class="form-control" type="file" id="ticket_file" name="TICKET_FILE" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx,.txt,.zip,.odt,.odc,.webp,.ppt,.pptx,.ods,.gif">
+          <div class="form-text">允許格式：PDF、DOC、DOCX、JPG、JPEG、PNG、XLS、XLSX、TXT、ZIP、ODT、ODC、WEBP、PPT、PPTX、ODS、GIF；單檔上限 20MB。</div>
         </div>
 
         <div class="d-flex flex-wrap gap-2">
@@ -268,7 +270,7 @@ require __DIR__ . "/header.php";
       <form method="post" action="/scholarship/submit_ticket.php" enctype="multipart/form-data">
         <?php if ($isAdmin): ?>
           <div class="mb-3 position-relative">
-            <label class="form-label fw-semibold" for="related_user_filter">工單相關人</label>
+            <label class="form-label fw-semibold" for="related_user_filter">工單相關人 <span class="text-danger" aria-label="必填">*</span></label>
             <input class="form-control" type="search" id="related_user_filter" placeholder="輸入姓名、ID 或 Email">
             <input type="hidden" id="related_user_id" name="related_user_id">
             <div class="list-group position-absolute start-0 end-0 shadow-sm" id="related_user_results" style="z-index: 1050; max-height: 16rem; overflow-y: auto; display: none;"></div>
@@ -290,18 +292,19 @@ require __DIR__ . "/header.php";
         <?php endif; ?>
 
         <div class="mb-3">
-          <label class="form-label fw-semibold" for="title">標題</label>
+          <label class="form-label fw-semibold" for="title">標題 <span class="text-danger" aria-label="必填">*</span></label>
           <input class="form-control" type="text" id="title" name="title" maxlength="255" required>
         </div>
 
         <div class="mb-3">
-          <label class="form-label fw-semibold" for="message">內容</label>
+          <label class="form-label fw-semibold" for="message">內容 <span class="text-danger" aria-label="必填">*</span></label>
           <textarea class="form-control" id="message" name="message" rows="8" required></textarea>
         </div>
 
         <div class="mb-3">
-          <label class="form-label fw-semibold" for="ticket_file_new">附件（可空）</label>
-          <input class="form-control" type="file" id="ticket_file_new" name="TICKET_FILE">
+          <label class="form-label fw-semibold" for="ticket_file_new">附件</label>
+          <input class="form-control" type="file" id="ticket_file_new" name="TICKET_FILE" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx,.txt,.zip,.odt,.odc,.webp,.ppt,.pptx,.ods,.gif">
+          <div class="form-text">允許格式：PDF、DOC、DOCX、JPG、JPEG、PNG、XLS、XLSX、TXT、ZIP、ODT、ODC、WEBP、PPT、PPTX、ODS、GIF；單檔上限 20MB。</div>
         </div>
 
         <div class="d-flex flex-wrap gap-2">

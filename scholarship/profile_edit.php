@@ -188,7 +188,7 @@ require __DIR__ . "/header.php";
                             </div>
 
                             <div class="mb-3">
-                                <label for="NAME" class="form-label fw-semibold">單位/姓名</label>
+                                <label for="NAME" class="form-label fw-semibold">單位/姓名 <span class="text-danger" aria-label="必填">*</span></label>
                                 <input type="text" id="NAME" name="NAME" class="form-control" value="<?php echo h($user["NAME"]); ?>" required>
                             </div>
 
@@ -226,12 +226,12 @@ require __DIR__ . "/header.php";
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="UNIT_NAME" class="form-label fw-semibold">單位名稱</label>
+                                    <label for="UNIT_NAME" class="form-label fw-semibold">單位名稱 <span class="text-danger" aria-label="必填">*</span></label>
                                     <input type="text" id="UNIT_NAME" name="UNIT_NAME" class="form-control" maxlength="100" value="<?php echo h(isset($extra["UNIT_NAME"]) ? $extra["UNIT_NAME"] : ""); ?>" placeholder="例如：國立成功大學、XX科技股份有限公司" required>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="JOB_TITLE" class="form-label fw-semibold">職稱</label>
+                                    <label for="JOB_TITLE" class="form-label fw-semibold">職稱 <span class="text-danger" aria-label="必填">*</span></label>
                                     <input type="text" id="JOB_TITLE" name="JOB_TITLE" class="form-control" maxlength="100" value="<?php echo h(isset($extra["JOB_TITLE"]) ? $extra["JOB_TITLE"] : ""); ?>" placeholder="例如：副教授、講師、高級工程師" required>
                                 </div>
 
@@ -262,6 +262,7 @@ require __DIR__ . "/header.php";
                             <div class="border-start border-4 border-primary bg-body-tertiary px-3 py-2 fw-bold mb-3">
                                 修改密碼
                             </div>
+                            <div class="text-secondary small mb-3"><span class="text-danger" aria-label="條件式必填">*</span> 如需修改密碼，目前密碼、新密碼與確認新密碼皆需填寫。</div>
 
                             <div class="mb-3">
                                 <label for="CURRENT_PWD" class="form-label fw-semibold">目前密碼</label>

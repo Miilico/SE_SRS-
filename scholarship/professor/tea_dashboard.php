@@ -143,7 +143,7 @@ require __DIR__ . "/../header.php";
     <h2 class="h5 fw-bold mb-3">查詢學生申請資料</h2>
     <form action="student_view.php" method="get" class="row g-2 align-items-end">
       <div class="col-md-8 col-lg-5">
-        <label class="form-label fw-semibold" for="sid">學生帳號或學號</label>
+        <label class="form-label fw-semibold" for="sid">學生帳號或學號 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control" id="sid" type="text" name="sid" required>
       </div>
       <div class="col-md-auto">
