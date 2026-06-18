@@ -18,3 +18,8 @@ CREATE TABLE `application_custom_answers` (
   FOREIGN KEY (`application_id`) REFERENCES `application`(`APNO`) ON DELETE CASCADE,
   FOREIGN KEY (`field_id`) REFERENCES `scholarship_fields`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+NEW!! 
+--3.獎助學金狀態要能手動調整，新增狀態欄，學生端也要增加判定
+ALTER TABLE `scholarship` 
+ADD `is_active` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1為開啟，0為手動關閉' AFTER `start_date`;
