@@ -83,12 +83,12 @@ $activeNav = "account_management.php";
 
             <div class="border-start border-4 border-primary bg-body-tertiary px-3 py-2 fw-bold">基本帳號資訊</div>
             <div>
-                <label class="form-label fw-semibold">帳號 ID:</label>
+                <label class="form-label fw-semibold">帳號 ID: <?php if ($mode === "add"): ?><span class="text-danger" aria-label="必填">*</span><?php endif; ?></label>
                 <input class="form-control" type="text" name="id" value="<?php echo htmlspecialchars($account["ID"]); ?>" <?php echo ($mode === "edit") ? "readonly" : "required"; ?>>
             </div>
 
             <div>
-            <label class="form-label fw-semibold">身分:</label>
+            <label class="form-label fw-semibold">身分: <?php if ($mode === "add"): ?><span class="text-danger" aria-label="必填">*</span><?php endif; ?></label>
             <?php if ($mode === "add"): ?>
                 <select class="form-select" name="role" id="accountRole" required>
                     <option value="1" <?php echo ((int)$account["ROLE"] === 1) ? "selected" : ""; ?>>學生</option>
@@ -101,12 +101,12 @@ $activeNav = "account_management.php";
             </div>
 
             <div>
-                <label class="form-label fw-semibold">姓名 / 單位名稱:</label>
+                <label class="form-label fw-semibold">姓名 / 單位名稱: <span class="text-danger" aria-label="必填">*</span></label>
                 <input class="form-control" type="text" name="name" value="<?php echo htmlspecialchars($account["NAME"]); ?>" required>
             </div>
 
             <div>
-                <label class="form-label fw-semibold">登入密碼:</label>
+                <label class="form-label fw-semibold">登入密碼: <?php if ($mode === "add"): ?><span class="text-danger" aria-label="必填">*</span><?php endif; ?></label>
                 <input class="form-control" type="password" name="pwd" <?php echo ($mode === "add") ? "required" : ""; ?> placeholder="<?php echo ($mode === "edit") ? "不修改請留空" : "至少 6 碼"; ?>">
             </div>
 
@@ -133,16 +133,16 @@ $activeNav = "account_management.php";
                 <label class="form-label fw-semibold">學號:</label>
                 <input class="form-control" type="text" name="sid" value="<?php echo htmlspecialchars($account["SID"]); ?>" placeholder="未填時預設使用帳號 ID">
 
-                <label class="form-label fw-semibold mt-3">就讀系所:</label>
+                <label class="form-label fw-semibold mt-3">就讀系所: <span class="text-danger" aria-label="必填">*</span></label>
                 <input class="form-control" type="text" name="student_dept" value="<?php echo htmlspecialchars($account["STUDENT_DEPT"]); ?>">
             </div>
 
             <div class="border-start border-4 border-primary bg-body-tertiary px-3 py-2 fw-bold" data-role-block="2">推薦人資料</div>
             <div data-role-block="2">
-                <label class="form-label fw-semibold">單位名稱:</label>
+                <label class="form-label fw-semibold">單位名稱: <span class="text-danger" aria-label="必填">*</span></label>
                 <input class="form-control" type="text" name="teacher_unit" value="<?php echo htmlspecialchars($account["TEACHER_UNIT"]); ?>" placeholder="例如：國立成功大學、XX科技股份有限公司">
 
-                <label class="form-label fw-semibold mt-3">職稱:</label>
+                <label class="form-label fw-semibold mt-3">職稱: <span class="text-danger" aria-label="必填">*</span></label>
                 <input class="form-control" type="text" name="teacher_title" value="<?php echo htmlspecialchars($account["TEACHER_TITLE"]); ?>" placeholder="例如：副教授、講師、高級工程師">
 
                 <label class="form-label fw-semibold mt-3">系所 / 部門:</label>
@@ -151,7 +151,7 @@ $activeNav = "account_management.php";
 
             <div class="border-start border-4 border-primary bg-body-tertiary px-3 py-2 fw-bold" data-role-block="4">獎助單位資料</div>
             <div data-role-block="4">
-                <label class="form-label fw-semibold">單位聯絡人姓名:</label>
+                <label class="form-label fw-semibold">單位聯絡人姓名: <span class="text-danger" aria-label="必填">*</span></label>
                 <input class="form-control" type="text" name="contact_person" value="<?php echo htmlspecialchars($account["CONTACT"]); ?>">
 
                 <label class="form-label fw-semibold mt-3">單位電話（可多筆，請用逗號隔開）:</label>

@@ -62,24 +62,24 @@ $activeNav = "post_management.php";
                     <option value="1" <?php echo $default_cat == 1 ? 'selected' : ''; ?>>獎學金審查結果</option>
                 </select>
                 <?php if($default_cat == 1): ?>
-                    <div class="form-text text-danger">* 已自動帶入獲獎學生名單，發佈前請確認格式。</div>
+                    <div class="form-text text-danger">提醒：已自動帶入獲獎學生名單，發佈前請確認格式。</div>
                 <?php endif; ?>
             </div>
 
             <div>
-                <label class="form-label fw-semibold">公告標題：</label>
+                <label class="form-label fw-semibold">公告標題：<span class="text-danger" aria-label="必填">*</span></label>
                 <input class="form-control" type="text" name="title" value="<?php echo htmlspecialchars($default_title); ?>" placeholder="例如：2024年第一季獎學金錄取名單" required>
             </div>
 
             <div>
-                <label class="form-label fw-semibold">公告內容：</label>
+                <label class="form-label fw-semibold">公告內容：<span class="text-danger" aria-label="必填">*</span></label>
                 <textarea class="form-control" name="content" rows="12" placeholder="請輸入詳細公告內容..." required><?php echo htmlspecialchars($default_content); ?></textarea>
             </div>
 
             <div>
                 <label class="form-label fw-semibold">公告附件：</label>
-                <input class="form-control" type="file" id="announcementFiles" name="ANNOUNCEMENT_FILES[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx,.txt,.zip" multiple>
-                <div class="form-text text-danger">可一次選擇多個檔案，也可分次選取後一併上傳；公告附件屬公開文件，所有人可下載。</div>
+                <input class="form-control" type="file" id="announcementFiles" name="ANNOUNCEMENT_FILES[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx,.txt,.zip,.odt,.odc,.webp,.ppt,.pptx,.ods,.gif" multiple>
+                <div class="form-text text-danger">可一次選擇多個檔案，也可分次選取後一併上傳；公告附件屬公開文件，所有人可下載。允許格式：PDF、DOC、DOCX、JPG、JPEG、PNG、XLS、XLSX、TXT、ZIP、ODT、ODC、WEBP、PPT、PPTX、ODS、GIF；單檔上限 20MB。</div>
                 <div id="selectedAnnouncementFiles" class="mt-3" hidden>
                     <strong>待上傳附件：</strong>
                     <ul id="selectedAnnouncementFileList"></ul>

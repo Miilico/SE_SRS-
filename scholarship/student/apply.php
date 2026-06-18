@@ -68,7 +68,7 @@ require __DIR__ . "/../header.php";
   <!-- 1. 選擇獎學金 -->
   <div class="mb-4">
     <div class="fw-bold mb-2">1. 選擇獎助學金</div>
-    <label class="form-label fw-semibold">獎助學金</label>
+    <label class="form-label fw-semibold">獎助學金 <span class="text-danger" aria-label="必填">*</span></label>
     <select class="form-select" name="SCID" required>
       <option value="" disabled selected>請選擇</option>
       <?php foreach ($schs as $s): ?>
@@ -112,11 +112,11 @@ require __DIR__ . "/../header.php";
     <div class="fw-bold mb-2">3. 學業/資格資料</div>
     <div class="row g-3">
       <div class="col-md-6">
-        <label class="form-label fw-semibold">GPA / 成績（可空）</label>
+        <label class="form-label fw-semibold">GPA / 成績</label>
         <input class="form-control" type="number" name="GRADE" step="0.01" min="0" max="100" placeholder="例如：85.5">
       </div>
       <div class="col-md-6">
-        <label class="form-label fw-semibold">班排/系排（可空）</label>
+        <label class="form-label fw-semibold">班排/系排</label>
         <input class="form-control" name="RANK" maxlength="50" placeholder="例如：班排 3/45">
       </div>
     </div>
@@ -125,6 +125,7 @@ require __DIR__ . "/../header.php";
   <!-- 4. 推薦信（推薦人免註冊） -->
   <div class="mb-4">
     <div class="fw-bold mb-2">4. 推薦信</div>
+    <div class="text-secondary small mb-3"><span class="text-danger" aria-label="條件式必填">*</span> 如需推薦信，請選擇已註冊推薦人，或填寫推薦人姓名、單位名稱、職稱與 Email。</div>
     <!--<div class="section-title mb-2">4. 推薦信（教授免註冊填寫）</div>-->
     <div class="row g-3">
       <div class="col-md-6">
@@ -169,7 +170,7 @@ require __DIR__ . "/../header.php";
       </div>
 
       <div class="col-md-12">
-        <label class="form-label fw-semibold">關係（可空）</label>
+        <label class="form-label fw-semibold">關係</label>
         <input class="form-control" name="REC_REL" maxlength="50" placeholder="例如：專題指導教授、實習主管">
       </div>
     </div>
@@ -177,10 +178,10 @@ require __DIR__ . "/../header.php";
 
   <!-- 5. 自傳/讀書計畫 -->
   <div class="mb-4">
-    <div class="fw-bold mb-2">5. 自傳（必傳）</div>
+    <div class="fw-bold mb-2">5. 自傳 <span class="text-danger" aria-label="必填">*</span></div>
     <div class="border border-2 rounded bg-white p-3">
       <input class="form-control" type="file" name="AUTOBI_FILE" accept=".pdf,.doc,.docx" required>
-      <div class="text-muted small mt-2">PDF / DOC / DOCX（建議 10MB 內）</div>
+      <div class="text-muted small mt-2">允許格式：PDF、DOC、DOCX；單檔上限 20MB。</div>
     </div>
   </div>
   <!--<div class="mb-4">
@@ -194,15 +195,15 @@ require __DIR__ . "/../header.php";
   <div class="mb-2">
     <div class="fw-bold mb-2">6. 其他有利審查資料（可多檔）</div>
     <div class="border border-2 rounded bg-white p-3">
-      <input class="form-control" type="file" name="OTHER_FILES[]" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
-      <div class="text-muted small mt-2">獎狀、證照、作品集、證明…可多個檔案</div>
+      <input class="form-control" type="file" name="OTHER_FILES[]" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+      <div class="text-muted small mt-2">獎狀、證照、作品集、證明等可多檔上傳；允許格式：PDF、DOC、DOCX、JPG、JPEG、PNG；單檔上限 20MB。</div>
     </div>
   </div>
 
   <div class="form-check mt-4">
     <input class="form-check-input" type="checkbox" value="1" id="agree" required>
     <label class="form-check-label text-secondary" for="agree">
-      本人保證以上資料及文件皆屬實。
+      本人保證以上資料及文件皆屬實。<span class="text-danger" aria-label="必填">*</span>
     </label>
   </div>
 

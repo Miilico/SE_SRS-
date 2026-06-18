@@ -31,13 +31,13 @@ require __DIR__ . "/header.php";
         </div>
 
         <div>
-          <label class="form-label fw-semibold" for="pwd">新密碼</label>
+          <label class="form-label fw-semibold" for="pwd">新密碼 <span class="text-danger" aria-label="必填">*</span></label>
           <input class="form-control" id="pwd" type="password" name="pwd" maxlength="64" required>
           <div class="form-text">密碼至少 6 碼。</div>
         </div>
 
         <div>
-          <label class="form-label fw-semibold" for="pwd2">確認新密碼</label>
+          <label class="form-label fw-semibold" for="pwd2">確認新密碼 <span class="text-danger" aria-label="必填">*</span></label>
           <input class="form-control" id="pwd2" type="password" name="pwd2" maxlength="64" required>
         </div>
 

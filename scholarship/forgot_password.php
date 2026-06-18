@@ -27,7 +27,7 @@ require __DIR__ . "/header.php";
 
         <form method="post" action="forgot_password_submit.php" class="vstack gap-3">
           <div>
-            <label class="form-label fw-semibold" for="email">註冊 Email</label>
+            <label class="form-label fw-semibold" for="email">註冊 Email <span class="text-danger" aria-label="必填">*</span></label>
             <input class="form-control" id="email" type="email" name="email" maxlength="100" placeholder="example@mail.nuk.edu.tw" required>
             <div class="form-text">若此 Email 有註冊帳號，系統會寄出密碼重設連結。</div>
           </div>

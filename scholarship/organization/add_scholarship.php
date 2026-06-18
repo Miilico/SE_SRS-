@@ -16,12 +16,12 @@ require __DIR__ . "/../header.php";
 
     <form action="insert_scholarship.php" method="post" class="vstack gap-3">
         <div>
-            <label class="form-label fw-semibold">獎助學金名稱</label>
+            <label class="form-label fw-semibold">獎助學金名稱 <span class="text-danger" aria-label="必填">*</span></label>
             <input class="form-control" type="text" name="scholarship_name" placeholder="請輸入獎助學金名稱" required>
         </div>
 
         <div>
-            <label class="form-label fw-semibold">獎助金額</label>
+            <label class="form-label fw-semibold">獎助金額 <span class="text-danger" aria-label="必填">*</span></label>
             <input class="form-control" type="number" name="amount" placeholder="請輸入獎助金額" required>
         </div>
 
@@ -31,12 +31,12 @@ require __DIR__ . "/../header.php";
         </div>
 
         <div>
-            <label class="form-label fw-semibold">申請開始日期</label>
+            <label class="form-label fw-semibold">申請開始日期 <span class="text-danger" aria-label="必填">*</span></label>
             <input class="form-control" type="date" name="start_date" required>
         </div>
 
         <div>
-            <label class="form-label fw-semibold">申請截止日期</label>
+            <label class="form-label fw-semibold">申請截止日期 <span class="text-danger" aria-label="必填">*</span></label>
             <input class="form-control" type="date" name="deadline" required>
         </div>
 

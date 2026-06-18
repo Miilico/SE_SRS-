@@ -50,7 +50,7 @@ require __DIR__ . "/header.php";
   <div class="p-4">
     <form method="post" action="register_submit.php" class="vstack gap-3" novalidate>
       <div>
-        <label class="form-label fw-semibold" for="role">身分</label>
+        <label class="form-label fw-semibold" for="role">身分 <span class="text-danger" aria-label="必填">*</span></label>
         <select class="form-select<?= field_invalid_class("role", $errorField) ?>" name="role" id="role" required>
           <option value="1" <?= selected_attr($old, "role", "1", "1") ?>>學生</option>
           <option value="2" <?= selected_attr($old, "role", "2", "1") ?>>推薦人</option>
@@ -60,17 +60,17 @@ require __DIR__ . "/header.php";
       </div>
 
       <div>
-        <label class="form-label fw-semibold" id="idLabel" for="id">使用者 ID（學號/教職員編號）</label>
+        <label class="form-label fw-semibold" id="idLabel" for="id">使用者 ID（學號/教職員編號） <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("id", $errorField) ?>" id="id" name="id" maxlength="10" value="<?= h(old_value($old, "id")) ?>" required>
       </div>
 
       <div>
-        <label class="form-label fw-semibold" id="nameLabel" for="name">姓名</label>
+        <label class="form-label fw-semibold" id="nameLabel" for="name">姓名 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("name", $errorField) ?>" id="name" name="name" maxlength="50" value="<?= h(old_value($old, "name")) ?>" required>
       </div>
 
       <div data-role-section="student">
-        <label class="form-label fw-semibold" for="dept">科系</label>
+        <label class="form-label fw-semibold" for="dept">科系 <span class="text-danger" aria-label="必填">*</span></label>
         <select class="form-select<?= field_invalid_class("dept", $errorField) ?>" name="dept" id="dept">
           <option value="">請選擇科系</option>
           <?php foreach ($departments as $college => $deptOptions): ?>
@@ -84,12 +84,12 @@ require __DIR__ . "/header.php";
       </div>
 
       <div data-role-section="recommender" class="d-none">
-        <label class="form-label fw-semibold" for="teacher_unit">單位名稱</label>
+        <label class="form-label fw-semibold" for="teacher_unit">單位名稱 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("teacher_unit", $errorField) ?>" id="teacher_unit" name="teacher_unit" maxlength="100" placeholder="例如：國立成功大學、XX科技股份有限公司" value="<?= h(old_value($old, "teacher_unit")) ?>">
       </div>
 
       <div data-role-section="recommender" class="d-none">
-        <label class="form-label fw-semibold" for="teacher_title">職稱</label>
+        <label class="form-label fw-semibold" for="teacher_title">職稱 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("teacher_title", $errorField) ?>" id="teacher_title" name="teacher_title" maxlength="100" placeholder="例如：副教授、講師、高級工程師" value="<?= h(old_value($old, "teacher_title")) ?>">
       </div>
 
@@ -99,7 +99,7 @@ require __DIR__ . "/header.php";
       </div>
 
       <div data-role-section="organization" class="d-none">
-        <label class="form-label fw-semibold" for="contact_person">單位聯絡人姓名</label>
+        <label class="form-label fw-semibold" for="contact_person">單位聯絡人姓名 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("contact_person", $errorField) ?>" id="contact_person" name="contact_person" maxlength="10" value="<?= h(old_value($old, "contact_person")) ?>">
       </div>
 
@@ -109,19 +109,19 @@ require __DIR__ . "/header.php";
       </div>
 
       <div>
-        <label class="form-label fw-semibold" for="email">Email</label>
+        <label class="form-label fw-semibold" for="email">Email <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("email", $errorField) ?>" id="email" type="email" name="email" maxlength="100" placeholder="example@mail.nuk.edu.tw" value="<?= h(old_value($old, "email")) ?>" required>
         <div class="form-text" id="emailHelp">學生請使用學校信箱，格式為 @mail.nuk.edu.tw。</div>
       </div>
 
       <div>
-        <label class="form-label fw-semibold" for="tel">電話</label>
+        <label class="form-label fw-semibold" for="tel">電話 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("tel", $errorField) ?>" id="tel" name="tel" maxlength="10" placeholder="例如 0912345678" value="<?= h(old_value($old, "tel")) ?>" required>
         <div class="form-text">電話需為 6 到 10 碼，可使用數字、空白、+、-、括號。</div>
       </div>
 
       <div>
-        <label class="form-label fw-semibold" for="pwd">密碼</label>
+        <label class="form-label fw-semibold" for="pwd">密碼 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("pwd", $errorField) ?>" id="pwd" type="password" name="pwd" maxlength="64" required>
         <div class="form-text">密碼至少 6 碼。</div>
         <?php if ($errorField === "pwd"): ?>
@@ -130,7 +130,7 @@ require __DIR__ . "/header.php";
       </div>
 
       <div>
-        <label class="form-label fw-semibold" for="pwd2">確認密碼</label>
+        <label class="form-label fw-semibold" for="pwd2">確認密碼 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("pwd2", $errorField) ?>" id="pwd2" type="password" name="pwd2" maxlength="64" required>
         <?php if ($errorField === "pwd2"): ?>
           <div class="invalid-feedback d-block"><?= h($errorMessage) ?></div>
@@ -174,8 +174,8 @@ require __DIR__ . "/header.php";
       var isOrg = role.value === "4";
       var isStudent = role.value === "1";
       var isRecommender = role.value === "2";
-      idLabel.textContent = isOrg ? "使用者 ID（單位帳號）" : "使用者 ID（學號/教職員編號）";
-      nameLabel.textContent = isOrg ? "單位名稱" : "姓名";
+      idLabel.innerHTML = (isOrg ? "使用者 ID（單位帳號）" : "使用者 ID（學號/教職員編號）") + ' <span class="text-danger" aria-label="必填">*</span>';
+      nameLabel.innerHTML = (isOrg ? "單位名稱" : "姓名") + ' <span class="text-danger" aria-label="必填">*</span>';
       setSectionVisible(studentSections, isStudent);
       setSectionVisible(recommenderSections, isRecommender);
       setSectionVisible(orgSections, isOrg);

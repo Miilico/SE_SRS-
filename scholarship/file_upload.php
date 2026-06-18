@@ -112,11 +112,11 @@ if ($_SERVER["REQUEST_METHOD"] === "GET") {
   <div class="card border-0 shadow-sm">
     <div class="card-body p-4 p-md-5">
       <h1 class="h3 fw-bold mb-1">上傳文件</h1>
-      <div class="text-secondary mb-4">選擇文件類型並填入對應編號後上傳。</div>
+      <div class="text-secondary mb-4">選擇文件類型並填入對應編號後上傳；標示 <span class="text-danger">*</span> 的條件需依文件類型填寫。</div>
 
   <form method="post" enctype="multipart/form-data" class="vstack gap-3">
     <div>
-    <label class="form-label fw-semibold">文件類型</label>
+    <label class="form-label fw-semibold">文件類型 <span class="text-danger" aria-label="必填">*</span></label>
     <select class="form-select" name="file_type" required>
       <option value="1">公告附帶文件</option>
       <option value="2">學生申請獎學金附件</option>
@@ -129,16 +129,17 @@ if ($_SERVER["REQUEST_METHOD"] === "GET") {
     <input class="form-control" name="announcement_id">
     </div>
     <div>
-    <label class="form-label fw-semibold">申請編號 APNO（類型 2 / 4）</label>
+    <label class="form-label fw-semibold">申請編號 APNO（類型 2 / 4） <span class="text-danger" aria-label="條件式必填">*</span></label>
     <input class="form-control" name="application_id">
     </div>
     <div>
-    <label class="form-label fw-semibold">工單 ID（類型 3）</label>
+    <label class="form-label fw-semibold">工單 ID（類型 3） <span class="text-danger" aria-label="條件式必填">*</span></label>
     <input class="form-control" name="ticket_id">
     </div>
     <div>
-    <label class="form-label fw-semibold">文件</label>
-    <input class="form-control" type="file" name="file" required>
+    <label class="form-label fw-semibold">文件 <span class="text-danger" aria-label="必填">*</span></label>
+    <input class="form-control" type="file" name="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx,.txt,.zip,.odt,.odc,.webp,.ppt,.pptx,.ods,.gif" required>
+    <div class="form-text">允許格式：PDF、DOC、DOCX、JPG、JPEG、PNG、XLS、XLSX、TXT、ZIP、ODT、ODC、WEBP、PPT、PPTX、ODS、GIF；單檔上限 20MB。</div>
     </div>
     <div class="d-flex justify-content-end">
       <button class="btn btn-primary" type="submit">上傳</button>

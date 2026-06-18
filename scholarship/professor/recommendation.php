@@ -226,7 +226,7 @@ require __DIR__ . "/../header.php";
         <input type="hidden" name="token" value="<?= h($token) ?>">
         <div class="row g-3 mb-3">
           <div class="col-md-6">
-            <label for="teacher_name" class="form-label">推薦人姓名</label>
+            <label for="teacher_name" class="form-label">推薦人姓名 <span class="text-danger" aria-label="必填">*</span></label>
             <input type="text" name="teacher_name" id="teacher_name" class="form-control" maxlength="100" value="<?= h($recommendation["teacher_name"] ?? "") ?>" required>
           </div>
           <div class="col-md-6">
@@ -234,22 +234,23 @@ require __DIR__ . "/../header.php";
             <input type="email" name="teacher_email" id="teacher_email" class="form-control" maxlength="255" value="<?= h($recommendation["teacher_email"] ?? "") ?>">
           </div>
           <div class="col-md-6">
-            <label for="teacher_unit" class="form-label">單位名稱</label>
+            <label for="teacher_unit" class="form-label">單位名稱 <span class="text-danger" aria-label="必填">*</span></label>
             <input type="text" name="teacher_unit" id="teacher_unit" class="form-control" maxlength="100" value="<?= h($recommendation["teacher_unit"] ?? "") ?>" placeholder="例如：國立成功大學、XX科技股份有限公司" required>
           </div>
           <div class="col-md-6">
-            <label for="teacher_title" class="form-label">職稱</label>
+            <label for="teacher_title" class="form-label">職稱 <span class="text-danger" aria-label="必填">*</span></label>
             <input type="text" name="teacher_title" id="teacher_title" class="form-control" maxlength="100" value="<?= h($recommendation["teacher_title"] ?? "") ?>" placeholder="例如：副教授、講師、高級工程師" required>
           </div>
         </div>
         <div class="mb-3">
-          <label for="content" class="form-label">推薦信內容</label>
+          <label for="content" class="form-label">推薦信內容 <span class="text-danger" aria-label="必填">*</span></label>
           <textarea name="content" id="content" class="form-control" rows="8" required><?= h($draftText) ?></textarea>
           <div class="form-text">可先暫存草稿；正式提交後不可再次編輯。</div>
         </div>
         <div class="mb-3">
           <label for="recommendation_file" class="form-label">推薦信附件（選填，提交時上傳）</label>
           <input type="file" name="RECOMMENDATION_FILE" id="recommendation_file" class="form-control" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+          <div class="form-text">允許格式：PDF、DOC、DOCX、JPG、JPEG、PNG；單檔上限 20MB。</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
           <button type="submit" name="action" value="save_draft" class="btn btn-outline-primary">暫存草稿</button>
@@ -263,7 +264,7 @@ require __DIR__ . "/../header.php";
       <form method="post" action="reject_recommendation.php" class="vstack gap-3" data-confirm="確定要駁回這筆推薦信撰寫請求嗎？送出後會通知學生。">
         <input type="hidden" name="token" value="<?= h($token) ?>">
         <div>
-          <label for="reason" class="form-label">駁回原因</label>
+          <label for="reason" class="form-label">駁回原因 <span class="text-danger" aria-label="必填">*</span></label>
           <textarea name="reason" id="reason" class="form-control" rows="3" required></textarea>
         </div>
         <button type="submit" class="btn btn-outline-danger align-self-start">駁回請求</button>
