@@ -41,13 +41,27 @@ try {
 
 $pageTitle = $post["title"];
 $activeNav = "/index.php";
-$breadcrumbs = array(
-    array("/index.php", "公告首頁"),
-    array("", $post["title"]),
-);
+$isLoggedIn = !empty($_SESSION["user"]);
+if ($isLoggedIn) {
+    $siteHeaderBootstrapOnly = true;
+    require __DIR__ . "/scholarship/header.php";
+    unset($siteHeaderBootstrapOnly);
+
+    $role = isset($_SESSION["user"]["role"]) ? (int)$_SESSION["user"]["role"] : 0;
+    $breadcrumbs = array(
+        array(site_header_dashboard_url($role), "總覽"),
+        array("/index.php", "獎學金公告"),
+        array("", $post["title"]),
+    );
+} else {
+    $breadcrumbs = array(
+        array("/index.php", "首頁"),
+        array("", $post["title"]),
+    );
+}
 $siteHeaderMaxWidth = "900px";
 $siteHeaderMainClass = "site-shell announcement-detail-shell";
-if (empty($_SESSION["user"])) {
+if (!$isLoggedIn) {
     $siteHeaderBrandHref = "/index.php";
 }
 $siteHeaderExtraHead = <<<HTML
