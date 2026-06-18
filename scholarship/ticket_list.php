@@ -130,7 +130,7 @@ require __DIR__ . "/header.php";
         <tr>
           <th>編號</th>
           <th>標題</th>
-          <?php if ($isAdmin): ?><th>開單者</th><?php endif; ?>
+          <?php if ($isAdmin): ?><th>相關人</th><?php endif; ?>
           <th>狀態</th>
           <th>訊息數</th>
           <th>更新時間</th>
@@ -149,7 +149,7 @@ require __DIR__ . "/header.php";
             <td data-label="編號">#<?= h($ticket["TICKET_ID"]) ?></td>
             <td data-label="標題"><?= h($ticket["TITLE"]) ?></td>
             <?php if ($isAdmin): ?>
-              <td data-label="開單者">
+              <td data-label="相關人">
                 <?= h($ticket["USER_NAME"]) ?>（<?= h($ticket["USER_ID"]) ?> / <?= h($roleText) ?>）
               </td>
             <?php endif; ?>
