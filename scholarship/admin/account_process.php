@@ -4,9 +4,8 @@ require_once __DIR__ . "/../auth.php";
 
 require_role(3);
 
-function account_redirect($message) {
-    header("Location: account_management.php?msg=" . urlencode($message));
-    exit;
+function account_redirect($message, $type = "success") {
+    site_flash_redirect("account_management.php", $message, $type);
 }
 
 function account_clean_phone_list($raw) {
@@ -29,20 +28,23 @@ function account_validate_phone($phone, $label) {
 if (isset($_GET["action"]) && $_GET["action"] === "delete") {
     $id = isset($_GET["id"]) ? trim($_GET["id"]) : "";
     if ($id === "") {
-        account_redirect("缺少帳號 ID");
+        account_redirect("缺少帳號 ID", "danger");
     }
 
     try {
         $stmt = $pdo->prepare("DELETE FROM users WHERE ID = ? AND ROLE <> 3");
         $stmt->execute([$id]);
-        account_redirect($stmt->rowCount() > 0 ? "刪除完成" : "找不到可刪除的帳號");
+        if ($stmt->rowCount() > 0) {
+            account_redirect("刪除完成");
+        }
+        account_redirect("找不到可刪除的帳號", "warning");
     } catch (PDOException $e) {
         die("刪除失敗：" . $e->getMessage());
     }
 }
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    account_redirect("不支援的操作");
+    account_redirect("不支援的操作", "danger");
 }
 
 $mode = isset($_POST["mode"]) ? trim($_POST["mode"]) : "";

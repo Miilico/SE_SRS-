@@ -12,8 +12,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["approve_id"])) {
     WHERE id = ?  AND status = 'pending'
   ");
   $stmt->execute([$id]);
-  header("Location: admin_users_pending.php?msg=" . urlencode("帳號審核已通過"));
-  exit;
+  site_flash_redirect("admin_users_pending.php", "帳號審核已通過", "success");
 }
 
 // 取得待審核帳號

@@ -46,8 +46,7 @@ if ($id !== "") {
     $found = $stmt->fetch();
 
     if (!$found) {
-        header("Location: account_management.php?msg=" . urlencode("修改的帳號不存在或不可管理"));
-        exit;
+        site_flash_redirect("account_management.php", "修改的帳號不存在或不可管理", "warning");
     }
 
     $account = array_merge($account, $found);

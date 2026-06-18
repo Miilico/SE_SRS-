@@ -22,14 +22,12 @@ $amount     = trim($_POST['amount'] ?? '');
 
 // 檢查必填欄位 
 if ($name === '' || $amount === '' || $start_date === '' || $deadline === '') { 
-    header("Location: add_scholarship.php?error=" . urlencode("請完整填寫必填欄位")); 
-    exit; 
+    site_flash_redirect("add_scholarship.php", "請完整填寫必填欄位", "danger");
 }
 
 // 檢查金額必須為正數 
 if (!is_numeric($amount) || (float)$amount <= 0) {
-    header("Location: add_scholarship.php?error=" . urlencode("金額必須為正數")); 
-    exit; 
+    site_flash_redirect("add_scholarship.php", "金額必須為正數", "danger");
 }
 
 function parse_form_date($value)
@@ -54,8 +52,7 @@ if (
     !$startDateObj ||
     !$deadlineObj
 ) {
-    header("Location: add_scholarship.php?error=" . urlencode("日期格式錯誤，請使用有效日期"));
-    exit;
+    site_flash_redirect("add_scholarship.php", "日期格式錯誤，請使用有效日期", "danger");
 }
 
 $start_date = $startDateObj->format('Y-m-d');
@@ -63,8 +60,7 @@ $deadline = $deadlineObj->format('Y-m-d');
 
 // 檢查日期邏輯 
 if ($startDateObj > $deadlineObj) {
-    header("Location: add_scholarship.php?error=" . urlencode("開始日期不能晚於截止日期")); 
-    exit; 
+    site_flash_redirect("add_scholarship.php", "開始日期不能晚於截止日期", "danger");
 }
 
 try {
@@ -72,9 +68,7 @@ try {
             VALUES (?, ?, ?, ?, ?, ?)"; 
             $stmt = $pdo->prepare($sql); 
             $stmt->execute([$name, $provider_id, $deadline, $condi, $amount, $start_date]); 
-            header("Location: add_scholarship.php?success=1"); 
-            exit; 
+            site_flash_redirect("add_scholarship.php", "新增成功！", "success");
 } catch (PDOException $e) { 
-    header("Location: add_scholarship.php?error=" . urlencode("新增失敗：" . $e->getMessage())); 
-    exit; 
+    site_flash_redirect("add_scholarship.php", "新增失敗：" . $e->getMessage(), "danger");
 }

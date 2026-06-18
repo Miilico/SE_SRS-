@@ -2,17 +2,11 @@
 // auth.php
 //declare(strict_types=1);
 
-/*function require_login(): void {
-  if (empty($_SESSION["user"])) {
-    header("Location: /scholarship/login.php?msg=" . urlencode("請先登入"));
-    exit;
-  }
-}*/
+require_once __DIR__ . "/flash_helpers.php";
 
 function require_login() {
   if (empty($_SESSION["user"])) {
-    header("Location: /scholarship/login.php?msg=" . urlencode("請先登入"));
-    exit;
+    site_flash_redirect("/scholarship/login.php", "請先登入", "info");
   }
 }
 

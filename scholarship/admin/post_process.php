@@ -16,7 +16,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
     try {
         $stmt = $pdo->prepare("DELETE FROM announcement WHERE id = ?");
         $stmt->execute([$id]);
-        header("Location: post_management.php?msg=" . urlencode("公告已刪除"));
+        site_flash_redirect("post_management.php", "公告已刪除", "success");
     } catch (PDOException $e) {
         die("刪除失敗：" . $e->getMessage());
     }
@@ -69,8 +69,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 "announcement_id" => $announcementId
             ));
         }
-        header("Location: post_management.php?msg=" . urlencode($msg));
-        exit;
+        site_flash_redirect("post_management.php", $msg, "success");
     } catch (Exception $e) {
         die("操作失敗：" . $e->getMessage());
     }

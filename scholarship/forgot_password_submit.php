@@ -12,8 +12,7 @@ $email = isset($_POST["email"]) ? trim($_POST["email"]) : "";
 $genericMsg = "如果此 Email 有註冊帳號，密碼重設連結已送出。";
 
 if ($email === "" || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    header("Location: forgot_password.php?msg=" . urlencode($genericMsg));
-    exit;
+    site_flash_redirect("forgot_password.php", $genericMsg, "info");
 }
 
 ensure_password_resets_table($pdo);
@@ -52,5 +51,4 @@ if ($user) {
     }
 }
 
-header("Location: forgot_password.php?msg=" . urlencode($genericMsg));
-exit;
+site_flash_redirect("forgot_password.php", $genericMsg, "info");

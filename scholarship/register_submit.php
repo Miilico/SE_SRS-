@@ -31,8 +31,8 @@ function back_err($msg, $field)
 {
     $_SESSION["register_old"] = register_old_input();
     $_SESSION["register_error_field"] = $field;
-    header("Location: register.php?err=" . urlencode($msg));
-    exit;
+    $_SESSION["register_error_message"] = $msg;
+    site_flash_redirect("register.php", $msg, "danger");
 }
 
 function first_empty_required_field($id, $roleInput, $name, $email, $tel, $pwd, $pwd2)
@@ -196,5 +196,4 @@ $msg = ($role === 4)
     ? "註冊成功！請等待管理員審核後再登入。"
     : "註冊成功！請直接登入。";
 
-header("Location: login.php?msg=" . urlencode($msg));
-exit;
+site_flash_redirect("login.php", $msg, "success");

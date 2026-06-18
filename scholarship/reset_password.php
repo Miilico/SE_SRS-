@@ -18,10 +18,6 @@ require __DIR__ . "/header.php";
   </div>
 
   <div class="p-4">
-    <?php if (!empty($_GET["err"])): ?>
-      <div class="alert alert-danger mb-3"><?= htmlspecialchars($_GET["err"], ENT_QUOTES, "UTF-8") ?></div>
-    <?php endif; ?>
-
     <?php if (!$reset): ?>
       <div class="alert alert-warning">重設連結無效、已使用或已逾期，請重新申請。</div>
       <a href="forgot_password.php" class="btn btn-primary w-100">重新申請重設密碼</a>

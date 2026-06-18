@@ -4,8 +4,13 @@ require_once __DIR__ . "/../recommendation_helpers.php";
 
 function redirect_recommendation($token, $params = array())
 {
-    $query = array_merge(array("token" => $token), $params);
-    header("Location: /scholarship/professor/recommendation.php?" . http_build_query($query));
+    $message = isset($params["message"]) ? $params["message"] : "";
+    $type = isset($params["type"]) ? $params["type"] : "info";
+    if ($message !== "") {
+        site_flash_add($message, $type);
+    }
+
+    header("Location: /scholarship/professor/recommendation.php?token=" . urlencode($token));
     exit;
 }
 
@@ -18,12 +23,11 @@ $token = isset($_POST["token"]) ? trim($_POST["token"]) : "";
 $reason = isset($_POST["reason"]) ? trim($_POST["reason"]) : "";
 
 if ($token === "") {
-    header("Location: /scholarship/professor/tea_dashboard.php?err=" . urlencode("缺少推薦信 token。"));
-    exit;
+    site_flash_redirect("/scholarship/professor/tea_dashboard.php", "缺少推薦信 token。", "danger");
 }
 
 if ($reason === "") {
-    redirect_recommendation($token, array("err" => "請填寫駁回原因。"));
+    redirect_recommendation($token, array("message" => "請填寫駁回原因。", "type" => "danger"));
 }
 
 ensure_application_files_table($pdo);
@@ -48,15 +52,15 @@ $stmt->execute(array(":token" => $token));
 $record = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$record) {
-    redirect_recommendation($token, array("err" => "找不到這筆推薦信請求。"));
+    redirect_recommendation($token, array("message" => "找不到這筆推薦信請求。", "type" => "danger"));
 }
 
 if ((string)$record["status"] === "submitted" || trim((string)$record["content"]) !== "") {
-    redirect_recommendation($token, array("err" => "已提交的推薦信不可駁回。"));
+    redirect_recommendation($token, array("message" => "已提交的推薦信不可駁回。", "type" => "danger"));
 }
 
 if ((string)$record["status"] === "rejected") {
-    redirect_recommendation($token, array("rejected" => "1"));
+    redirect_recommendation($token, array("message" => "推薦信撰寫請求已駁回。", "type" => "success"));
 }
 
 try {
@@ -103,11 +107,11 @@ try {
     }
 
     $pdo->commit();
-    redirect_recommendation($token, array("rejected" => "1"));
+    redirect_recommendation($token, array("message" => "推薦信撰寫請求已駁回。", "type" => "success"));
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
 
-    redirect_recommendation($token, array("err" => "駁回失敗：" . $e->getMessage()));
+    redirect_recommendation($token, array("message" => "駁回失敗：" . $e->getMessage(), "type" => "danger"));
 }

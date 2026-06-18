@@ -8,8 +8,7 @@ require_role(1);
 
 function back_err($msg)
 {
-    header("Location: /scholarship/student/apply.php?err=" . urlencode($msg));
-    exit;
+    site_flash_redirect("/scholarship/student/apply.php", $msg, "danger");
 }
 
 function selected_post($key, $default = "")
@@ -217,11 +216,11 @@ try {
         );
     }
 
-    $query = "msg=" . urlencode("申請已送出，申請編號 APNO={$apno}。");
+    site_flash_add("申請已送出，申請編號 APNO={$apno}。", "success");
     if ($recommendLink !== "") {
-        $query .= "&recommend_link=" . urlencode($recommendLink);
+        $_SESSION["recommend_link"] = $recommendLink;
     }
-    header("Location: /scholarship/student/apply.php?" . $query);
+    header("Location: /scholarship/student/apply.php");
     exit;
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {
