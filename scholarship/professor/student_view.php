@@ -147,12 +147,11 @@ $siteHeaderRequiredRole = array(2, 3);
 require __DIR__ . "/../header.php";
 ?>
 
-<div class="d-flex justify-content-between align-items-center gap-3 mb-4">
+<div class="mb-4">
   <div>
     <p class="text-secondary mb-1">推薦人子系統</p>
     <h1 class="h3 fw-bold mb-0">學生資料檢視</h1>
   </div>
-  <a class="btn btn-outline-secondary" href="tea_dashboard.php">返回推薦人首頁</a>
 </div>
 
 <?php if ($sid === ""): ?>

@@ -253,7 +253,6 @@ require __DIR__ . "/header.php";
 
         <div class="d-flex flex-wrap gap-2">
           <button class="btn btn-primary" type="submit">提交回覆</button>
-          <a class="btn btn-outline-secondary" href="/scholarship/ticket_list.php">返回列表</a>
         </div>
       </form>
       </div>
@@ -309,7 +308,6 @@ require __DIR__ . "/header.php";
 
         <div class="d-flex flex-wrap gap-2">
           <button class="btn btn-primary" type="submit">提交</button>
-          <a class="btn btn-outline-secondary" href="/scholarship/ticket_list.php">返回列表</a>
         </div>
       </form>
       </div>

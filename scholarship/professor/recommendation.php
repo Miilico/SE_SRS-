@@ -95,14 +95,11 @@ $pageTitle = "推薦信";
 require __DIR__ . "/../header.php";
 ?>
 
-<div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+<div class="mb-4">
   <div>
     <p class="text-secondary mb-1">TAR 推薦信</p>
     <h1 class="h3 fw-bold mb-0">推薦信處理</h1>
   </div>
-  <?php if (!empty($_SESSION["user"])): ?>
-    <a class="btn btn-outline-secondary" href="tea_dashboard.php">返回推薦人總覽</a>
-  <?php endif; ?>
 </div>
 
 <div class="card border-0 shadow-sm mb-4">

@@ -50,9 +50,6 @@ $activeNav = "post_management.php";
             </div>
         <?php endif; ?>
         
-        <div class="mt-4">
-            <a href="post_management.php" class="btn btn-outline-secondary">返回列表</a>
-        </div>
         </div>
     </article>
     </div>

@@ -160,7 +160,7 @@ $activeNav = "account_management.php";
 
             <div class="d-flex flex-wrap align-items-center gap-2 pt-2">
                 <button type="submit" class="btn btn-primary">儲存送出</button>
-                <a href="account_management.php" class="btn btn-outline-secondary">取消返回</a>
+                <a href="account_management.php" class="btn btn-outline-secondary">取消</a>
             </div>
         </form>
                 </div>
