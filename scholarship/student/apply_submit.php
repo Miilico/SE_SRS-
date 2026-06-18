@@ -14,9 +14,14 @@ require 'PHPMailer.php';
   header("Location: /scholarship/student/apply.php?err=" . urlencode($msg));
   exit;
 }*/
-function back_err($msg) {
-  header("Location: /scholarship/student/apply.php?err=" . urlencode($msg));
-  exit;
+function back_err($msg, $anchor = "application-form") {
+    $_SESSION["application_old"] = $_POST;
+
+    $url = "/scholarship/student/apply.php?err=" . urlencode($msg);
+    $url .= "#" . rawurlencode($anchor);
+
+    header("Location: " . $url);
+    exit;
 }
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
@@ -48,6 +53,29 @@ $recRel = trim(isset($_POST["REC_REL"]) ? $_POST["REC_REL"] : "");
 $teacher_id = $_POST['teacher_id']; // 教授 ID (從下拉選單) 
 $teacher_name = $_POST['teacher_name']; // 教授名字 (前端顯示文字)
 $dept_name = null;
+
+if ($scid <= 0) {
+    back_err("請選擇獎學金。", "scholarship-section");
+}
+
+if ($grade !== "" && (!is_numeric($grade) || $grade < 0 || $grade > 100)) {
+    back_err("成績必須介於 0 到 100。", "academic-section");
+}
+
+if ($recEmail === "") {
+    back_err("請填寫推薦教師 Email。", "recommendation-section");
+}
+
+if (!filter_var($recEmail, FILTER_VALIDATE_EMAIL)) {
+    back_err("推薦教師 Email 格式錯誤。", "recommendation-section");
+}
+
+if (
+    empty($_FILES["AUTOBI_FILE"]) ||
+    $_FILES["AUTOBI_FILE"]["error"] === UPLOAD_ERR_NO_FILE
+) {
+    back_err("請重新選擇自傳或申請文件。", "document-section");
+}
 //$autobiText = trim(isset($_POST["AUTOBI_TEXT"]) ? $_POST["AUTOBI_TEXT"] : "");
 
 //if ($scid <= 0) back_err("請選擇獎助學金");

@@ -65,6 +65,7 @@ if (!defined("SITE_HEADER_FUNCTIONS_LOADED")) {
                 array("/scholarship/student/student-dashboard.php", "總覽"),
                 array("/scholarship/student/browse_scholarships.php", "瀏覽獎助學金"),
                 array("/scholarship/student/apply.php", "申請獎助學金"),
+                array("/scholarship/student/my_applications.php", "我的申請"),
                 array("/scholarship/announcement_board.php", "查看公告"),
                 array("/scholarship/ticket_list.php", "回報問題"),
                 array("/scholarship/profile.php", "個人檔案"),

@@ -19,6 +19,16 @@ $schs = $pdo->query("SELECT id, NAME, DEADLINE, AMOUNT
 $msg = isset($_GET["msg"]) ? $_GET["msg"] : "";
 $err = isset($_GET["err"]) ? $_GET["err"] : "";
 
+$old = isset($_SESSION["application_old"])
+    ? $_SESSION["application_old"]
+    : array();
+
+unset($_SESSION["application_old"]);
+
+function old_application_value($old, $key) {
+    return isset($old[$key]) ? $old[$key] : "";
+}
+
 
 $stmt = $pdo->query(" 
   SELECT t.ID, u.NAME AS teacher_name, t.DNAME AS dept_name 
