@@ -36,6 +36,7 @@ $departments = scholarship_departments_by_college();
 $pageTitle = "註冊";
 $activeNav = "register.php";
 $siteHeaderMainClass = "site-shell py-4";
+$siteHeaderBrandHref = "/";
 require __DIR__ . "/header.php";
 ?>
 <div class="row justify-content-center">

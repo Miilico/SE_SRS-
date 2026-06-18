@@ -98,8 +98,6 @@ if (!defined("SITE_HEADER_FUNCTIONS_LOADED")) {
         }
 
         return array(
-            array("/index.php", "最新公告"),
-            array("/scholarship/register.php", "註冊"),
         );
     }
 
@@ -430,6 +428,8 @@ $siteHeaderBodyClasses = trim("site-bg " . ($siteHeaderIsAdmin ? "site-admin" : 
                             <span>|</span>
                             <a href="/scholarship/logout.php">登出</a>
                         <?php else: ?>
+                            <a href="/scholarship/register.php">註冊</a>
+|
                             <a href="/scholarship/login.php">登入</a>
                         <?php endif; ?>
                     </div>
