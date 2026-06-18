@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . "/config.php";
+require_once __DIR__ . "/department_options.php";
 
 $id = isset($_POST["id"]) ? trim($_POST["id"]) : "";
 $roleInput = isset($_POST["role"]) ? trim($_POST["role"]) : "";
@@ -47,29 +48,7 @@ function first_empty_required_field($id, $roleInput, $name, $email, $tel, $pwd, 
     return "id";
 }
 
-$validDepts = array(
-    "西洋語文學系",
-    "運動健康與休閒學系",
-    "東亞語文學系",
-    "運動競技學系",
-    "建築學系",
-    "工藝與創意設計學系",
-    "法律學系",
-    "政治法律學系",
-    "財經法律學系",
-    "應用經濟學系",
-    "亞太工商管理學系",
-    "財務金融學系",
-    "資訊管理學系",
-    "應用數學系",
-    "生命科學系",
-    "應用化學系",
-    "應用物理學系",
-    "電機工程學系",
-    "土木與環境工程學系",
-    "化材系",
-    "資訊工程學系",
-);
+$validDepts = scholarship_department_values();
 
 if ($id === "" || $roleInput === "" || $name === "" || $email === "" || $tel === "" || $pwd === "" || $pwd2 === "") {
     back_err("請完整填寫所有欄位。", first_empty_required_field($id, $roleInput, $name, $email, $tel, $pwd, $pwd2));

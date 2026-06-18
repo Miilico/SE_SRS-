@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . "/config.php";
+require_once __DIR__ . "/department_options.php";
 
 $old = isset($_SESSION["register_old"]) && is_array($_SESSION["register_old"]) ? $_SESSION["register_old"] : array();
 $errorField = isset($_SESSION["register_error_field"]) ? $_SESSION["register_error_field"] : "";
@@ -27,39 +28,7 @@ function selected_attr($old, $key, $value, $default = "")
   return (string)$current === (string)$value ? " selected" : "";
 }
 
-$departments = array(
-  "人文社會科學院" => array(
-    "西洋語文學系" => "西洋語文學系",
-    "運動健康與休閒學系" => "運動健康與休閒學系",
-    "東亞語文學系" => "東亞語文學系",
-    "運動競技學系" => "運動競技學系",
-    "建築學系" => "建築學系",
-    "工藝與創意設計學系" => "工藝與創意設計學系",
-  ),
-  "法學院" => array(
-    "法律學系" => "法律學系",
-    "政治法律學系" => "政治法律學系",
-    "財經法律學系" => "財經法律學系",
-  ),
-  "管理學院" => array(
-    "應用經濟學系" => "應用經濟學系",
-    "亞太工商管理學系" => "亞太工商管理學系",
-    "財務金融學系" => "財務金融學系",
-    "資訊管理學系" => "資訊管理學系",
-  ),
-  "理學院" => array(
-    "應用數學系" => "應用數學系",
-    "生命科學系" => "生命科學系",
-    "應用化學系" => "應用化學系",
-    "應用物理學系" => "應用物理學系",
-  ),
-  "工學院" => array(
-    "電機工程學系" => "電機工程學系",
-    "土木與環境工程學系" => "土木與環境工程學系",
-    "化材系" => "化學工程與材料工程學系",
-    "資訊工程學系" => "資訊工程學系",
-  ),
-);
+$departments = scholarship_departments_by_college();
 
 $pageTitle = "註冊";
 $activeNav = "register.php";
@@ -101,8 +70,8 @@ require __DIR__ . "/header.php";
           <option value="">請選擇科系</option>
           <?php foreach ($departments as $college => $deptOptions): ?>
             <optgroup label="<?= h($college) ?>">
-              <?php foreach ($deptOptions as $value => $label): ?>
-                <option value="<?= h($value) ?>" <?= selected_attr($old, "dept", $value) ?>><?= h($label) ?></option>
+              <?php foreach ($deptOptions as $department): ?>
+                <option value="<?= h($department) ?>" <?= selected_attr($old, "dept", $department) ?>><?= h($department) ?></option>
               <?php endforeach; ?>
             </optgroup>
           <?php endforeach; ?>
