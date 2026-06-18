@@ -44,10 +44,13 @@ try {
 
 $pageTitle = "獎學金公告";
 $activeNav = "/index.php";
-$breadcrumbs = array();
+$isLoggedIn = !empty($_SESSION["user"]);
+if (!$isLoggedIn) {
+    $breadcrumbs = array();
+}
 $siteHeaderMaxWidth = "1120px";
 $siteHeaderMainClass = "site-shell public-home-shell";
-if (empty($_SESSION["user"])) {
+if (!$isLoggedIn) {
     $siteHeaderBrandHref = "/index.php";
 }
 $siteHeaderExtraHead = <<<HTML
@@ -168,13 +171,14 @@ HTML;
 require __DIR__ . "/scholarship/header.php";
 ?>
 
-<section id="announcements" aria-labelledby="announcementTitle">
-    <div class="home-section-head">
-        <div>
-            <h2 id="announcementTitle" class="home-section-title">最新公告</h2>
-            <div class="text-secondary mt-1">所有公告皆可免登入查看。</div>
+<section id="announcements" <?php echo $isLoggedIn ? 'aria-label="獎學金公告"' : 'aria-labelledby="announcementTitle"'; ?>>
+    <?php if (!$isLoggedIn): ?>
+        <div class="home-section-head">
+            <div>
+                <h2 id="announcementTitle" class="home-section-title">最新公告</h2>
+            </div>
         </div>
-    </div>
+    <?php endif; ?>
 
     <?php if (empty($announcements)): ?>
         <div class="empty-state">目前尚無任何公告</div>
