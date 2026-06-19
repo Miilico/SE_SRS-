@@ -1,13 +1,12 @@
 <?php
 session_start();
 require_once "db.php";
+require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/scholarship_access.php";
 require_once __DIR__ . "/../mail_helpers.php"; // 引入寄信引擎
 
-if (!isset($_SESSION['user']['id'])) {
-    die("請先登入");
-}
+organization_require_scholarship_manager();
 
-$provider_id = $_SESSION['user']['id'];
 $scholarship_id = $_POST['scholarship_id'] ?? null;
 $student_ids_raw = $_POST['student_ids'] ?? '';
 $new_status = $_POST['batch_status'] ?? '';
@@ -18,15 +17,13 @@ if (!$scholarship_id || !$new_status || trim($student_ids_raw) === '') {
 }
 
 // 1. 驗證獎助學金是否屬於該單位，並取得名稱供信件使用
-$check_sql = "SELECT NAME FROM scholarship WHERE id = ? AND provider_id = ?";
-$stmt_check = $pdo->prepare($check_sql);
-$stmt_check->execute([$scholarship_id, $provider_id]);
-$scholarship = $stmt_check->fetch(PDO::FETCH_ASSOC);
+$scholarship = organization_fetch_managed_scholarship($pdo, $scholarship_id);
 
 if (!$scholarship) {
     die("無權限或找不到該獎助學金");
 }
 $scholarshipName = $scholarship['NAME'];
+$provider_id = $scholarship['provider_id'];
 
 // 2. 整理學號陣列（去除空白與空值）
 $student_ids = array_filter(array_map('trim', explode(',', $student_ids_raw)));
@@ -86,9 +83,9 @@ try {
     }
     
     $pdo->commit();
-    header("Location: view_applicants.php?scholarship_id=" . urlencode($scholarship_id) . "&batch_success=1&count=$success_count&mail=$mail_count");
+    header("Location: view_applicants.php?provider_id=" . urlencode($provider_id) . "&scholarship_id=" . urlencode($scholarship_id) . "&batch_success=1&count=$success_count&mail=$mail_count");
 } catch (Exception $e) {
     $pdo->rollBack();
-    header("Location: view_applicants.php?scholarship_id=" . urlencode($scholarship_id) . "&error=" . urlencode("資料庫處理發生錯誤"));
+    header("Location: view_applicants.php?provider_id=" . urlencode($provider_id) . "&scholarship_id=" . urlencode($scholarship_id) . "&error=" . urlencode("資料庫處理發生錯誤"));
 }
 exit;

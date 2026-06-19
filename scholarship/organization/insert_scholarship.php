@@ -1,12 +1,22 @@
 <?php
 session_start();
 require_once "db.php";
+require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/scholarship_access.php";
 
-// 1. 基本登入檢查
-if (!isset($_SESSION['user']['id'])) {
-    die("請先登入");
+// 1. 基本權限檢查
+organization_require_scholarship_manager();
+
+$isAdmin = organization_is_admin();
+if ($isAdmin) {
+    $provider_id = trim($_POST['provider_id'] ?? '');
+    if ($provider_id === '' || !organization_validate_provider($pdo, $provider_id)) {
+        header("Location: add_scholarship.php?error=" . urlencode("請選擇有效的獎助單位"));
+        exit;
+    }
+} else {
+    $provider_id = organization_current_user_id();
 }
-$provider_id = $_SESSION['user']['id'];
 
 // 2. 接收表單資料
 $name = $_POST['scholarship_name'] ?? '';

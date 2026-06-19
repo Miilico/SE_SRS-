@@ -3,31 +3,59 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
 require_once "db.php";
+require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/scholarship_access.php";
 // 若有需要引入其他 helper，請確保檔案存在。
 // require_once __DIR__ . "/../file_helpers.php";
 // ensure_application_files_table($pdo);
 
-// 1. 取得 provider_id
-if (isset($_SESSION['user']['id'])) {
-    $provider_id = $_SESSION['user']['id'];
-} else {
-    $provider_id = isset($_GET['provider_id']) ? $_GET['provider_id'] : null;
-}
+organization_require_scholarship_manager();
 
-if (!$provider_id) {
-    die("請先登入或在網址加上 provider_id 參數");
-}
+$isAdmin = organization_is_admin();
+$provider_id = $isAdmin ? (isset($_GET['provider_id']) ? $_GET['provider_id'] : null) : organization_current_user_id();
 
 // 2. 取得該單位所有的獎學金清單供下拉選單使用
-$sql = "SELECT id, NAME FROM scholarship WHERE provider_id = ?";
-$stmt = $pdo->prepare($sql);
-$stmt->execute(array($provider_id));
+if ($isAdmin) {
+    $providerName = organization_provider_display_expr();
+    if ($provider_id) {
+        if (!organization_validate_provider($pdo, $provider_id)) {
+            die("找不到該獎助單位。");
+        }
+        $sql = "SELECT s.id, s.NAME, s.provider_id, {$providerName} AS provider_name
+                FROM scholarship s
+                JOIN users u ON u.ID = s.provider_id AND u.ROLE = 4
+                LEFT JOIN organization o ON o.ID = s.provider_id
+                WHERE s.provider_id = ?
+                ORDER BY s.id DESC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute(array($provider_id));
+    } else {
+        $sql = "SELECT s.id, s.NAME, s.provider_id, {$providerName} AS provider_name
+                FROM scholarship s
+                JOIN users u ON u.ID = s.provider_id AND u.ROLE = 4
+                LEFT JOIN organization o ON o.ID = s.provider_id
+                ORDER BY provider_name ASC, s.NAME ASC, s.id ASC";
+        $stmt = $pdo->query($sql);
+    }
+} else {
+    $sql = "SELECT id, NAME, provider_id FROM scholarship WHERE provider_id = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(array($provider_id));
+}
 $scholarships = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // 3. 取得當前選擇的獎學金 ID
 $scholarship_id = isset($_GET['scholarship_id']) ? $_GET['scholarship_id'] : 0;
 if ($scholarship_id == 0 && !empty($scholarships)) {
     $scholarship_id = $scholarships[0]['id'];
+}
+
+if ($scholarship_id && $isAdmin) {
+    $selectedScholarship = organization_fetch_managed_scholarship($pdo, $scholarship_id);
+    if (!$selectedScholarship) {
+        die("找不到該獎助學金或無權限。");
+    }
+    $provider_id = $selectedScholarship['provider_id'];
 }
 
 $rows = array();
@@ -56,6 +84,7 @@ if ($scholarship_id) {
 $pageTitle = "申請資料";
 $activeNav = "view_applicants.php";
 $siteHeaderMaxWidth = "1000px"; // 讓畫面寬一點較好閱讀
+$siteHeaderRequiredRole = array(3, 4);
 require __DIR__ . "/../header.php";
 ?>
 
@@ -64,14 +93,14 @@ require __DIR__ . "/../header.php";
     
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
         <form method="get" action="view_applicants.php" class="d-flex gap-2 align-items-center">
-            <?php if (isset($_GET['provider_id'])): ?>
-                <input type="hidden" name="provider_id" value="<?php echo htmlspecialchars($_GET['provider_id']); ?>">
+            <?php if ($provider_id): ?>
+                <input type="hidden" name="provider_id" value="<?php echo htmlspecialchars($provider_id); ?>">
             <?php endif; ?>
             <label for="scholarship_id" class="form-label mb-0 fw-semibold text-nowrap">選擇獎助學金：</label>
             <select name="scholarship_id" id="scholarship_id" class="form-select w-auto" onchange="this.form.submit()">
                 <?php foreach ($scholarships as $s): ?>
                     <option value="<?php echo $s['id']; ?>" <?php echo $s['id'] == $scholarship_id ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($s['NAME']); ?>
+                        <?php echo htmlspecialchars($isAdmin && isset($s['provider_name']) ? ($s['provider_name'] . " - " . $s['NAME']) : $s['NAME']); ?>
                     </option>
                 <?php endforeach; ?>
             </select>

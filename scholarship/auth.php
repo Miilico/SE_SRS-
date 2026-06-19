@@ -33,8 +33,15 @@ function require_role($role) {
     require_login();
     $u = isset($_SESSION["user"]) ? $_SESSION["user"] : [];
 
-    if ((int)(isset($u["role"]) ? $u["role"] : 0) !== (int)$role) {
-        http_response_code(403);
-        exit("Forbidden: role required");
+    $roles = is_array($role) ? $role : array($role);
+    $currentRole = (int)(isset($u["role"]) ? $u["role"] : 0);
+
+    foreach ($roles as $allowedRole) {
+        if ($currentRole === (int)$allowedRole) {
+            return;
+        }
     }
+
+    http_response_code(403);
+    exit("Forbidden: role required");
 }

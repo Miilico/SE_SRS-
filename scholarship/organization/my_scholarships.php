@@ -4,47 +4,79 @@ ini_set('display_errors', 1);
 session_start();
 date_default_timezone_set('Asia/Taipei');
 require_once "db.php";
+require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/scholarship_access.php";
 
-// 取得 provider_id
-if (isset($_SESSION['user']['id'])) {
-    $provider_id = $_SESSION['user']['id'];
-} else {
-    $provider_id = isset($_GET['provider_id']) ? $_GET['provider_id'] : null;
-}
+organization_require_scholarship_manager();
 
-if (!$provider_id) {
-    die("請先登入或在網址加上 provider_id 參數，例如 ?provider_id=S0000001");
-}
+$isAdmin = organization_is_admin();
+$provider_id = organization_current_user_id();
 
 // 取得選擇的 scholarship_id
 $selected_id = isset($_GET['scholarship_id']) ? $_GET['scholarship_id'] : 'all';
 
-if ($selected_id === 'all') {
-    // 🔽 這裡加上了 is_active
-    $sql = "SELECT id, NAME, DEADLINE, CONDI, AMOUNT, start_date, is_active 
-            FROM scholarship 
-            WHERE provider_id = ?";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(array($provider_id));
+if ($isAdmin) {
+    $providerName = organization_provider_display_expr();
+
+    if ($selected_id === 'all') {
+        $sql = "SELECT s.id, s.NAME, s.DEADLINE, s.CONDI, s.AMOUNT, s.start_date, s.is_active,
+                       s.provider_id, {$providerName} AS provider_name
+                FROM scholarship s
+                JOIN users u ON u.ID = s.provider_id AND u.ROLE = 4
+                LEFT JOIN organization o ON o.ID = s.provider_id
+                ORDER BY s.id DESC";
+        $stmt = $pdo->query($sql);
+    } else {
+        $sql = "SELECT s.id, s.NAME, s.DEADLINE, s.CONDI, s.AMOUNT, s.start_date, s.is_active,
+                       s.provider_id, {$providerName} AS provider_name
+                FROM scholarship s
+                JOIN users u ON u.ID = s.provider_id AND u.ROLE = 4
+                LEFT JOIN organization o ON o.ID = s.provider_id
+                WHERE s.id = ?
+                ORDER BY s.id DESC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute(array($selected_id));
+    }
 } else {
-    // 🔽 這裡加上了 is_active
-    $sql = "SELECT id, NAME, DEADLINE, CONDI, AMOUNT, start_date, is_active 
-            FROM scholarship 
-            WHERE provider_id = ? AND id = ?";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(array($provider_id, $selected_id));
+    if ($selected_id === 'all') {
+        // 🔽 這裡加上了 is_active
+        $sql = "SELECT id, NAME, DEADLINE, CONDI, AMOUNT, start_date, is_active, provider_id
+                FROM scholarship 
+                WHERE provider_id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute(array($provider_id));
+    } else {
+        // 🔽 這裡加上了 is_active
+        $sql = "SELECT id, NAME, DEADLINE, CONDI, AMOUNT, start_date, is_active, provider_id
+                FROM scholarship 
+                WHERE provider_id = ? AND id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute(array($provider_id, $selected_id));
+    }
 }
 $scholarships = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
 
 // 取得所有獎助學金供選單使用
-$stmt = $pdo->prepare("SELECT id, NAME FROM scholarship WHERE provider_id = ?");
-$stmt->execute(array($provider_id));
+if ($isAdmin) {
+    $providerName = organization_provider_display_expr();
+    $stmt = $pdo->query("
+        SELECT s.id, s.NAME, s.provider_id, {$providerName} AS provider_name
+        FROM scholarship s
+        JOIN users u ON u.ID = s.provider_id AND u.ROLE = 4
+        LEFT JOIN organization o ON o.ID = s.provider_id
+        ORDER BY provider_name ASC, s.NAME ASC, s.id ASC
+    ");
+} else {
+    $stmt = $pdo->prepare("SELECT id, NAME, provider_id FROM scholarship WHERE provider_id = ?");
+    $stmt->execute(array($provider_id));
+}
 $allOptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$pageTitle = "我的獎助學金";
+$pageTitle = $isAdmin ? "獎助學金管理" : "我的獎助學金";
 $activeNav = "my_scholarships.php";
+$siteHeaderRequiredRole = array(3, 4);
 require __DIR__ . "/../header.php";
 ?>
 <?php if (isset($_GET['broadcast_success'])): ?>
@@ -53,22 +85,24 @@ require __DIR__ . "/../header.php";
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 <?php endif; ?>
-<h1 class="h3 mb-4 fw-bold">我提供的獎助學金清單</h1>
+<h1 class="h3 mb-4 fw-bold"><?php echo $isAdmin ? "所有獎助單位的獎助學金清單" : "我提供的獎助學金清單"; ?></h1>
 
 <!-- 選擇獎助學金 -->
 <form method="get" action="" class="mb-4 d-flex gap-2 align-items-center">
-    <input type="hidden" name="provider_id" value="<?php echo htmlspecialchars($provider_id); ?>">
+    <?php if (!$isAdmin): ?>
+        <input type="hidden" name="provider_id" value="<?php echo htmlspecialchars($provider_id); ?>">
+    <?php endif; ?>
     <label for="scholarship_id" class="form-label mb-0">選擇獎助學金：</label>
     <select name="scholarship_id" id="scholarship_id" class="form-select w-auto" onchange="this.form.submit()">
         <option value="all" <?php echo ($selected_id === 'all') ? 'selected' : ''; ?>>總覽</option>
         <?php foreach ($allOptions as $opt): ?>
             <option value="<?php echo $opt['id']; ?>" <?php echo ($selected_id == $opt['id']) ? 'selected' : ''; ?>>
-                <?php echo htmlspecialchars($opt['NAME']); ?>
+                <?php echo htmlspecialchars($isAdmin ? ($opt['provider_name'] . " - " . $opt['NAME']) : $opt['NAME']); ?>
             </option>
         <?php endforeach; ?>
     </select>
     <?php
-    if ($selected_id !== 'all' && !empty($selected_id)) {
+    if (!$isAdmin && $selected_id !== 'all' && !empty($selected_id)) {
         $deleteUrl = "delete_scholarship.php?scholarship_id=" . urlencode($selected_id);
         echo "<a href=\"$deleteUrl\" class=\"btn btn-danger\" data-confirm=\"確定要刪除此獎學金嗎？此操作無法復原。\">刪除</a>";
     }
@@ -115,6 +149,9 @@ require __DIR__ . "/../header.php";
                 </div>
                 
                 <div class="mb-3 text-secondary small">
+                    <?php if ($isAdmin): ?>
+                        <p class="mb-1"><strong>發布單位：</strong> <?php echo htmlspecialchars($s['provider_name']); ?></p>
+                    <?php endif; ?>
                     <p class="mb-1"><strong>開始日期：</strong> <?php echo htmlspecialchars($s['start_date']); ?></p>
                     <p class="mb-1"><strong>截止日期：</strong> <?php echo htmlspecialchars($s['DEADLINE']); ?></p>
                     <p class="mb-1"><strong>金額：</strong> <span class="text-danger fw-semibold">$<?php echo htmlspecialchars($s['AMOUNT']); ?></span></p>
@@ -131,16 +168,18 @@ require __DIR__ . "/../header.php";
                             </a>
                         </div>
                         <div class="col-6">
-                            <a href="view_applicants.php?provider_id=<?php echo urlencode($provider_id); ?>&scholarship_id=<?php echo $s['id']; ?>" class="btn btn-outline-primary btn-sm w-100">
+                            <a href="view_applicants.php?provider_id=<?php echo urlencode($s['provider_id']); ?>&scholarship_id=<?php echo $s['id']; ?>" class="btn btn-outline-primary btn-sm w-100">
                                 📄 申請資料
                             </a>
                         </div>
                         
-                        <div class="col-6">
-                            <a href="broadcast_scholarship.php?id=<?php echo $s['id']; ?>" class="btn btn-info btn-sm w-100 text-white shadow-sm">
-                                📣 廣播通知
-                            </a>
-                        </div>
+                        <?php if (!$isAdmin): ?>
+                            <div class="col-6">
+                                <a href="broadcast_scholarship.php?id=<?php echo $s['id']; ?>" class="btn btn-info btn-sm w-100 text-white shadow-sm">
+                                    📣 廣播通知
+                                </a>
+                            </div>
+                        <?php endif; ?>
                         <div class="col-6">
                             <form action="change_scholarship_status.php" method="post" class="m-0 w-100">
                                 <input type="hidden" name="scholarship_id" value="<?= $s['id'] ?>">
