@@ -1,0 +1,39 @@
+新增表格：
+-- 1. 記錄獎助單位自訂的題目
+CREATE TABLE `scholarship_fields` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `scholarship_id` INT NOT NULL,
+  `field_label` VARCHAR(255) NOT NULL COMMENT '題目名稱(如: 清寒證明、多益分數)',
+  `field_type` ENUM('text', 'number', 'textarea', 'file') NOT NULL COMMENT '欄位型態',
+  `is_required` TINYINT(1) DEFAULT 1 COMMENT '是否必填',
+  FOREIGN KEY (`scholarship_id`) REFERENCES `scholarship`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2. 記錄學生填寫的動態答案
+CREATE TABLE `application_custom_answers` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `application_id` INT NOT NULL COMMENT '關聯到你的 application.APNO',
+  `field_id` INT NOT NULL COMMENT '關聯到 scholarship_fields.id',
+  `answer_value` TEXT NULL COMMENT '學生的文字答案或上傳的檔案路徑',
+  FOREIGN KEY (`application_id`) REFERENCES `application`(`APNO`) ON DELETE CASCADE,
+  FOREIGN KEY (`field_id`) REFERENCES `scholarship_fields`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--3.獎助學金狀態要能手動調整，新增狀態欄，學生端也要增加判定
+ALTER TABLE `scholarship` 
+ADD `is_active` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1為開啟，0為手動關閉' AFTER `start_date`;
+
+NEW!!
+獎助單位上傳文件用
+CREATE TABLE `scholarship_attachments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `scholarship_id` int(11) NOT NULL COMMENT '關聯到 scholarship 表',
+  `original_name` varchar(255) NOT NULL COMMENT '原始檔案名稱',
+  `stored_name` varchar(255) NOT NULL COMMENT '伺服器上的實體檔名',
+  `file_path` varchar(255) NOT NULL COMMENT '下載/讀取路徑',
+  `file_size` int(11) DEFAULT 0,
+  `mime_type` varchar(120) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`scholarship_id`) REFERENCES `scholarship`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
