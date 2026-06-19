@@ -2,21 +2,18 @@
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
 require_once "db.php";
+require_once __DIR__ . "/scholarship_access.php";
 
-require_role(4);
+organization_require_scholarship_manager();
 
-$provider_id = $_SESSION['user']['id'];
+$isAdmin = organization_is_admin();
 $scholarship_id = isset($_GET['id']) ? $_GET['id'] : null;
 
 if (!$scholarship_id) {
     die("缺少獎助學金參數。");
 }
 
-// 🔽 修改 1：原本只撈 NAME，現在把 AMOUNT 和 DEADLINE 也撈出來供預覽信件使用
-$sql_sc = "SELECT NAME, AMOUNT, DEADLINE FROM scholarship WHERE id = ? AND provider_id = ?";
-$stmt_sc = $pdo->prepare($sql_sc);
-$stmt_sc->execute([$scholarship_id, $provider_id]);
-$scholarship = $stmt_sc->fetch(PDO::FETCH_ASSOC);
+$scholarship = organization_fetch_managed_scholarship($pdo, $scholarship_id);
 
 if (!$scholarship) {
     die("找不到該獎助學金或無權限。");
@@ -29,7 +26,7 @@ $departments = $stmt_dept->fetchAll(PDO::FETCH_COLUMN);
 
 $pageTitle = "發送廣播通知";
 $activeNav = "my_scholarships.php";
-$siteHeaderRequiredRole = 4;
+$siteHeaderRequiredRole = array(3, 4);
 $siteHeaderMaxWidth = "760px";
 require __DIR__ . "/../header.php";
 ?>
@@ -38,6 +35,9 @@ require __DIR__ . "/../header.php";
         <h1 class="h3 fw-bold mb-4">📣 發送新獎助學金廣播</h1>
         <div class="alert alert-info">
             您即將為 <strong><?= htmlspecialchars($scholarship['NAME']) ?></strong> 發送開放申請通知。<br>請選擇要通知的目標學生群體。
+            <?php if ($isAdmin): ?>
+                <br>發布單位：<strong><?= htmlspecialchars($scholarship['provider_name']) ?></strong>
+            <?php endif; ?>
         </div>
 
         <form id="broadcastForm" action="send_broadcast.php" method="post">

@@ -1,13 +1,12 @@
 <?php
 session_start();
 require_once "db.php";
+require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/scholarship_access.php";
 require_once __DIR__ . "/../mail_helpers.php";
 
-if (!isset($_SESSION['user']['id'])) {
-    die("請先登入");
-}
+organization_require_scholarship_manager();
 
-$provider_id = $_SESSION['user']['id'];
 $scholarship_id = $_POST['scholarship_id'] ?? null;
 $target_type = $_POST['target_type'] ?? 'all';
 $departments = $_POST['departments'] ?? [];
@@ -17,10 +16,7 @@ if (!$scholarship_id) {
 }
 
 // 取得獎學金資料供信件內文使用
-$sql_sc = "SELECT NAME, AMOUNT, DEADLINE FROM scholarship WHERE id = ? AND provider_id = ?";
-$stmt_sc = $pdo->prepare($sql_sc);
-$stmt_sc->execute([$scholarship_id, $provider_id]);
-$scholarship = $stmt_sc->fetch(PDO::FETCH_ASSOC);
+$scholarship = organization_fetch_managed_scholarship($pdo, $scholarship_id);
 
 if (!$scholarship) {
     die("找不到該獎助學金或無權限");

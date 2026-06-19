@@ -102,7 +102,7 @@ require __DIR__ . "/../header.php";
         <?php endforeach; ?>
     </select>
     <?php
-    if (!$isAdmin && $selected_id !== 'all' && !empty($selected_id)) {
+    if ($selected_id !== 'all' && !empty($selected_id)) {
         $deleteUrl = "delete_scholarship.php?scholarship_id=" . urlencode($selected_id);
         echo "<a href=\"$deleteUrl\" class=\"btn btn-danger\" data-confirm=\"確定要刪除此獎學金嗎？此操作無法復原。\">刪除</a>";
     }
@@ -173,13 +173,11 @@ require __DIR__ . "/../header.php";
                             </a>
                         </div>
                         
-                        <?php if (!$isAdmin): ?>
-                            <div class="col-6">
-                                <a href="broadcast_scholarship.php?id=<?php echo $s['id']; ?>" class="btn btn-info btn-sm w-100 text-white shadow-sm">
-                                    📣 廣播通知
-                                </a>
-                            </div>
-                        <?php endif; ?>
+                        <div class="col-6">
+                            <a href="broadcast_scholarship.php?id=<?php echo $s['id']; ?>" class="btn btn-info btn-sm w-100 text-white shadow-sm">
+                                📣 廣播通知
+                            </a>
+                        </div>
                         <div class="col-6">
                             <form action="change_scholarship_status.php" method="post" class="m-0 w-100">
                                 <input type="hidden" name="scholarship_id" value="<?= $s['id'] ?>">
@@ -196,6 +194,13 @@ require __DIR__ . "/../header.php";
                                 <?php endif; ?>
                             </form>
                         </div>
+                        <?php if ($isAdmin): ?>
+                            <div class="col-6">
+                                <a href="delete_scholarship.php?scholarship_id=<?php echo urlencode($s['id']); ?>" class="btn btn-outline-danger btn-sm w-100" data-confirm="確定要刪除此獎學金嗎？此操作無法復原。">
+                                    🗑️ 刪除
+                                </a>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
                 
