@@ -1,13 +1,13 @@
 <?php
 session_start();
 require_once "db.php";
+require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/scholarship_access.php";
 
 // 權限檢查
-if (!isset($_SESSION['user']['id'])) {
-    die("請先登入");
-}
+organization_require_scholarship_manager();
 
-$provider_id = $_SESSION['user']['id'];
+$isAdmin = organization_is_admin();
 $scholarship_id = $_POST['scholarship_id'] ?? null;
 $name       = trim($_POST['scholarship_name'] ?? '');
 $start_date = trim($_POST['start_date'] ?? '');
@@ -32,14 +32,27 @@ if (strtotime($start_date) > strtotime($deadline)) {
     exit; 
 }
 
+$managedScholarship = organization_fetch_managed_scholarship($pdo, $scholarship_id);
+if (!$managedScholarship) {
+    header("Location: my_scholarships.php?error=" . urlencode("找不到該獎助學金或您無權限編輯"));
+    exit;
+}
+
 try {
     $pdo->beginTransaction();
 
     // 1. 更新主表
-    $sql = "UPDATE scholarship SET NAME = ?, DEADLINE = ?, CONDI = ?, AMOUNT = ?, start_date = ? 
-            WHERE id = ? AND provider_id = ?"; 
-    $stmt = $pdo->prepare($sql); 
-    $stmt->execute([$name, $deadline, $condi, $amount, $start_date, $scholarship_id, $provider_id]); 
+    if ($isAdmin) {
+        $sql = "UPDATE scholarship SET NAME = ?, DEADLINE = ?, CONDI = ?, AMOUNT = ?, start_date = ? 
+                WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$name, $deadline, $condi, $amount, $start_date, $scholarship_id]);
+    } else {
+        $sql = "UPDATE scholarship SET NAME = ?, DEADLINE = ?, CONDI = ?, AMOUNT = ?, start_date = ? 
+                WHERE id = ? AND provider_id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$name, $deadline, $condi, $amount, $start_date, $scholarship_id, organization_current_user_id()]);
+    }
             
     // 2. 清除舊的自訂欄位
     $del_fields_sql = "DELETE FROM scholarship_fields WHERE scholarship_id = ?";

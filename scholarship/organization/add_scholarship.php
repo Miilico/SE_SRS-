@@ -1,8 +1,12 @@
 <?php
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/scholarship_access.php";
 
-require_role(4);
+organization_require_scholarship_manager();
+
+$isAdmin = organization_is_admin();
+$providerOptions = $isAdmin ? organization_provider_options($pdo) : array();
 
 // 檢查是否有成功或錯誤訊息
 $success = isset($_GET['success']);
@@ -10,7 +14,7 @@ $error   = isset($_GET['error']) ? $_GET['error'] : '';
 
 $pageTitle = "新增獎助學金";
 $activeNav = "add_scholarship.php";
-$siteHeaderRequiredRole = 4;
+$siteHeaderRequiredRole = array(3, 4);
 require __DIR__ . "/../header.php";
 ?>
 
@@ -22,6 +26,21 @@ require __DIR__ . "/../header.php";
             <h1 class="h3 fw-bold mb-4">新增獎助學金</h1>
 
             <form action="insert_scholarship.php" enctype="multipart/form-data" method="post" class="vstack gap-3">
+                <?php if ($isAdmin): ?>
+                    <div>
+                        <label class="form-label fw-semibold">發布獎助單位</label>
+                        <select class="form-select" name="provider_id" required>
+                            <option value="" selected disabled>請選擇獎助單位</option>
+                            <?php foreach ($providerOptions as $provider): ?>
+                                <option value="<?php echo htmlspecialchars($provider["ID"]); ?>">
+                                    <?php echo htmlspecialchars($provider["provider_name"] . "（" . $provider["ID"] . "）"); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text">管理員新增時，獎助學金會掛在所選獎助單位名下。</div>
+                    </div>
+                <?php endif; ?>
+
                 <div>
                     <label class="form-label fw-semibold">獎助學金名稱</label>
                     <input class="form-control" type="text" name="scholarship_name" placeholder="請輸入獎助學金名稱" required>

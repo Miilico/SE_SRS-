@@ -14,7 +14,7 @@ $pendingCount = (int)$stmt->fetchColumn();
     <div class="card-body p-4">
         <h1 class="h3 fw-bold mb-1">管理員<?= htmlspecialchars($userName) ?>，您好</h1>
         <div class="text-secondary">
-            您可以在此管理帳號審核、帳號資料與公告內容
+            您可以在此管理帳號、公告、檔案、獎助學金與工單
         </div>
     </div>
 </div>
@@ -60,8 +60,8 @@ $pendingCount = (int)$stmt->fetchColumn();
     <div class="col">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body p-4">
-                <h2 class="h5 fw-bold">文件管理</h2>
-                <p class="text-secondary">篩選、預覽與批量管理系統文件</p>
+                <h2 class="h5 fw-bold">檔案管理</h2>
+                <p class="text-secondary">篩選、預覽與批量管理系統檔案</p>
                 <a class="btn btn-primary" href="/scholarship/admin/document_management.php">前往</a>
             </div>
         </div>
@@ -73,6 +73,26 @@ $pendingCount = (int)$stmt->fetchColumn();
                 <h2 class="h5 fw-bold">獎助學金申請管理</h2>
                 <p class="text-secondary">查看獎助學金申請情形、發布與管理獎助學金申請結果公告</p>
                 <a class="btn btn-primary" href="/scholarship/admin/app_management.php">前往</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4">
+                <h2 class="h5 fw-bold">獎助學金表單管理</h2>
+                <p class="text-secondary">查看、編輯所有獎助單位發布的獎學金收集表單</p>
+                <a class="btn btn-primary" href="/scholarship/organization/my_scholarships.php">前往</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4">
+                <h2 class="h5 fw-bold">工單管理</h2>
+                <p class="text-secondary">查看與處理使用者回報的問題工單</p>
+                <a class="btn btn-primary" href="/scholarship/ticket_list.php">前往</a>
             </div>
         </div>
     </div>

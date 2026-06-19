@@ -3,25 +3,34 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
 require_once "db.php";
+require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/scholarship_access.php";
 require_once __DIR__ . "/../mail_helpers.php"; // 引入寄信引擎模組
+
+organization_require_scholarship_manager();
 
 $application_id = isset($_POST['application_id']) ? $_POST['application_id'] : null;
 $scholarship_id = isset($_POST['scholarship_id']) ? $_POST['scholarship_id'] : null;
-$provider_id    = isset($_POST['provider_id']) ? $_POST['provider_id'] : null;
 $new_status     = isset($_POST['status']) ? $_POST['status'] : null;
 $reject_reason  = isset($_POST['reject_reason']) ? trim($_POST['reject_reason']) : '';
 
-if (!$application_id || !$scholarship_id || !$provider_id || !$new_status) {
+if (!$application_id || !$scholarship_id || !$new_status) {
     die("❌ 缺少必要的參數，請回到上一頁重試。");
 }
+
+$managedScholarship = organization_fetch_managed_scholarship($pdo, $scholarship_id);
+if (!$managedScholarship) {
+    die("❌ 找不到該獎助學金或您無權限處理。");
+}
+$provider_id = $managedScholarship['provider_id'];
 
 // 1. 更新申請狀態
 $sql = "UPDATE application a
         JOIN scholarship s ON a.SCID = s.id
         SET a.RESULT = ?
-        WHERE a.APNO = ? AND s.provider_id = ?";
+        WHERE a.APNO = ? AND s.id = ? AND s.provider_id = ?";
 $stmt = $pdo->prepare($sql);
-$ok = $stmt->execute(array($new_status, $application_id, $provider_id));
+$ok = $stmt->execute(array($new_status, $application_id, $scholarship_id, $provider_id));
 
 // 2. 寄發 Email 通知邏輯
 $mailSent = false;

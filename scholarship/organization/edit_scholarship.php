@@ -2,10 +2,11 @@
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
 require_once "db.php";
+require_once __DIR__ . "/scholarship_access.php";
 
-require_role(4);
+organization_require_scholarship_manager();
 
-$provider_id = $_SESSION['user']['id'];
+$isAdmin = organization_is_admin();
 $scholarship_id = isset($_GET['id']) ? $_GET['id'] : null;
 
 if (!$scholarship_id) {
@@ -13,14 +14,13 @@ if (!$scholarship_id) {
 }
 
 // 1. 取得獎學金基本資料
-$sql = "SELECT * FROM scholarship WHERE id = ? AND provider_id = ?";
-$stmt = $pdo->prepare($sql);
-$stmt->execute([$scholarship_id, $provider_id]);
-$scholarship = $stmt->fetch(PDO::FETCH_ASSOC);
+$scholarship = organization_fetch_managed_scholarship($pdo, $scholarship_id);
 
 if (!$scholarship) {
     die("❌ 找不到該筆獎學金或您無權限編輯。");
 }
+
+$provider_id = $scholarship['provider_id'];
 
 // 2. 取得自訂表單欄位資料
 $field_sql = "SELECT * FROM scholarship_fields WHERE scholarship_id = ?";
@@ -39,7 +39,7 @@ $error   = isset($_GET['error']) ? $_GET['error'] : '';
 
 $pageTitle = "編輯獎助學金";
 $activeNav = "my_scholarships.php"; // 保持側邊欄亮在我的清單
-$siteHeaderRequiredRole = 4;
+$siteHeaderRequiredRole = array(3, 4);
 
 require __DIR__ . "/../header.php";
 ?>
@@ -52,6 +52,11 @@ require __DIR__ . "/../header.php";
                     <h1 class="h3 fw-bold mb-0">編輯獎助學金</h1>
                     <a href="my_scholarships.php" class="btn btn-outline-secondary btn-sm">返回清單</a>
                 </div>
+                <?php if ($isAdmin): ?>
+                    <div class="alert alert-info">
+                        目前編輯發布單位：<?php echo htmlspecialchars($scholarship['provider_name']); ?>（<?php echo htmlspecialchars($provider_id); ?>）
+                    </div>
+                <?php endif; ?>
 
                 <form action="update_scholarship.php" method="post" class="vstack gap-3" enctype="multipart/form-data">
                     <input type="hidden" name="scholarship_id" value="<?= htmlspecialchars($scholarship_id) ?>">
