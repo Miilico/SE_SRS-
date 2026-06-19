@@ -2,6 +2,7 @@
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/../file_helpers.php";
+require_once __DIR__ . "/../custom_form_helpers.php";
 require_role(1); // 1=學生
 
 ensure_teachers_table($pdo);
@@ -11,11 +12,39 @@ $stId = $_SESSION["user"]["id"];
 $userName = isset($_SESSION["user"]["name"]) ? $_SESSION["user"]["name"] : "";
 
 // 獎學金清單
+$activeScholarshipSql = table_has_column($pdo, "scholarship", "is_active")
+  ? " AND is_active = 1"
+  : "";
 $schs = $pdo->query("SELECT id, NAME, DEADLINE, AMOUNT 
         FROM scholarship 
-        WHERE start_date <= CURDATE() AND DEADLINE >= CURDATE()
+        WHERE start_date <= CURDATE() AND DEADLINE >= CURDATE()" . $activeScholarshipSql . "
         ORDER BY DEADLINE ASC")
   ->fetchAll(PDO::FETCH_ASSOC);
+
+$old = isset($_SESSION["application_old"]) && is_array($_SESSION["application_old"])
+  ? $_SESSION["application_old"]
+  : array();
+unset($_SESSION["application_old"]);
+
+function application_old_value($old, $key)
+{
+  return isset($old[$key]) && !is_array($old[$key]) ? (string)$old[$key] : "";
+}
+
+$selectedScholarshipId = isset($_GET["scid"]) ? (int)$_GET["scid"] : 0;
+if ($selectedScholarshipId <= 0 && isset($_GET["id"])) {
+  $selectedScholarshipId = (int)$_GET["id"];
+}
+if ($selectedScholarshipId <= 0 && !empty($old["SCID"])) {
+  $selectedScholarshipId = (int)$old["SCID"];
+}
+
+$customFields = $selectedScholarshipId > 0
+  ? custom_form_fields_for_scholarship($pdo, $selectedScholarshipId)
+  : array();
+$customValues = isset($old["CUSTOM_FIELDS"]) && is_array($old["CUSTOM_FIELDS"])
+  ? $old["CUSTOM_FIELDS"]
+  : array();
 
 $stmt = $pdo->query(" 
   SELECT t.ID, u.NAME AS teacher_name, u.EMAIL, t.DNAME AS dept_name, t.UNIT_NAME, t.JOB_TITLE
@@ -62,20 +91,20 @@ require __DIR__ . "/../header.php";
   <?php endif; ?>
 </div>
 
-<form class="card p-4" action="/scholarship/student/apply_submit.php" method="post" enctype="multipart/form-data">
+<form class="card p-4" id="application-form" action="/scholarship/student/apply_submit.php" method="post" enctype="multipart/form-data">
   <input type="hidden" name="STID" value="<?= htmlspecialchars($stId) ?>">
 
   <!-- 1. 選擇獎學金 -->
   <div class="mb-4">
     <div class="fw-bold mb-2">1. 選擇獎助學金</div>
     <label class="form-label fw-semibold">獎助學金 <span class="text-danger" aria-label="必填">*</span></label>
-    <select class="form-select" name="SCID" required>
-      <option value="" disabled selected>請選擇</option>
+    <select class="form-select" name="SCID" id="scholarship-select" required>
+      <option value="" disabled <?= $selectedScholarshipId <= 0 ? "selected" : "" ?>>請選擇</option>
       <?php foreach ($schs as $s): ?>
         <!--<option value="?= htmlspecialchars($s["ID"]."|".$s["NAME"]."|".$s["AMOUNT"]) ?>">
             ?= htmlspecialchars($s["NAME"]) ?>（截止：?= htmlspecialchars($s["DEADLINE"]) ?>，金額：?= htmlspecialchars($s["AMOUNT"]) ?>）
           </option>-->
-        <option value="<?= htmlspecialchars($s["id"]) ?>">
+        <option value="<?= htmlspecialchars($s["id"]) ?>" <?= (int)$s["id"] === $selectedScholarshipId ? "selected" : "" ?>>
           <!--<option value="?= (int)($s["id"]) ?>">-->
           <?= htmlspecialchars($s["NAME"]) ?>（截止：<?= htmlspecialchars($s["DEADLINE"]) ?>，金額：<?= htmlspecialchars($s["AMOUNT"]) ?>）
         </option>
@@ -113,11 +142,13 @@ require __DIR__ . "/../header.php";
     <div class="row g-3">
       <div class="col-md-6">
         <label class="form-label fw-semibold">GPA / 成績</label>
-        <input class="form-control" type="number" name="GRADE" step="0.01" min="0" max="100" placeholder="例如：85.5">
+        <input class="form-control" type="number" name="GRADE" step="0.01" min="0" max="100"
+               value="<?= htmlspecialchars(application_old_value($old, "GRADE")) ?>" placeholder="例如：85.5">
       </div>
       <div class="col-md-6">
         <label class="form-label fw-semibold">班排/系排</label>
-        <input class="form-control" name="RANK" maxlength="50" placeholder="例如：班排 3/45">
+        <input class="form-control" name="RANK" maxlength="50"
+               value="<?= htmlspecialchars(application_old_value($old, "RANK")) ?>" placeholder="例如：班排 3/45">
       </div>
     </div>
   </div>
@@ -139,6 +170,7 @@ require __DIR__ . "/../header.php";
             ?>
             <option
               value="<?= htmlspecialchars($t['ID']) ?>"
+              <?= application_old_value($old, "teacher_id") === (string)$t["ID"] ? "selected" : "" ?>
               data-name="<?= htmlspecialchars($t['teacher_name']) ?>"
               data-email="<?= htmlspecialchars($t['EMAIL']) ?>"
               data-unit="<?= htmlspecialchars($unit) ?>"
@@ -151,30 +183,37 @@ require __DIR__ . "/../header.php";
 
       <div class="col-md-6">
         <label class="form-label fw-semibold">推薦人姓名</label>
-        <input class="form-control" id="rec_name" name="REC_NAME" maxlength="100" placeholder="例如：王小明">
+        <input class="form-control" id="rec_name" name="REC_NAME" maxlength="100"
+               value="<?= htmlspecialchars(application_old_value($old, "REC_NAME")) ?>" placeholder="例如：王小明">
       </div>
 
       <div class="col-md-4">
         <label class="form-label fw-semibold">單位名稱</label>
-        <input class="form-control" id="rec_unit" name="REC_UNIT" maxlength="100" placeholder="例如：國立成功大學、XX科技股份有限公司">
+        <input class="form-control" id="rec_unit" name="REC_UNIT" maxlength="100"
+               value="<?= htmlspecialchars(application_old_value($old, "REC_UNIT")) ?>" placeholder="例如：國立成功大學、XX科技股份有限公司">
       </div>
 
       <div class="col-md-4">
         <label class="form-label fw-semibold">職稱</label>
-        <input class="form-control" id="rec_title" name="REC_TITLE" maxlength="100" placeholder="例如：副教授、講師、高級工程師">
+        <input class="form-control" id="rec_title" name="REC_TITLE" maxlength="100"
+               value="<?= htmlspecialchars(application_old_value($old, "REC_TITLE")) ?>" placeholder="例如：副教授、講師、高級工程師">
       </div>
 
       <div class="col-md-4">
         <label class="form-label fw-semibold">推薦人 Email</label>
-        <input class="form-control" id="rec_email" type="email" name="REC_EMAIL" maxlength="100" placeholder="xxx@example.com">
+        <input class="form-control" id="rec_email" type="email" name="REC_EMAIL" maxlength="100"
+               value="<?= htmlspecialchars(application_old_value($old, "REC_EMAIL")) ?>" placeholder="xxx@example.com">
       </div>
 
       <div class="col-md-12">
         <label class="form-label fw-semibold">關係</label>
-        <input class="form-control" name="REC_REL" maxlength="50" placeholder="例如：專題指導教授、實習主管">
+        <input class="form-control" name="REC_REL" maxlength="50"
+               value="<?= htmlspecialchars(application_old_value($old, "REC_REL")) ?>" placeholder="例如：專題指導教授、實習主管">
       </div>
     </div>
   </div>
+
+  <?php require __DIR__ . "/partials/application_custom_fields.php"; ?>
 
   <!-- 5. 自傳/讀書計畫 -->
   <div class="mb-4">
@@ -213,6 +252,10 @@ require __DIR__ . "/../header.php";
 </form>
 
 <script>
+  document.getElementById("scholarship-select").addEventListener("change", function () {
+    window.location.href = "/scholarship/student/apply.php?scid=" + encodeURIComponent(this.value);
+  });
+
   (function() {
     var teacherSelect = document.getElementById("teacher_id");
     if (!teacherSelect) return;

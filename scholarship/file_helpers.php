@@ -2,16 +2,30 @@
 
 function table_has_column($pdo, $tableName, $columnName)
 {
-    $stmt = $pdo->prepare("SHOW COLUMNS FROM `$tableName` LIKE ?");
-    $stmt->execute(array($columnName));
-    return (bool)$stmt->fetch();
+    $stmt = $pdo->prepare("
+        SELECT 1
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+        LIMIT 1
+    ");
+    $stmt->execute(array((string)$tableName, (string)$columnName));
+    return (bool)$stmt->fetchColumn();
 }
 
 function table_has_index($pdo, $tableName, $indexName)
 {
-    $stmt = $pdo->prepare("SHOW INDEX FROM `$tableName` WHERE Key_name = ?");
-    $stmt->execute(array($indexName));
-    return (bool)$stmt->fetch();
+    $stmt = $pdo->prepare("
+        SELECT 1
+        FROM information_schema.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND INDEX_NAME = ?
+        LIMIT 1
+    ");
+    $stmt->execute(array((string)$tableName, (string)$indexName));
+    return (bool)$stmt->fetchColumn();
 }
 
 function ensure_application_files_table($pdo)

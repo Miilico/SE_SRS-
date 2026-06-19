@@ -4,11 +4,18 @@ require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/../file_helpers.php";
 require_once __DIR__ . "/../mail_helpers.php";
 require_once __DIR__ . "/../recommendation_helpers.php";
+require_once __DIR__ . "/../custom_form_helpers.php";
 require_role(1);
 
 function back_err($msg)
 {
-    site_flash_redirect("/scholarship/student/apply.php", $msg, "danger");
+    $_SESSION["application_old"] = $_POST;
+    $scholarshipId = isset($_POST["SCID"]) ? (int)$_POST["SCID"] : 0;
+    $target = "/scholarship/student/apply.php";
+    if ($scholarshipId > 0) {
+        $target .= "?scid=" . urlencode((string)$scholarshipId);
+    }
+    site_flash_redirect($target . "#application-form", $msg, "danger");
 }
 
 function selected_post($key, $default = "")
@@ -94,12 +101,25 @@ try {
         back_err("找不到學生資料，請重新登入後再試。");
     }
 
-    $schStmt = $pdo->prepare("SELECT id, provider_id, NAME, AMOUNT FROM scholarship WHERE id = ? LIMIT 1");
+    $activeScholarshipSql = table_has_column($pdo, "scholarship", "is_active")
+        ? " AND is_active = 1"
+        : "";
+    $schStmt = $pdo->prepare("
+        SELECT id, provider_id, NAME, AMOUNT
+        FROM scholarship
+        WHERE id = ?
+          AND start_date <= CURDATE()
+          AND DEADLINE >= CURDATE()
+          " . $activeScholarshipSql . "
+        LIMIT 1
+    ");
     $schStmt->execute(array($scid));
     $scholarship = $schStmt->fetch(PDO::FETCH_ASSOC);
     if (!$scholarship) {
-        back_err("獎助學金不存在。");
+        back_err("獎助學金不存在或目前未開放申請。");
     }
+
+    $customFields = custom_form_fields_for_scholarship($pdo, $scid);
 
     $teacherName = $recName;
     $teacherUnit = $recUnit;
@@ -145,6 +165,21 @@ try {
     }
 
     $pdo->beginTransaction();
+
+    $duplicateStmt = $pdo->prepare("
+        SELECT APNO
+        FROM application
+        WHERE STID = :stid AND SCID = :scid
+        LIMIT 1
+        FOR UPDATE
+    ");
+    $duplicateStmt->execute(array(
+        ":stid" => $studentId,
+        ":scid" => $scid,
+    ));
+    if ($duplicateStmt->fetchColumn()) {
+        throw new RuntimeException("你已經申請過這項獎學金，不可重複申請。");
+    }
 
     $insertApp = $pdo->prepare("
         INSERT INTO application
@@ -208,6 +243,15 @@ try {
             );
         }
     }
+
+    custom_form_save_answers(
+        $pdo,
+        $customFields,
+        $apno,
+        $studentId,
+        $scid,
+        $scholarship["provider_id"]
+    );
 
     $recommendLink = "";
     if ($wantsRecommendation) {
