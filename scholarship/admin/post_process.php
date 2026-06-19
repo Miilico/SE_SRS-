@@ -14,9 +14,16 @@ ensure_application_files_table($pdo);
 if (isset($_GET['action']) && $_GET['action'] == 'delete') {
     $id = $_GET['id'];
     try {
+        $files = fetch_uploaded_files($pdo, 1, "announcement_id", $id);
+        $fileIds = array();
+        foreach ($files as $file) {
+            $fileIds[] = $file["id"];
+        }
+        delete_uploaded_files($pdo, $fileIds, 1, "announcement_id", $id);
+
         $stmt = $pdo->prepare("DELETE FROM announcement WHERE id = ?");
         $stmt->execute([$id]);
-        header("Location: post_management.php?msg=" . urlencode("公告已刪除"));
+        site_flash_redirect("post_management.php", "公告已刪除", "success");
     } catch (PDOException $e) {
         die("刪除失敗：" . $e->getMessage());
     }
@@ -64,13 +71,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $updateApp->execute();
             }
         }
-        if (!empty($_FILES["ANNOUNCEMENT_FILE"]) && $_FILES["ANNOUNCEMENT_FILE"]["error"] !== UPLOAD_ERR_NO_FILE) {
-            store_uploaded_file($pdo, $_FILES["ANNOUNCEMENT_FILE"], 1, $aid, array(
-                "announcement_id" => $announcementId
-            ));
+        $announcementFileContext = array("announcement_id" => $announcementId);
+        if ($mode == 'edit' && !empty($_POST["delete_announcement_files"])) {
+            delete_uploaded_files($pdo, $_POST["delete_announcement_files"], 1, "announcement_id", $announcementId);
         }
-        header("Location: post_management.php?msg=" . urlencode($msg));
-        exit;
+        if (!empty($_FILES["ANNOUNCEMENT_FILES"])) {
+            store_uploaded_files($pdo, $_FILES["ANNOUNCEMENT_FILES"], 1, $aid, $announcementFileContext);
+        }
+        if (!empty($_FILES["ANNOUNCEMENT_FILE"])) {
+            store_uploaded_files($pdo, $_FILES["ANNOUNCEMENT_FILE"], 1, $aid, $announcementFileContext);
+        }
+        site_flash_redirect("post_management.php", $msg, "success");
     } catch (Exception $e) {
         die("操作失敗：" . $e->getMessage());
     }

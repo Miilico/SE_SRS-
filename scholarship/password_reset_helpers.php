@@ -26,7 +26,7 @@ function password_reset_token_hash($token)
 function password_reset_url($token)
 {
     $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : "127.0.0.1";
-    return "http://" . $host . "/scholarship/reset_password.php?token=" . urlencode($token);
+    return "https://" . $host . "/scholarship/reset_password.php?token=" . urlencode($token);
 }
 
 function create_password_reset($pdo, $userId)

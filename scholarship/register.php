@@ -1,9 +1,14 @@
 <?php
 require_once __DIR__ . "/config.php";
+require_once __DIR__ . "/department_options.php";
+require_once __DIR__ . "/file_helpers.php";
+
+ensure_teachers_table($pdo);
 
 $old = isset($_SESSION["register_old"]) && is_array($_SESSION["register_old"]) ? $_SESSION["register_old"] : array();
 $errorField = isset($_SESSION["register_error_field"]) ? $_SESSION["register_error_field"] : "";
-unset($_SESSION["register_old"], $_SESSION["register_error_field"]);
+$errorMessage = isset($_SESSION["register_error_message"]) ? $_SESSION["register_error_message"] : "請確認密碼。";
+unset($_SESSION["register_old"], $_SESSION["register_error_field"], $_SESSION["register_error_message"]);
 
 function h($value)
 {
@@ -26,96 +31,75 @@ function selected_attr($old, $key, $value, $default = "")
   return (string)$current === (string)$value ? " selected" : "";
 }
 
-$departments = array(
-  "人文社會科學院" => array(
-    "西洋語文學系" => "西洋語文學系",
-    "運動健康與休閒學系" => "運動健康與休閒學系",
-    "東亞語文學系" => "東亞語文學系",
-    "運動競技學系" => "運動競技學系",
-    "建築學系" => "建築學系",
-    "工藝與創意設計學系" => "工藝與創意設計學系",
-  ),
-  "法學院" => array(
-    "法律學系" => "法律學系",
-    "政治法律學系" => "政治法律學系",
-    "財經法律學系" => "財經法律學系",
-  ),
-  "管理學院" => array(
-    "應用經濟學系" => "應用經濟學系",
-    "亞太工商管理學系" => "亞太工商管理學系",
-    "財務金融學系" => "財務金融學系",
-    "資訊管理學系" => "資訊管理學系",
-  ),
-  "理學院" => array(
-    "應用數學系" => "應用數學系",
-    "生命科學系" => "生命科學系",
-    "應用化學系" => "應用化學系",
-    "應用物理學系" => "應用物理學系",
-  ),
-  "工學院" => array(
-    "電機工程學系" => "電機工程學系",
-    "土木與環境工程學系" => "土木與環境工程學系",
-    "化材系" => "化學工程與材料工程學系",
-    "資訊工程學系" => "資訊工程學系",
-  ),
-);
+$departments = scholarship_departments_by_college();
 
 $pageTitle = "註冊";
 $activeNav = "register.php";
-$siteHeaderMainClass = "auth-wrap";
-$siteHeaderStylesheets = array("/scholarship/assets/css/auth.css");
+$siteHeaderMainClass = "site-shell py-4";
+$siteHeaderBrandHref = "/";
 require __DIR__ . "/header.php";
 ?>
-<div class="card auth-card">
-  <div class="auth-header p-4">
+<div class="row justify-content-center">
+<div class="col-12 col-lg-7">
+<div class="card border-0 shadow-sm overflow-hidden">
+  <div class="card-header bg-white p-4">
     <div class="text-muted small">Create account</div>
     <h1 class="h4 mb-0 fw-bold">註冊</h1>
   </div>
 
   <div class="p-4">
-    <?php if (!empty($_GET["err"])): ?>
-      <div class="alert alert-danger" id="registerError">
-        <?= h($_GET["err"]) ?>
-      </div>
-    <?php endif; ?>
-
     <form method="post" action="register_submit.php" class="vstack gap-3" novalidate>
       <div>
-        <label class="form-label fw-semibold" for="role">身分</label>
+        <label class="form-label fw-semibold" for="role">身分 <span class="text-danger" aria-label="必填">*</span></label>
         <select class="form-select<?= field_invalid_class("role", $errorField) ?>" name="role" id="role" required>
           <option value="1" <?= selected_attr($old, "role", "1", "1") ?>>學生</option>
-          <option value="2" <?= selected_attr($old, "role", "2", "1") ?>>教授</option>
+          <option value="2" <?= selected_attr($old, "role", "2", "1") ?>>推薦人</option>
           <option value="4" <?= selected_attr($old, "role", "4", "1") ?>>獎助單位</option>
         </select>
-        <div class="form-text" id="roleHelp">學生與教師註冊後可直接登入；獎助單位需管理員審核通過。</div>
+        <div class="form-text" id="roleHelp">學生與推薦人註冊後可直接登入；獎助單位需管理員審核通過。</div>
       </div>
 
       <div>
-        <label class="form-label fw-semibold" id="idLabel" for="id">使用者 ID（學號/教職員編號）</label>
+        <label class="form-label fw-semibold" id="idLabel" for="id">使用者 ID（學號/教職員編號） <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("id", $errorField) ?>" id="id" name="id" maxlength="10" value="<?= h(old_value($old, "id")) ?>" required>
       </div>
 
       <div>
-        <label class="form-label fw-semibold" id="nameLabel" for="name">姓名</label>
+        <label class="form-label fw-semibold" id="nameLabel" for="name">姓名 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("name", $errorField) ?>" id="name" name="name" maxlength="50" value="<?= h(old_value($old, "name")) ?>" required>
       </div>
 
-      <div data-role-section="school">
-        <label class="form-label fw-semibold" for="dept">科系</label>
+      <div data-role-section="student">
+        <label class="form-label fw-semibold" for="dept">科系 <span class="text-danger" aria-label="必填">*</span></label>
         <select class="form-select<?= field_invalid_class("dept", $errorField) ?>" name="dept" id="dept">
           <option value="">請選擇科系</option>
           <?php foreach ($departments as $college => $deptOptions): ?>
             <optgroup label="<?= h($college) ?>">
-              <?php foreach ($deptOptions as $value => $label): ?>
-                <option value="<?= h($value) ?>" <?= selected_attr($old, "dept", $value) ?>><?= h($label) ?></option>
+              <?php foreach ($deptOptions as $department): ?>
+                <option value="<?= h($department) ?>" <?= selected_attr($old, "dept", $department) ?>><?= h($department) ?></option>
               <?php endforeach; ?>
             </optgroup>
           <?php endforeach; ?>
         </select>
       </div>
 
+      <div data-role-section="recommender" class="d-none">
+        <label class="form-label fw-semibold" for="teacher_unit">單位名稱 <span class="text-danger" aria-label="必填">*</span></label>
+        <input class="form-control<?= field_invalid_class("teacher_unit", $errorField) ?>" id="teacher_unit" name="teacher_unit" maxlength="100" placeholder="例如：國立成功大學、XX科技股份有限公司" value="<?= h(old_value($old, "teacher_unit")) ?>">
+      </div>
+
+      <div data-role-section="recommender" class="d-none">
+        <label class="form-label fw-semibold" for="teacher_title">職稱 <span class="text-danger" aria-label="必填">*</span></label>
+        <input class="form-control<?= field_invalid_class("teacher_title", $errorField) ?>" id="teacher_title" name="teacher_title" maxlength="100" placeholder="例如：副教授、講師、高級工程師" value="<?= h(old_value($old, "teacher_title")) ?>">
+      </div>
+
+      <div data-role-section="recommender" class="d-none">
+        <label class="form-label fw-semibold" for="teacher_dept">系所 / 部門（選填）</label>
+        <input class="form-control<?= field_invalid_class("dept", $errorField) ?>" id="teacher_dept" name="teacher_dept" maxlength="50" placeholder="例如：資訊工程學系、研發部" value="<?= h(old_value($old, "teacher_dept", old_value($old, "dept"))) ?>">
+      </div>
+
       <div data-role-section="organization" class="d-none">
-        <label class="form-label fw-semibold" for="contact_person">單位聯絡人姓名</label>
+        <label class="form-label fw-semibold" for="contact_person">單位聯絡人姓名 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("contact_person", $errorField) ?>" id="contact_person" name="contact_person" maxlength="10" value="<?= h(old_value($old, "contact_person")) ?>">
       </div>
 
@@ -125,31 +109,31 @@ require __DIR__ . "/header.php";
       </div>
 
       <div>
-        <label class="form-label fw-semibold" for="email">Email</label>
+        <label class="form-label fw-semibold" for="email">Email <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("email", $errorField) ?>" id="email" type="email" name="email" maxlength="100" placeholder="example@mail.nuk.edu.tw" value="<?= h(old_value($old, "email")) ?>" required>
-        <div class="form-text" id="emailHelp">學生與教授請使用學校信箱，格式為 @mail.nuk.edu.tw。</div>
+        <div class="form-text" id="emailHelp">學生請使用學校信箱，格式為 @mail.nuk.edu.tw。</div>
       </div>
 
       <div>
-        <label class="form-label fw-semibold" for="tel">電話</label>
+        <label class="form-label fw-semibold" for="tel">電話 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("tel", $errorField) ?>" id="tel" name="tel" maxlength="10" placeholder="例如 0912345678" value="<?= h(old_value($old, "tel")) ?>" required>
         <div class="form-text">電話需為 6 到 10 碼，可使用數字、空白、+、-、括號。</div>
       </div>
 
       <div>
-        <label class="form-label fw-semibold" for="pwd">密碼</label>
+        <label class="form-label fw-semibold" for="pwd">密碼 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("pwd", $errorField) ?>" id="pwd" type="password" name="pwd" maxlength="64" required>
         <div class="form-text">密碼至少 6 碼。</div>
         <?php if ($errorField === "pwd"): ?>
-          <div class="invalid-feedback d-block"><?= h($_GET["err"] ?? "請確認密碼。") ?></div>
+          <div class="invalid-feedback d-block"><?= h($errorMessage) ?></div>
         <?php endif; ?>
       </div>
 
       <div>
-        <label class="form-label fw-semibold" for="pwd2">確認密碼</label>
+        <label class="form-label fw-semibold" for="pwd2">確認密碼 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control<?= field_invalid_class("pwd2", $errorField) ?>" id="pwd2" type="password" name="pwd2" maxlength="64" required>
         <?php if ($errorField === "pwd2"): ?>
-          <div class="invalid-feedback d-block"><?= h($_GET["err"] ?? "請確認密碼。") ?></div>
+          <div class="invalid-feedback d-block"><?= h($errorMessage) ?></div>
         <?php endif; ?>
       </div>
 
@@ -162,6 +146,8 @@ require __DIR__ . "/header.php";
     </form>
   </div>
 </div>
+</div>
+</div>
 
 <script>
   (function() {
@@ -169,9 +155,13 @@ require __DIR__ . "/header.php";
     var idLabel = document.getElementById("idLabel");
     var nameLabel = document.getElementById("nameLabel");
     var deptInput = document.querySelector('select[name="dept"]');
+    var teacherUnitInput = document.querySelector('input[name="teacher_unit"]');
+    var teacherTitleInput = document.querySelector('input[name="teacher_title"]');
     var contactInput = document.querySelector('input[name="contact_person"]');
-    var schoolSections = document.querySelectorAll('[data-role-section="school"]');
+    var studentSections = document.querySelectorAll('[data-role-section="student"]');
+    var recommenderSections = document.querySelectorAll('[data-role-section="recommender"]');
     var orgSections = document.querySelectorAll('[data-role-section="organization"]');
+    var emailHelp = document.getElementById("emailHelp");
     var errorField = <?= json_encode($errorField, JSON_UNESCAPED_UNICODE) ?>;
 
     function setSectionVisible(sections, visible) {
@@ -182,12 +172,18 @@ require __DIR__ . "/header.php";
 
     function syncRoleFields() {
       var isOrg = role.value === "4";
-      idLabel.textContent = isOrg ? "使用者 ID（單位帳號）" : "使用者 ID（學號/教職員編號）";
-      nameLabel.textContent = isOrg ? "單位名稱" : "姓名";
-      setSectionVisible(schoolSections, !isOrg);
+      var isStudent = role.value === "1";
+      var isRecommender = role.value === "2";
+      idLabel.innerHTML = (isOrg ? "使用者 ID（單位帳號）" : "使用者 ID（學號/教職員編號）") + ' <span class="text-danger" aria-label="必填">*</span>';
+      nameLabel.innerHTML = (isOrg ? "單位名稱" : "姓名") + ' <span class="text-danger" aria-label="必填">*</span>';
+      setSectionVisible(studentSections, isStudent);
+      setSectionVisible(recommenderSections, isRecommender);
       setSectionVisible(orgSections, isOrg);
-      deptInput.required = !isOrg;
+      deptInput.required = isStudent;
+      teacherUnitInput.required = isRecommender;
+      teacherTitleInput.required = isRecommender;
       contactInput.required = isOrg;
+      emailHelp.textContent = isStudent ? "學生請使用學校信箱，格式為 @mail.nuk.edu.tw。" : "請填寫可收信的 Email。";
     }
 
     function focusErrorField() {

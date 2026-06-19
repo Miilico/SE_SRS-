@@ -144,20 +144,18 @@ if ($sid !== "") {
 $pageTitle = "學生資料檢視";
 $activeNav = "tea_dashboard.php";
 $siteHeaderRequiredRole = array(2, 3);
-$siteHeaderMaxWidth = "980px";
 require __DIR__ . "/../header.php";
 ?>
 
-<div class="d-flex justify-content-between align-items-center gap-3 mb-4">
+<div class="mb-4">
   <div>
-    <p class="text-secondary mb-1">導師子系統</p>
+    <p class="text-secondary mb-1">推薦人子系統</p>
     <h1 class="h3 fw-bold mb-0">學生資料檢視</h1>
   </div>
-  <a class="btn btn-outline-secondary" href="tea_dashboard.php">返回導師首頁</a>
 </div>
 
 <?php if ($sid === ""): ?>
-  <div class="alert alert-info">請從導師首頁選擇一位學生。</div>
+  <div class="alert alert-info">請從推薦人首頁選擇一位學生。</div>
 <?php elseif (!$student): ?>
   <div class="alert alert-warning">找不到學生資料：<?= h($sid) ?></div>
 <?php elseif ($accessDenied): ?>
@@ -170,7 +168,7 @@ require __DIR__ . "/../header.php";
         <table class="table table-bordered align-middle mb-0">
           <tbody>
             <tr>
-              <th class="table-light" style="width: 180px;">姓名</th>
+              <th class="table-light w-25">姓名</th>
               <td><?= h($student["NAME"]) ?></td>
             </tr>
             <tr>
@@ -233,7 +231,7 @@ require __DIR__ . "/../header.php";
                     <?= site_status_badge(tar_recommendation_status_label($app), "recommendation") ?>
                     <?php if (($app["status"] ?? "") === "rejected" && !empty($app["rejected_reason"])): ?>
                       <div class="small text-secondary mt-1">
-                        <?= h($app["rejected_source"] === "system" ? "系統自動" : "導師手動") ?>：<?= h($app["rejected_reason"]) ?>
+                        <?= h($app["rejected_source"] === "system" ? "系統自動" : "推薦人手動") ?>：<?= h($app["rejected_reason"]) ?>
                       </div>
                     <?php endif; ?>
                   </td>

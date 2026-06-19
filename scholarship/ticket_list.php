@@ -11,7 +11,7 @@ $isAdmin = ($role === 3);
 
 $roleMap = [
     1 => "學生",
-    2 => "教師",
+    2 => "推薦人",
     3 => "管理員",
     4 => "獎助單位"
 ];
@@ -62,18 +62,22 @@ if ($isAdmin) {
         JOIN users u ON t.USER_ID = u.ID
         LEFT JOIN users au ON t.ADMIN_ID = au.ID
         LEFT JOIN ticket_messages tm ON t.TICKET_ID = tm.TICKET_ID
-        WHERE t.USER_ID = :user_id
-           OR t.ADMIN_ID = :user_id
+        WHERE t.USER_ID = :owner_user_id
+           OR t.ADMIN_ID = :assigned_user_id
            OR EXISTS (
                SELECT 1
                FROM ticket_messages own_tm
                WHERE own_tm.TICKET_ID = t.TICKET_ID
-                 AND own_tm.SENDER_ID = :user_id
+                 AND own_tm.SENDER_ID = :message_user_id
            )
         GROUP BY t.TICKET_ID, t.USER_ID, u.NAME, u.ROLE, t.ADMIN_ID, au.NAME, t.TITLE, t.STATUS, t.CREATED_AT, t.UPDATED_AT
         ORDER BY t.UPDATED_AT DESC, t.TICKET_ID DESC
     ");
-    $stmt->execute([":user_id" => $userId]);
+    $stmt->execute(array(
+        ":owner_user_id" => $userId,
+        ":assigned_user_id" => $userId,
+        ":message_user_id" => $userId,
+    ));
 }
 
 $tickets = $stmt->fetchAll();
@@ -130,7 +134,7 @@ require __DIR__ . "/header.php";
         <tr>
           <th>編號</th>
           <th>標題</th>
-          <?php if ($isAdmin): ?><th>開單者</th><?php endif; ?>
+          <?php if ($isAdmin): ?><th>相關人</th><?php endif; ?>
           <th>狀態</th>
           <th>訊息數</th>
           <th>更新時間</th>
@@ -149,7 +153,7 @@ require __DIR__ . "/header.php";
             <td data-label="編號">#<?= h($ticket["TICKET_ID"]) ?></td>
             <td data-label="標題"><?= h($ticket["TITLE"]) ?></td>
             <?php if ($isAdmin): ?>
-              <td data-label="開單者">
+              <td data-label="相關人">
                 <?= h($ticket["USER_NAME"]) ?>（<?= h($ticket["USER_ID"]) ?> / <?= h($roleText) ?>）
               </td>
             <?php endif; ?>

@@ -13,14 +13,12 @@ $pwd2 = isset($_POST["pwd2"]) ? $_POST["pwd2"] : "";
 
 function reset_back($token, $message)
 {
-    header("Location: reset_password.php?token=" . urlencode($token) . "&err=" . urlencode($message));
-    exit;
+    site_flash_redirect("reset_password.php?token=" . urlencode($token), $message, "danger");
 }
 
 $reset = $token === "" ? null : find_valid_password_reset($pdo, $token);
 if (!$reset) {
-    header("Location: forgot_password.php?msg=" . urlencode("重設連結無效、已使用或已逾期，請重新申請。"));
-    exit;
+    site_flash_redirect("forgot_password.php", "重設連結無效、已使用或已逾期，請重新申請。", "warning");
 }
 
 if ($pwd === "" || $pwd2 === "") {
@@ -53,5 +51,4 @@ try {
     reset_back($token, "密碼更新失敗，請稍後再試。");
 }
 
-header("Location: login.php?msg=" . urlencode("密碼已更新，請使用新密碼登入。"));
-exit;
+site_flash_redirect("login.php", "密碼已更新，請使用新密碼登入。", "success");

@@ -4,12 +4,18 @@ require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/../file_helpers.php";
 require_once __DIR__ . "/../mail_helpers.php";
 require_once __DIR__ . "/../recommendation_helpers.php";
+require_once __DIR__ . "/../custom_form_helpers.php";
 require_role(1);
 
 function back_err($msg)
 {
-    header("Location: /scholarship/student/apply.php?err=" . urlencode($msg));
-    exit;
+    $_SESSION["application_old"] = $_POST;
+    $scholarshipId = isset($_POST["SCID"]) ? (int)$_POST["SCID"] : 0;
+    $target = "/scholarship/student/apply.php";
+    if ($scholarshipId > 0) {
+        $target .= "?scid=" . urlencode((string)$scholarshipId);
+    }
+    site_flash_redirect($target . "#application-form", $msg, "danger");
 }
 
 function selected_post($key, $default = "")
@@ -50,15 +56,35 @@ $scid = isset($_POST["SCID"]) ? (int)$_POST["SCID"] : 0;
 $grade = selected_post("GRADE");
 $rank = selected_post("RANK");
 $teacherId = selected_post("teacher_id");
+$recName = selected_post("REC_NAME");
+$recUnit = selected_post("REC_UNIT");
+$recTitle = selected_post("REC_TITLE");
 $recEmail = selected_post("REC_EMAIL");
 $recRel = selected_post("REC_REL");
+$wantsRecommendation = ($teacherId !== "" || $recName !== "" || $recUnit !== "" || $recTitle !== "" || $recEmail !== "" || $recRel !== "");
 
 if ($scid <= 0) {
     back_err("請選擇獎助學金。");
 }
 
 if ($recEmail !== "" && !filter_var($recEmail, FILTER_VALIDATE_EMAIL)) {
-    back_err("推薦教師 Email 格式不正確。");
+    back_err("推薦人 Email 格式不正確。");
+}
+
+if ($wantsRecommendation && $teacherId === "" && $recEmail === "") {
+    back_err("請填寫推薦人 Email，才能寄送推薦信填寫連結。");
+}
+
+if ($wantsRecommendation && $teacherId === "" && $recName === "") {
+    back_err("請填寫推薦人姓名。");
+}
+
+if ($wantsRecommendation && $teacherId === "" && $recUnit === "") {
+    back_err("請填寫推薦人單位名稱。");
+}
+
+if ($wantsRecommendation && $teacherId === "" && $recTitle === "") {
+    back_err("請填寫推薦人職稱。");
 }
 
 if (empty($_FILES["AUTOBI_FILE"]) || $_FILES["AUTOBI_FILE"]["error"] === UPLOAD_ERR_NO_FILE) {
@@ -67,6 +93,7 @@ if (empty($_FILES["AUTOBI_FILE"]) || $_FILES["AUTOBI_FILE"]["error"] === UPLOAD_
 
 try {
     ensure_application_files_table($pdo);
+    ensure_teachers_table($pdo);
 
     $studentStmt = $pdo->prepare("SELECT 1 FROM students WHERE ID = ?");
     $studentStmt->execute(array($studentId));
@@ -74,18 +101,32 @@ try {
         back_err("找不到學生資料，請重新登入後再試。");
     }
 
-    $schStmt = $pdo->prepare("SELECT id, provider_id, NAME, AMOUNT FROM scholarship WHERE id = ? LIMIT 1");
+    $activeScholarshipSql = table_has_column($pdo, "scholarship", "is_active")
+        ? " AND is_active = 1"
+        : "";
+    $schStmt = $pdo->prepare("
+        SELECT id, provider_id, NAME, AMOUNT
+        FROM scholarship
+        WHERE id = ?
+          AND start_date <= CURDATE()
+          AND DEADLINE >= CURDATE()
+          " . $activeScholarshipSql . "
+        LIMIT 1
+    ");
     $schStmt->execute(array($scid));
     $scholarship = $schStmt->fetch(PDO::FETCH_ASSOC);
     if (!$scholarship) {
-        back_err("獎助學金不存在。");
+        back_err("獎助學金不存在或目前未開放申請。");
     }
 
-    $teacherName = "";
-    $teacherDept = "";
+    $customFields = custom_form_fields_for_scholarship($pdo, $scid);
+
+    $teacherName = $recName;
+    $teacherUnit = $recUnit;
+    $teacherTitle = $recTitle;
     if ($teacherId !== "") {
         $teacherStmt = $pdo->prepare("
-            SELECT u.ID, u.NAME, u.EMAIL, t.DNAME
+            SELECT u.ID, u.NAME, u.EMAIL, t.DNAME, t.UNIT_NAME, t.JOB_TITLE
             FROM teachers t
             JOIN users u ON t.ID = u.ID
             WHERE t.ID = ?
@@ -94,21 +135,51 @@ try {
         $teacherStmt->execute(array($teacherId));
         $teacher = $teacherStmt->fetch(PDO::FETCH_ASSOC);
         if (!$teacher) {
-            back_err("找不到指定的推薦教師。");
+            back_err("找不到指定的推薦人。");
         }
 
-        $teacherName = $teacher["NAME"];
-        $teacherDept = $teacher["DNAME"];
+        if ($teacherName === "") {
+            $teacherName = $teacher["NAME"];
+        }
+        if ($teacherUnit === "") {
+            $teacherUnit = $teacher["UNIT_NAME"] ?: $teacher["DNAME"];
+        }
+        if ($teacherTitle === "") {
+            $teacherTitle = $teacher["JOB_TITLE"];
+        }
         if ($recEmail === "") {
             $recEmail = $teacher["EMAIL"];
         }
     }
 
-    if ($teacherId === "" && $recEmail !== "") {
-        $teacherName = "推薦教師";
+    if ($wantsRecommendation && $teacherName === "") {
+        $teacherName = "推薦人";
+    }
+
+    if ($wantsRecommendation && $teacherUnit === "") {
+        back_err("請填寫推薦人單位名稱。");
+    }
+
+    if ($wantsRecommendation && $teacherTitle === "") {
+        back_err("請填寫推薦人職稱。");
     }
 
     $pdo->beginTransaction();
+
+    $duplicateStmt = $pdo->prepare("
+        SELECT APNO
+        FROM application
+        WHERE STID = :stid AND SCID = :scid
+        LIMIT 1
+        FOR UPDATE
+    ");
+    $duplicateStmt->execute(array(
+        ":stid" => $studentId,
+        ":scid" => $scid,
+    ));
+    if ($duplicateStmt->fetchColumn()) {
+        throw new RuntimeException("你已經申請過這項獎學金，不可重複申請。");
+    }
 
     $insertApp = $pdo->prepare("
         INSERT INTO application
@@ -173,21 +244,32 @@ try {
         }
     }
 
+    custom_form_save_answers(
+        $pdo,
+        $customFields,
+        $apno,
+        $studentId,
+        $scid,
+        $scholarship["provider_id"]
+    );
+
     $recommendLink = "";
-    if ($teacherId !== "" || $recEmail !== "") {
+    if ($wantsRecommendation) {
         $token = bin2hex(random_bytes(32));
         $recommendLink = build_recommendation_url($token);
 
         $insertRec = $pdo->prepare("
             INSERT INTO recommendations
-                (content, draft_content, teacher_id, teacher_name, teacher_email, rec_rel, application_id, token, student_name, expires_at, status)
+                (content, draft_content, teacher_id, teacher_name, teacher_email, teacher_unit, teacher_title, rec_rel, application_id, token, student_name, expires_at, status)
             VALUES
-                (NULL, NULL, :teacher_id, :teacher_name, :teacher_email, :rec_rel, :application_id, :token, :student_name, DATE_ADD(NOW(), INTERVAL " . tar_auto_reject_deadline_sql() . " DAY), 'pending')
+                (NULL, NULL, :teacher_id, :teacher_name, :teacher_email, :teacher_unit, :teacher_title, :rec_rel, :application_id, :token, :student_name, DATE_ADD(NOW(), INTERVAL " . tar_auto_reject_deadline_sql() . " DAY), 'pending')
         ");
         $insertRec->execute(array(
             ":teacher_id" => $teacherId === "" ? null : $teacherId,
-            ":teacher_name" => $teacherName === "" ? "推薦教師" : $teacherName,
+            ":teacher_name" => $teacherName === "" ? "推薦人" : $teacherName,
             ":teacher_email" => $recEmail,
+            ":teacher_unit" => $teacherUnit === "" ? null : $teacherUnit,
+            ":teacher_title" => $teacherTitle === "" ? null : $teacherTitle,
             ":rec_rel" => $recRel === "" ? null : $recRel,
             ":application_id" => $apno,
             ":token" => $token,
@@ -198,15 +280,15 @@ try {
     $pdo->commit();
 
     if ($recommendLink !== "") {
-        $safeTeacher = htmlspecialchars($teacherName === "" ? "推薦教師" : $teacherName, ENT_QUOTES, "UTF-8");
+        $safeTeacher = htmlspecialchars($teacherName === "" ? "推薦人" : $teacherName, ENT_QUOTES, "UTF-8");
         $safeStudent = htmlspecialchars($studentName, ENT_QUOTES, "UTF-8");
         $safeLink = htmlspecialchars($recommendLink, ENT_QUOTES, "UTF-8");
         scholarship_send_mail(
             $recEmail,
-            $teacherName === "" ? "推薦教師" : $teacherName,
+            $teacherName === "" ? "推薦人" : $teacherName,
             "推薦信填寫邀請 - 學生 " . $studentName,
             scholarship_mail_html(array(
-                "敬愛的 {$safeTeacher} 老師您好：",
+                "敬愛的 {$safeTeacher} 您好：",
                 "",
                 "學生 <strong>{$safeStudent}</strong> 邀請您填寫獎助學金推薦信。",
                 "請點選以下連結完成推薦：",
@@ -217,11 +299,11 @@ try {
         );
     }
 
-    $query = "msg=" . urlencode("申請已送出，申請編號 APNO={$apno}。");
+    site_flash_add("申請已送出，申請編號 APNO={$apno}。", "success");
     if ($recommendLink !== "") {
-        $query .= "&recommend_link=" . urlencode($recommendLink);
+        $_SESSION["recommend_link"] = $recommendLink;
     }
-    header("Location: /scholarship/student/apply.php?" . $query);
+    header("Location: /scholarship/student/apply.php");
     exit;
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {

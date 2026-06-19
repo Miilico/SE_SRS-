@@ -2,16 +2,30 @@
 
 function table_has_column($pdo, $tableName, $columnName)
 {
-    $stmt = $pdo->prepare("SHOW COLUMNS FROM `$tableName` LIKE ?");
-    $stmt->execute(array($columnName));
-    return (bool)$stmt->fetch();
+    $stmt = $pdo->prepare("
+        SELECT 1
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+        LIMIT 1
+    ");
+    $stmt->execute(array((string)$tableName, (string)$columnName));
+    return (bool)$stmt->fetchColumn();
 }
 
 function table_has_index($pdo, $tableName, $indexName)
 {
-    $stmt = $pdo->prepare("SHOW INDEX FROM `$tableName` WHERE Key_name = ?");
-    $stmt->execute(array($indexName));
-    return (bool)$stmt->fetch();
+    $stmt = $pdo->prepare("
+        SELECT 1
+        FROM information_schema.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND INDEX_NAME = ?
+        LIMIT 1
+    ");
+    $stmt->execute(array((string)$tableName, (string)$indexName));
+    return (bool)$stmt->fetchColumn();
 }
 
 function ensure_application_files_table($pdo)
@@ -45,6 +59,21 @@ function ensure_application_files_table($pdo)
     }
 
     ensure_recommendations_table($pdo);
+}
+
+function ensure_teachers_table($pdo)
+{
+    if (!table_has_column($pdo, "teachers", "DNAME")) {
+        return;
+    }
+
+    if (!table_has_column($pdo, "teachers", "UNIT_NAME")) {
+        $pdo->exec("ALTER TABLE teachers ADD COLUMN UNIT_NAME varchar(100) NULL AFTER DNAME");
+    }
+
+    if (!table_has_column($pdo, "teachers", "JOB_TITLE")) {
+        $pdo->exec("ALTER TABLE teachers ADD COLUMN JOB_TITLE varchar(100) NULL AFTER UNIT_NAME");
+    }
 }
 
 function ensure_recommendations_table($pdo)
@@ -87,6 +116,14 @@ function ensure_recommendations_table($pdo)
         $pdo->exec("ALTER TABLE recommendations ADD COLUMN rejected_at datetime NULL AFTER rejected_source");
     }
 
+    if (!table_has_column($pdo, "recommendations", "teacher_unit")) {
+        $pdo->exec("ALTER TABLE recommendations ADD COLUMN teacher_unit varchar(100) NULL AFTER teacher_email");
+    }
+
+    if (!table_has_column($pdo, "recommendations", "teacher_title")) {
+        $pdo->exec("ALTER TABLE recommendations ADD COLUMN teacher_title varchar(100) NULL AFTER teacher_unit");
+    }
+
     if (!table_has_index($pdo, "recommendations", "uq_recommendations_application_id")) {
         $dupStmt = $pdo->query("
             SELECT application_id
@@ -106,6 +143,118 @@ function ensure_recommendations_table($pdo)
 function uploaded_file_view_url($fileId)
 {
     return "/scholarship/file_view.php?id=" . urlencode((string)$fileId);
+}
+
+function uploaded_file_preview_url($fileId)
+{
+    return "/scholarship/file_preview.php?id=" . urlencode((string)$fileId);
+}
+
+function uploaded_file_category_label($fileCategory)
+{
+    switch ((int)$fileCategory) {
+        case 1:
+            return "公告附件";
+        case 2:
+            return "申請者上傳";
+        case 3:
+            return "工單附件";
+        case 4:
+            return "導師推薦信";
+        default:
+            return "其他文件";
+    }
+}
+
+function uploaded_file_extension($file)
+{
+    $name = "";
+    if (!empty($file["original_name"])) {
+        $name = (string)$file["original_name"];
+    } elseif (!empty($file["stored_name"])) {
+        $name = (string)$file["stored_name"];
+    } elseif (!empty($file["file_path"])) {
+        $name = (string)$file["file_path"];
+    } elseif (!empty($file["path"])) {
+        $name = (string)$file["path"];
+    }
+
+    return strtolower((string)pathinfo($name, PATHINFO_EXTENSION));
+}
+
+function uploaded_file_preview_kind($file)
+{
+    $ext = uploaded_file_extension($file);
+    $mimeType = isset($file["mime_type"]) ? strtolower((string)$file["mime_type"]) : "";
+
+    if (strpos($mimeType, "image/") === 0 || in_array($ext, array("jpg", "jpeg", "png", "gif", "webp"))) {
+        return "image";
+    }
+
+    if ($mimeType === "application/pdf" || $ext === "pdf") {
+        return "pdf";
+    }
+
+    if ($ext === "docx") {
+        return "docx";
+    }
+
+    if ($ext === "doc") {
+        return "doc";
+    }
+
+    if (strpos($mimeType, "text/") === 0 || in_array($ext, array("txt", "csv"))) {
+        return "text";
+    }
+
+    return "download";
+}
+
+function uploaded_file_full_path($file)
+{
+    $baseDir = realpath(__DIR__ . DIRECTORY_SEPARATOR . "user_file");
+    $filePath = !empty($file["file_path"]) ? $file["file_path"] : (isset($file["path"]) ? $file["path"] : "");
+
+    if (!$baseDir || $filePath === "" || strpos($filePath, "://") !== false) {
+        return false;
+    }
+
+    $fullPath = realpath(__DIR__ . DIRECTORY_SEPARATOR . $filePath);
+    if (!$fullPath) {
+        return false;
+    }
+
+    $baseDirCheck = strtolower($baseDir . DIRECTORY_SEPARATOR);
+    $fullPathCheck = strtolower($fullPath);
+    if (strpos($fullPathCheck, $baseDirCheck) !== 0 || !is_file($fullPath)) {
+        return false;
+    }
+
+    return $fullPath;
+}
+
+function delete_uploaded_file_record($pdo, $fileId)
+{
+    ensure_application_files_table($pdo);
+
+    $stmt = $pdo->prepare("SELECT * FROM application_files WHERE id = ? LIMIT 1");
+    $stmt->execute(array((int)$fileId));
+    $file = $stmt->fetch();
+
+    if (!$file) {
+        return false;
+    }
+
+    $fullPath = uploaded_file_full_path($file);
+
+    $deleteStmt = $pdo->prepare("DELETE FROM application_files WHERE id = ?");
+    $deleteStmt->execute(array((int)$fileId));
+
+    if ($fullPath && is_file($fullPath)) {
+        @unlink($fullPath);
+    }
+
+    return true;
 }
 
 function normalize_uploaded_context($context)
@@ -258,6 +407,120 @@ function store_uploaded_file($pdo, $file, $fileType, $uploaderId, $context)
         "path" => $relativePath,
         "view_url" => uploaded_file_view_url($fileId),
     );
+}
+
+function normalize_uploaded_file_entries($files)
+{
+    if (empty($files) || !isset($files["name"])) {
+        return array();
+    }
+
+    if (!is_array($files["name"])) {
+        return array($files);
+    }
+
+    $entries = array();
+    foreach ($files["name"] as $index => $name) {
+        $entries[] = array(
+            "name" => $name,
+            "type" => isset($files["type"][$index]) ? $files["type"][$index] : "",
+            "tmp_name" => isset($files["tmp_name"][$index]) ? $files["tmp_name"][$index] : "",
+            "error" => isset($files["error"][$index]) ? $files["error"][$index] : UPLOAD_ERR_NO_FILE,
+            "size" => isset($files["size"][$index]) ? $files["size"][$index] : 0,
+        );
+    }
+
+    return $entries;
+}
+
+function store_uploaded_files($pdo, $files, $fileType, $uploaderId, $context)
+{
+    $savedFiles = array();
+
+    foreach (normalize_uploaded_file_entries($files) as $file) {
+        $error = isset($file["error"]) ? (int)$file["error"] : UPLOAD_ERR_NO_FILE;
+        if ($error === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+
+        $savedFiles[] = store_uploaded_file($pdo, $file, $fileType, $uploaderId, $context);
+    }
+
+    return $savedFiles;
+}
+
+function delete_uploaded_file($pdo, $fileId, $fileType, $contextColumn, $contextValue)
+{
+    ensure_application_files_table($pdo);
+
+    $allowedColumns = array(
+        "announcement_id" => true,
+        "application_id" => true,
+        "ticket_id" => true,
+        "recommendation_id" => true,
+    );
+    if (empty($allowedColumns[$contextColumn])) {
+        return false;
+    }
+
+    $sql = "SELECT * FROM application_files WHERE id = ? AND file_category = ? AND " . $contextColumn . " = ? LIMIT 1";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(array((int)$fileId, (int)$fileType, $contextValue));
+    $file = $stmt->fetch();
+
+    if (!$file) {
+        return false;
+    }
+
+    $filePath = !empty($file["file_path"]) ? $file["file_path"] : $file["path"];
+    $baseDir = realpath(__DIR__ . DIRECTORY_SEPARATOR . "user_file");
+    $fullPath = $filePath ? realpath(__DIR__ . DIRECTORY_SEPARATOR . $filePath) : false;
+
+    $deleteStmt = $pdo->prepare("DELETE FROM application_files WHERE id = ?");
+    $deleteStmt->execute(array((int)$fileId));
+
+    if ($baseDir && $fullPath && is_file($fullPath)) {
+        $baseDirCheck = strtolower($baseDir . DIRECTORY_SEPARATOR);
+        $fullPathCheck = strtolower($fullPath);
+
+        if (strpos($fullPathCheck, $baseDirCheck) === 0) {
+            $pathCountStmt = $pdo->prepare("
+                SELECT COUNT(*)
+                FROM application_files
+                WHERE id <> ? AND (file_path = ? OR path = ?)
+            ");
+            $pathCountStmt->execute(array((int)$fileId, $filePath, $filePath));
+
+            if ((int)$pathCountStmt->fetchColumn() === 0) {
+                @unlink($fullPath);
+            }
+        }
+    }
+
+    return true;
+}
+
+function delete_uploaded_files($pdo, $fileIds, $fileType, $contextColumn, $contextValue)
+{
+    if (!is_array($fileIds)) {
+        return 0;
+    }
+
+    $deleted = 0;
+    $seen = array();
+    foreach ($fileIds as $fileId) {
+        $fileId = (int)$fileId;
+        if ($fileId <= 0 || isset($seen[$fileId])) {
+            continue;
+        }
+
+        $seen[$fileId] = true;
+        if (delete_uploaded_file($pdo, $fileId, $fileType, $contextColumn, $contextValue)) {
+            $deleted++;
+        }
+    }
+
+    return $deleted;
 }
 
 function user_can_download_file($pdo, $file, $user)

@@ -2,13 +2,16 @@
 $adminHeaderBootstrapOnly = true;
 require __DIR__ . "/../header.php";
 unset($adminHeaderBootstrapOnly);
+require_once __DIR__ . "/../file_helpers.php";
+
+ensure_teachers_table($pdo);
 
 function account_form_role_name($role) {
     switch ((int)$role) {
         case 1:
             return "學生";
         case 2:
-            return "教師";
+            return "推薦人";
         case 4:
             return "獎助單位";
         default:
@@ -27,6 +30,8 @@ $account = [
     "SID" => "",
     "STUDENT_DEPT" => "",
     "TEACHER_DEPT" => "",
+    "TEACHER_UNIT" => "",
+    "TEACHER_TITLE" => "",
     "CONTACT" => "",
 ];
 $orgPhones = "";
@@ -35,7 +40,7 @@ $mode = "add";
 if ($id !== "") {
     $stmt = $pdo->prepare("SELECT u.ID, u.NAME, u.ROLE, u.TEL, u.EMAIL, u.status,
                                   s.SID, s.DNAME AS STUDENT_DEPT,
-                                  t.DNAME AS TEACHER_DEPT,
+                                  t.DNAME AS TEACHER_DEPT, t.UNIT_NAME AS TEACHER_UNIT, t.JOB_TITLE AS TEACHER_TITLE,
                                   o.CONTACT
                            FROM users u
                            LEFT JOIN students s ON u.ID = s.ID
@@ -46,8 +51,7 @@ if ($id !== "") {
     $found = $stmt->fetch();
 
     if (!$found) {
-        header("Location: account_management.php?msg=" . urlencode("修改的帳號不存在或不可管理"));
-        exit;
+        site_flash_redirect("account_management.php", "修改的帳號不存在或不可管理", "warning");
     }
 
     $account = array_merge($account, $found);
@@ -65,77 +69,103 @@ $activeNav = "account_management.php";
 ?>
 <?php require __DIR__ . "/../header.php"; ?>
 
-    <div class="form-container">
-        <h1 class="admin-page-title"><?php echo ($mode === "add") ? "新增帳號" : "修改帳號"; ?></h1>
-        <div class="admin-page-subtitle admin-form-lead">建立或更新學生、教師與獎助單位帳號資料。</div>
-        <form action="account_process.php" method="post">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-7">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4 p-md-5">
+        <h1 class="h3 fw-bold mb-1"><?php echo ($mode === "add") ? "新增帳號" : "修改帳號"; ?></h1>
+        <div class="text-secondary mb-4">建立或更新學生、推薦人與獎助單位帳號資料。</div>
+        <form action="account_process.php" method="post" class="vstack gap-3">
             <input type="hidden" name="mode" value="<?php echo htmlspecialchars($mode); ?>">
             <?php if ($mode === "edit"): ?>
                 <input type="hidden" name="role" value="<?php echo htmlspecialchars($account["ROLE"]); ?>">
             <?php endif; ?>
 
-            <div class="sub-title">基本帳號資訊</div>
-            <label>帳號 ID:</label>
-            <input type="text" name="id" value="<?php echo htmlspecialchars($account["ID"]); ?>" <?php echo ($mode === "edit") ? "readonly" : "required"; ?>>
+            <div class="border-start border-4 border-primary bg-body-tertiary px-3 py-2 fw-bold">基本帳號資訊</div>
+            <div>
+                <label class="form-label fw-semibold">帳號 ID: <?php if ($mode === "add"): ?><span class="text-danger" aria-label="必填">*</span><?php endif; ?></label>
+                <input class="form-control" type="text" name="id" value="<?php echo htmlspecialchars($account["ID"]); ?>" <?php echo ($mode === "edit") ? "readonly" : "required"; ?>>
+            </div>
 
-            <label>身分:</label>
+            <div>
+            <label class="form-label fw-semibold">身分: <?php if ($mode === "add"): ?><span class="text-danger" aria-label="必填">*</span><?php endif; ?></label>
             <?php if ($mode === "add"): ?>
-                <select name="role" id="accountRole" required>
+                <select class="form-select" name="role" id="accountRole" required>
                     <option value="1" <?php echo ((int)$account["ROLE"] === 1) ? "selected" : ""; ?>>學生</option>
-                    <option value="2" <?php echo ((int)$account["ROLE"] === 2) ? "selected" : ""; ?>>教師</option>
+                    <option value="2" <?php echo ((int)$account["ROLE"] === 2) ? "selected" : ""; ?>>推薦人</option>
                     <option value="4" <?php echo ((int)$account["ROLE"] === 4) ? "selected" : ""; ?>>獎助單位</option>
                 </select>
             <?php else: ?>
-                <input type="text" value="<?php echo htmlspecialchars(account_form_role_name($account["ROLE"])); ?>" readonly>
+                <input class="form-control" type="text" value="<?php echo htmlspecialchars(account_form_role_name($account["ROLE"])); ?>" readonly>
             <?php endif; ?>
+            </div>
 
-            <label>姓名 / 單位名稱:</label>
-            <input type="text" name="name" value="<?php echo htmlspecialchars($account["NAME"]); ?>" required>
+            <div>
+                <label class="form-label fw-semibold">姓名 / 單位名稱: <span class="text-danger" aria-label="必填">*</span></label>
+                <input class="form-control" type="text" name="name" value="<?php echo htmlspecialchars($account["NAME"]); ?>" required>
+            </div>
 
-            <label>登入密碼:</label>
-            <input type="password" name="pwd" <?php echo ($mode === "add") ? "required" : ""; ?> placeholder="<?php echo ($mode === "edit") ? "不修改請留空" : "至少 6 碼"; ?>">
+            <div>
+                <label class="form-label fw-semibold">登入密碼: <?php if ($mode === "add"): ?><span class="text-danger" aria-label="必填">*</span><?php endif; ?></label>
+                <input class="form-control" type="password" name="pwd" <?php echo ($mode === "add") ? "required" : ""; ?> placeholder="<?php echo ($mode === "edit") ? "不修改請留空" : "至少 6 碼"; ?>">
+            </div>
 
-            <label>電話:</label>
-            <input type="text" name="tel" value="<?php echo htmlspecialchars($account["TEL"]); ?>">
+            <div>
+                <label class="form-label fw-semibold">電話:</label>
+                <input class="form-control" type="text" name="tel" value="<?php echo htmlspecialchars($account["TEL"]); ?>">
+            </div>
 
-            <label>Email:</label>
-            <input type="email" name="email" value="<?php echo htmlspecialchars($account["EMAIL"]); ?>">
+            <div>
+                <label class="form-label fw-semibold">Email:</label>
+                <input class="form-control" type="email" name="email" value="<?php echo htmlspecialchars($account["EMAIL"]); ?>">
+            </div>
 
-            <label>帳號狀態:</label>
-            <select name="status">
+            <div>
+            <label class="form-label fw-semibold">帳號狀態:</label>
+            <select class="form-select" name="status">
                 <option value="active" <?php echo ($account["status"] === "active") ? "selected" : ""; ?>>active</option>
                 <option value="pending" <?php echo ($account["status"] === "pending") ? "selected" : ""; ?>>pending</option>
             </select>
+            </div>
 
-            <div class="sub-title" data-role-block="1">學生資料</div>
+            <div class="border-start border-4 border-primary bg-body-tertiary px-3 py-2 fw-bold" data-role-block="1">學生資料</div>
             <div data-role-block="1">
-                <label>學號:</label>
-                <input type="text" name="sid" value="<?php echo htmlspecialchars($account["SID"]); ?>" placeholder="未填時預設使用帳號 ID">
+                <label class="form-label fw-semibold">學號:</label>
+                <input class="form-control" type="text" name="sid" value="<?php echo htmlspecialchars($account["SID"]); ?>" placeholder="未填時預設使用帳號 ID">
 
-                <label>就讀系所:</label>
-                <input type="text" name="student_dept" value="<?php echo htmlspecialchars($account["STUDENT_DEPT"]); ?>">
+                <label class="form-label fw-semibold mt-3">就讀系所: <span class="text-danger" aria-label="必填">*</span></label>
+                <input class="form-control" type="text" name="student_dept" value="<?php echo htmlspecialchars($account["STUDENT_DEPT"]); ?>">
             </div>
 
-            <div class="sub-title" data-role-block="2">教師資料</div>
+            <div class="border-start border-4 border-primary bg-body-tertiary px-3 py-2 fw-bold" data-role-block="2">推薦人資料</div>
             <div data-role-block="2">
-                <label>所屬系所:</label>
-                <input type="text" name="teacher_dept" value="<?php echo htmlspecialchars($account["TEACHER_DEPT"]); ?>">
+                <label class="form-label fw-semibold">單位名稱: <span class="text-danger" aria-label="必填">*</span></label>
+                <input class="form-control" type="text" name="teacher_unit" value="<?php echo htmlspecialchars($account["TEACHER_UNIT"]); ?>" placeholder="例如：國立成功大學、XX科技股份有限公司">
+
+                <label class="form-label fw-semibold mt-3">職稱: <span class="text-danger" aria-label="必填">*</span></label>
+                <input class="form-control" type="text" name="teacher_title" value="<?php echo htmlspecialchars($account["TEACHER_TITLE"]); ?>" placeholder="例如：副教授、講師、高級工程師">
+
+                <label class="form-label fw-semibold mt-3">系所 / 部門:</label>
+                <input class="form-control" type="text" name="teacher_dept" value="<?php echo htmlspecialchars($account["TEACHER_DEPT"]); ?>">
             </div>
 
-            <div class="sub-title" data-role-block="4">獎助單位資料</div>
+            <div class="border-start border-4 border-primary bg-body-tertiary px-3 py-2 fw-bold" data-role-block="4">獎助單位資料</div>
             <div data-role-block="4">
-                <label>單位聯絡人姓名:</label>
-                <input type="text" name="contact_person" value="<?php echo htmlspecialchars($account["CONTACT"]); ?>">
+                <label class="form-label fw-semibold">單位聯絡人姓名: <span class="text-danger" aria-label="必填">*</span></label>
+                <input class="form-control" type="text" name="contact_person" value="<?php echo htmlspecialchars($account["CONTACT"]); ?>">
 
-                <label>單位電話（可多筆，請用逗號隔開）:</label>
-                <input type="text" name="org_phones" value="<?php echo htmlspecialchars($orgPhones); ?>" placeholder="例如: 02-123456, 0912345678">
+                <label class="form-label fw-semibold mt-3">單位電話（可多筆，請用逗號隔開）:</label>
+                <input class="form-control" type="text" name="org_phones" value="<?php echo htmlspecialchars($orgPhones); ?>" placeholder="例如: 02-123456, 0912345678">
             </div>
 
-            <div class="admin-actions admin-actions-bottom">
-                <button type="submit" class="btn">儲存送出</button>
-                <a href="account_management.php">取消返回</a>
+            <div class="d-flex flex-wrap align-items-center gap-2 pt-2">
+                <button type="submit" class="btn btn-primary">儲存送出</button>
+                <a href="account_management.php" class="btn btn-outline-secondary">取消</a>
             </div>
         </form>
+                </div>
+            </div>
+        </div>
     </div>
     <script>
         (function () {

@@ -1,11 +1,16 @@
 <?php
 require_once __DIR__ . "/config.php";
+require_once __DIR__ . "/department_options.php";
+require_once __DIR__ . "/file_helpers.php";
 
 $id = isset($_POST["id"]) ? trim($_POST["id"]) : "";
 $roleInput = isset($_POST["role"]) ? trim($_POST["role"]) : "";
 $role = (int)$roleInput;
 $name = isset($_POST["name"]) ? trim($_POST["name"]) : "";
 $dept = isset($_POST["dept"]) ? trim($_POST["dept"]) : "";
+$teacherDept = isset($_POST["teacher_dept"]) ? trim($_POST["teacher_dept"]) : "";
+$teacherUnit = isset($_POST["teacher_unit"]) ? trim($_POST["teacher_unit"]) : "";
+$teacherTitle = isset($_POST["teacher_title"]) ? trim($_POST["teacher_title"]) : "";
 $contactPerson = isset($_POST["contact_person"]) ? trim($_POST["contact_person"]) : "";
 $orgPhonesRaw = isset($_POST["org_phones"]) ? trim($_POST["org_phones"]) : "";
 $email = isset($_POST["email"]) ? trim($_POST["email"]) : "";
@@ -20,6 +25,9 @@ function register_old_input()
         "id" => isset($_POST["id"]) ? trim($_POST["id"]) : "",
         "name" => isset($_POST["name"]) ? trim($_POST["name"]) : "",
         "dept" => isset($_POST["dept"]) ? trim($_POST["dept"]) : "",
+        "teacher_dept" => isset($_POST["teacher_dept"]) ? trim($_POST["teacher_dept"]) : "",
+        "teacher_unit" => isset($_POST["teacher_unit"]) ? trim($_POST["teacher_unit"]) : "",
+        "teacher_title" => isset($_POST["teacher_title"]) ? trim($_POST["teacher_title"]) : "",
         "contact_person" => isset($_POST["contact_person"]) ? trim($_POST["contact_person"]) : "",
         "org_phones" => isset($_POST["org_phones"]) ? trim($_POST["org_phones"]) : "",
         "email" => isset($_POST["email"]) ? trim($_POST["email"]) : "",
@@ -31,8 +39,8 @@ function back_err($msg, $field)
 {
     $_SESSION["register_old"] = register_old_input();
     $_SESSION["register_error_field"] = $field;
-    header("Location: register.php?err=" . urlencode($msg));
-    exit;
+    $_SESSION["register_error_message"] = $msg;
+    site_flash_redirect("register.php", $msg, "danger");
 }
 
 function first_empty_required_field($id, $roleInput, $name, $email, $tel, $pwd, $pwd2)
@@ -47,29 +55,7 @@ function first_empty_required_field($id, $roleInput, $name, $email, $tel, $pwd, 
     return "id";
 }
 
-$validDepts = array(
-    "西洋語文學系",
-    "運動健康與休閒學系",
-    "東亞語文學系",
-    "運動競技學系",
-    "建築學系",
-    "工藝與創意設計學系",
-    "法律學系",
-    "政治法律學系",
-    "財經法律學系",
-    "應用經濟學系",
-    "亞太工商管理學系",
-    "財務金融學系",
-    "資訊管理學系",
-    "應用數學系",
-    "生命科學系",
-    "應用化學系",
-    "應用物理學系",
-    "電機工程學系",
-    "土木與環境工程學系",
-    "化材系",
-    "資訊工程學系",
-);
+$validDepts = scholarship_department_values();
 
 if ($id === "" || $roleInput === "" || $name === "" || $email === "" || $tel === "" || $pwd === "" || $pwd2 === "") {
     back_err("請完整填寫所有欄位。", first_empty_required_field($id, $roleInput, $name, $email, $tel, $pwd, $pwd2));
@@ -83,12 +69,20 @@ if (!in_array($role, array(1, 2, 4), true)) {
     back_err("身分不合法。", "role");
 }
 
-if (($role === 1 || $role === 2) && $dept === "") {
+if ($role === 1 && $dept === "") {
     back_err("請選擇科系。", "dept");
 }
 
-if (($role === 1 || $role === 2) && !in_array($dept, $validDepts, true)) {
+if ($role === 1 && !in_array($dept, $validDepts, true)) {
     back_err("請選擇有效的科系。", "dept");
+}
+
+if ($role === 2 && $teacherUnit === "") {
+    back_err("請填寫推薦人單位名稱。", "teacher_unit");
+}
+
+if ($role === 2 && $teacherTitle === "") {
+    back_err("請填寫推薦人職稱。", "teacher_title");
 }
 
 if ($role === 4 && $contactPerson === "") {
@@ -99,7 +93,7 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     back_err("Email 格式不正確。", "email");
 }
 
-if (($role === 1 || $role === 2) && !preg_match('/@mail\.nuk\.edu\.tw$/i', $email)) {
+if ($role === 1 && !preg_match('/@mail\.nuk\.edu\.tw$/i', $email)) {
     back_err("請使用學校信箱註冊。", "email");
 }
 
@@ -154,6 +148,8 @@ $hash = password_hash($pwd, PASSWORD_DEFAULT);
 $status = ($role === 4) ? "pending" : "active";
 
 try {
+    ensure_teachers_table($pdo);
+
     $pdo->beginTransaction();
 
     $stmt = $pdo->prepare("
@@ -168,8 +164,8 @@ try {
     }
 
     if ($role === 2) {
-        $stmt = $pdo->prepare("INSERT INTO teachers (ID, DNAME) VALUES (?, ?)");
-        $stmt->execute(array($id, $dept));
+        $stmt = $pdo->prepare("INSERT INTO teachers (ID, DNAME, UNIT_NAME, JOB_TITLE) VALUES (?, ?, ?, ?)");
+        $stmt->execute(array($id, $teacherDept, $teacherUnit, $teacherTitle));
     }
 
     if ($role === 4) {
@@ -196,5 +192,4 @@ $msg = ($role === 4)
     ? "註冊成功！請等待管理員審核後再登入。"
     : "註冊成功！請直接登入。";
 
-header("Location: login.php?msg=" . urlencode($msg));
-exit;
+site_flash_redirect("login.php", $msg, "success");

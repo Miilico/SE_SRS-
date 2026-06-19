@@ -2,13 +2,17 @@
 // browse_scholarships.php
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/../file_helpers.php";
 
 require_role(1);
 
 // 查詢尚未開始申請的獎學金
+$activeScholarshipSql = table_has_column($pdo, "scholarship", "is_active")
+    ? " AND is_active = 1"
+    : "";
 $stmt_not_started = $pdo->query("
     SELECT * FROM scholarship
-    WHERE start_date > CURDATE()
+    WHERE start_date > CURDATE()" . $activeScholarshipSql . "
     ORDER BY start_date ASC
 ");
 $not_started = $stmt_not_started->fetchAll(PDO::FETCH_ASSOC);
@@ -16,7 +20,7 @@ $not_started = $stmt_not_started->fetchAll(PDO::FETCH_ASSOC);
 // 查詢申請期限中的獎學金 
 $stmt_open = $pdo->query("
     SELECT * FROM scholarship
-    WHERE start_date <= CURDATE() AND deadline >= CURDATE()
+    WHERE start_date <= CURDATE() AND deadline >= CURDATE()" . $activeScholarshipSql . "
     ORDER BY deadline ASC
 ");
 $open = $stmt_open->fetchAll(PDO::FETCH_ASSOC);
@@ -93,9 +97,6 @@ require __DIR__ . "/../header.php";
             <?php endif; ?>
         </div>
     </div>
-
-<a href="student-dashboard.php" class="btn btn-outline-secondary mt-3">返回主頁</a>
-
 </main>
 </body>
 </html>

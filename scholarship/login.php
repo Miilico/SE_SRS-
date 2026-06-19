@@ -3,13 +3,15 @@ require_once __DIR__ . "/config.php";
 
 $pageTitle = "登入";
 $activeNav = "login.php";
-$siteHeaderMainClass = "auth-wrap";
-$siteHeaderStylesheets = array("/scholarship/assets/css/auth.css");
+$siteHeaderMainClass = "site-shell py-4";
+$siteHeaderBrandHref = "/";
 $breadcrumbs = array();
 require __DIR__ . "/header.php";
 ?>
-<div class="card auth-card">
-  <div class="auth-header p-4">
+<div class="row justify-content-center">
+<div class="col-12 col-sm-10 col-md-7 col-lg-5">
+<div class="card border-0 shadow-sm overflow-hidden">
+  <div class="card-header bg-white p-4">
     <div class="d-flex align-items-center justify-content-between">
       <div>
         <div class="text-muted small">Welcome back</div>
@@ -24,15 +26,15 @@ require __DIR__ . "/header.php";
   <div class="p-4">
     <form method="post" action="login_submit.php" class="vstack gap-3">
       <div>
-        <label class="form-label fw-semibold" for="id">使用者 ID</label>
+        <label class="form-label fw-semibold" for="id">使用者 ID <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control" id="id" name="id" maxlength="10" required placeholder="例如 A1234567" autocomplete="username">
       </div>
 
       <div>
-        <label class="form-label fw-semibold" for="pwd">密碼</label>
+        <label class="form-label fw-semibold" for="pwd">密碼 <span class="text-danger" aria-label="必填">*</span></label>
         <input class="form-control" id="pwd" type="password" name="pwd" maxlength="64" required placeholder="請輸入密碼" autocomplete="current-password">
         <div class="text-end mt-2">
-          <a href="forgot_password.php" class="small text-decoration-none">忘記密碼？</a>
+          <a href="forgot_password.php" class="small text-decoration-none">忘記使用者ID / 密碼？</a>
         </div>
       </div>
 
@@ -46,6 +48,8 @@ require __DIR__ . "/header.php";
       </div>
     </form>
   </div>
+</div>
+</div>
 </div>
 
 </main>

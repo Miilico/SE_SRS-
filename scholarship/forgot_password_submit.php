@@ -12,8 +12,7 @@ $email = isset($_POST["email"]) ? trim($_POST["email"]) : "";
 $genericMsg = "如果此 Email 有註冊帳號，密碼重設連結已送出。";
 
 if ($email === "" || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    header("Location: forgot_password.php?msg=" . urlencode($genericMsg));
-    exit;
+    site_flash_redirect("forgot_password.php", $genericMsg, "info");
 }
 
 ensure_password_resets_table($pdo);
@@ -38,12 +37,15 @@ if ($user) {
         $user["NAME"],
         "獎助學金系統密碼重設",
         scholarship_mail_html(array(
-            "{$safeName} 您好：",
+            "{$safeName}  您好：",
             "",
-            "請點選以下連結重設您的密碼，連結 30 分鐘內有效：",
+            "您的使用者 ID為：",
+            "{$user['ID']}",
+            "",
+            "如需重設密碼請於 30 分鐘內存取連結：",
             "<a href=\"{$safeUrl}\">{$safeUrl}</a>",
             "",
-            "如果您沒有申請重設密碼，請忽略此信。"
+            "如果您沒有申請找回使用者 ID/重設密碼，請忽略此信。"
         ))
     );
 
@@ -52,5 +54,4 @@ if ($user) {
     }
 }
 
-header("Location: forgot_password.php?msg=" . urlencode($genericMsg));
-exit;
+site_flash_redirect("forgot_password.php", $genericMsg, "info");
