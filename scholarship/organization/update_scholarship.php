@@ -64,7 +64,41 @@ try {
             }
         }
     }
-    
+    if (isset($_FILES['scholarship_attachment']) && $_FILES['scholarship_attachment']['error'] === UPLOAD_ERR_OK) {
+        $file_tmp  = $_FILES['scholarship_attachment']['tmp_name'];
+        $file_name = $_FILES['scholarship_attachment']['name'];
+        $file_size = $_FILES['scholarship_attachment']['size'];
+        $file_type = $_FILES['scholarship_attachment']['type'];
+        
+        $upload_dir = __DIR__ . '/../uploads/scholarships/';
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0777, true);
+        }
+        
+        $ext = pathinfo($file_name, PATHINFO_EXTENSION);
+        $stored_name = 'sc_' . $scholarship_id . '_' . time() . '_' . uniqid() . '.' . $ext;
+        $destination = $upload_dir . $stored_name;
+        
+        if (move_uploaded_file($file_tmp, $destination)) {
+            // 先刪除資料庫中舊的附件紀錄
+            $del_file_sql = "DELETE FROM scholarship_attachments WHERE scholarship_id = ?";
+            $pdo->prepare($del_file_sql)->execute([$scholarship_id]);
+            
+            // 寫入新附件紀錄
+            $file_sql = "INSERT INTO scholarship_attachments 
+                        (scholarship_id, original_name, stored_name, file_path, file_size, mime_type) 
+                        VALUES (?, ?, ?, ?, ?, ?)";
+            $file_stmt = $pdo->prepare($file_sql);
+            $file_stmt->execute([
+                $scholarship_id,
+                $file_name, 
+                $stored_name, 
+                '/scholarship/uploads/scholarships/' . $stored_name, 
+                $file_size,
+                $file_type
+            ]);
+        }
+    }
     $pdo->commit();
     header("Location: " . $redirect_url . "&success=1"); 
     exit; 

@@ -11,69 +11,72 @@ $error   = isset($_GET['error']) ? $_GET['error'] : '';
 $pageTitle = "新增獎助學金";
 $activeNav = "add_scholarship.php";
 $siteHeaderRequiredRole = 4;
-$siteHeaderMaxWidth = "760px";
 require __DIR__ . "/../header.php";
 ?>
 
-<div class="card border-0 shadow-sm">
-    <div class="card-body p-4 p-md-5">
-    <h1 class="h3 fw-bold mb-4">新增獎助學金</h1>
 
-    <form action="insert_scholarship.php" enctype="multipart/form-data" method="post" class="vstack gap-3">
-        <div>
-            <label class="form-label fw-semibold">獎助學金名稱</label>
-            <input class="form-control" type="text" name="scholarship_name" placeholder="請輸入獎助學金名稱" required>
-        </div>
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4 p-md-5">
+            <h1 class="h3 fw-bold mb-4">新增獎助學金</h1>
 
-        <div>
-            <label class="form-label fw-semibold">獎助金額</label>
-            <input class="form-control" type="number" name="amount" placeholder="請輸入獎助金額" required>
-        </div>
-
-        <div>
-            <label class="form-label fw-semibold">申請條件</label>
-            <textarea class="form-control" name="conditions" rows="4" placeholder="請輸入申請限制條件"></textarea>
-        </div>
-
-        <div>
-            <label class="form-label fw-semibold">申請開始日期</label>
-            <input class="form-control" type="date" name="start_date" required>
-        </div>
-
-        <div>
-            <label class="form-label fw-semibold">申請截止日期</label>
-            <input class="form-control" type="date" name="deadline" required>
-        </div>
-
-        <div class="card bg-light border-0 mb-4">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold mb-0">🛠️ 學生申請表單——自訂收集項目設定</h5>
-                    <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" id="btn-add-custom-field">
-                        ＋ 增加審查項目
-                    </button>
+            <form action="insert_scholarship.php" enctype="multipart/form-data" method="post" class="vstack gap-3">
+                <div>
+                    <label class="form-label fw-semibold">獎助學金名稱</label>
+                    <input class="form-control" type="text" name="scholarship_name" placeholder="請輸入獎助學金名稱" required>
                 </div>
-        
-            <div id="custom-fields-container" class="vstack gap-3">
-            </div>
-            
-            <div class="text-muted small mt-2">
-                💡 提示：您可以根據此獎學金的需求，要求學生填寫特定文字、數字或上傳相關證明文件（如：清寒證明 PDF）。
-            </div>
+
+                <div>
+                    <label class="form-label fw-semibold">獎助金額</label>
+                    <input class="form-control" type="number" name="amount" placeholder="請輸入獎助金額" required>
+                </div>
+
+                <div>
+                    <label class="form-label fw-semibold">申請條件</label>
+                    <textarea class="form-control" name="conditions" rows="4" placeholder="請輸入申請限制條件"></textarea>
+                </div>
+
+                <div>
+                    <label class="form-label fw-semibold">申請開始日期</label>
+                    <input class="form-control" type="date" name="start_date" required>
+                </div>
+
+                <div>
+                    <label class="form-label fw-semibold">申請截止日期</label>
+                    <input class="form-control" type="date" name="deadline" required>
+                </div>
+
+                <div class="card bg-light border-0 mb-4">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold mb-0">🛠️ 學生申請表單——自訂收集項目設定</h5>
+                            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" id="btn-add-custom-field">
+                                ＋ 增加審查項目
+                            </button>
+                        </div>
+                
+                    <div id="custom-fields-container" class="vstack gap-3">
+                    </div>
+                    
+                    <div class="text-muted small mt-2">
+                        💡 提示：您可以根據此獎學金的需求，要求學生填寫特定文字、數字或上傳相關證明文件（如：清寒證明 PDF）。
+                    </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label fw-semibold">上傳官方附件 (非必填)</label>
+                    <input class="form-control" type="file" name="scholarship_attachment" accept=".pdf,.doc,.docx,.zip">
+                    <div class="form-text">可上傳獎學金簡章、空白切結書或推薦信公版供學生下載 (限制 PDF/Word/ZIP)。</div>
+                </div>
+                <div class="d-flex flex-column flex-sm-row gap-2 pt-2">
+                    <button type="submit" class="btn btn-primary">新增獎助學金</button>
+                </div>
+            </form>
             </div>
         </div>
-        <div>
-            <label class="form-label fw-semibold">上傳官方附件 (非必填)</label>
-            <input class="form-control" type="file" name="scholarship_attachment" accept=".pdf,.doc,.docx,.zip">
-            <div class="form-text">可上傳獎學金簡章、空白切結書或推薦信公版供學生下載 (限制 PDF/Word/ZIP)。</div>
-        </div>
-        <div class="d-flex flex-column flex-sm-row gap-2 pt-2">
-            <button type="submit" class="btn btn-primary">新增獎助學金</button>
-        </div>
-    </form>
     </div>
 </div>
-
 <!-- Bootstrap Modal -->
 <div class="modal fade" id="msgModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">

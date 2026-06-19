@@ -19,15 +19,16 @@ if (!$provider_id) {
 // 取得選擇的 scholarship_id
 $selected_id = isset($_GET['scholarship_id']) ? $_GET['scholarship_id'] : 'all';
 
-// 依選擇篩選清單
 if ($selected_id === 'all') {
-    $sql = "SELECT id, NAME, DEADLINE, CONDI, AMOUNT, start_date 
+    // 🔽 這裡加上了 is_active
+    $sql = "SELECT id, NAME, DEADLINE, CONDI, AMOUNT, start_date, is_active 
             FROM scholarship 
             WHERE provider_id = ?";
     $stmt = $pdo->prepare($sql);
     $stmt->execute(array($provider_id));
 } else {
-    $sql = "SELECT id, NAME, DEADLINE, CONDI, AMOUNT, start_date 
+    // 🔽 這裡加上了 is_active
+    $sql = "SELECT id, NAME, DEADLINE, CONDI, AMOUNT, start_date, is_active 
             FROM scholarship 
             WHERE provider_id = ? AND id = ?";
     $stmt = $pdo->prepare($sql);
@@ -80,48 +81,89 @@ require __DIR__ . "/../header.php";
 <?php else: ?>
     <div class="row row-cols-1 row-cols-md-2 g-4">
         <?php foreach ($scholarships as $s): ?>
-            <?php
-            $today = date('Y-m-d');
-            if ($s['start_date'] > $today) {
-                $status = "尚未開始";
-            } elseif ($s['start_date'] <= $today && $s['DEADLINE'] >= $today) {
-                $status = "開放中";
-            } else {
-                $status = "已截止";
-            }
-            ?>
-            <div class="col">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <h5 class="card-title"><?php echo htmlspecialchars($s['NAME']); ?></h5>
-                        <p class="mb-1"><strong>開始日期：</strong> <?php echo htmlspecialchars($s['start_date']); ?></p>
-                        <p class="mb-1"><strong>截止日期：</strong> <?php echo htmlspecialchars($s['DEADLINE']); ?></p>
-                        <p class="mb-1"><strong>申請條件：</strong> <?php echo htmlspecialchars($s['CONDI']); ?></p>
-                        <p class="mb-1"><strong>金額：</strong> $<?php echo htmlspecialchars($s['AMOUNT']); ?></p>
-                        <p class="mb-2"><strong>狀態：</strong>
-                            <?= site_status_badge($status, "scholarship") ?>
-                        </p>
-                        
-                        <div class="d-flex gap-2 mt-3">
-                            <a href="edit_scholarship.php?id=<?php echo $s['id']; ?>" 
-                               class="btn btn-outline-secondary btn-sm w-50">
+    <?php
+    $today = date('Y-m-d');
+    
+    // 狀態判斷邏輯
+    if (isset($s['is_active']) && $s['is_active'] == 0) {
+        $status = "已強制關閉";
+    } elseif ($s['start_date'] > $today) {
+        $status = "尚未開始";
+    } elseif ($s['start_date'] <= $today && $s['DEADLINE'] >= $today) {
+        $status = "開放中";
+    } else {
+        $status = "已截止";
+    }
+    ?>
+    <div class="col">
+        <div class="card shadow-sm h-100 <?= (isset($s['is_active']) && $s['is_active'] == 0) ? 'bg-light' : '' ?> d-flex flex-column">
+            <div class="card-body d-flex flex-column">
+                
+                <div class="mb-3">
+                    <h5 class="card-title fw-bold text-primary mb-2"><?php echo htmlspecialchars($s['NAME']); ?></h5>
+                    <div>
+                        <?php if ($status === '已強制關閉'): ?>
+                            <span class="badge bg-danger text-white">手動關閉</span>
+                        <?php elseif ($status === '尚未開始'): ?>
+                            <span class="badge bg-warning text-dark">尚未開始</span>
+                        <?php elseif ($status === '開放中'): ?>
+                            <span class="badge bg-success">開放中</span>
+                        <?php else: ?>
+                            <span class="badge bg-secondary">已截止</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                
+                <div class="mb-3 text-secondary small">
+                    <p class="mb-1"><strong>開始日期：</strong> <?php echo htmlspecialchars($s['start_date']); ?></p>
+                    <p class="mb-1"><strong>截止日期：</strong> <?php echo htmlspecialchars($s['DEADLINE']); ?></p>
+                    <p class="mb-1"><strong>金額：</strong> <span class="text-danger fw-semibold">$<?php echo htmlspecialchars($s['AMOUNT']); ?></span></p>
+                    <p class="mb-0 text-truncate" title="<?php echo htmlspecialchars($s['CONDI']); ?>">
+                        <strong>申請條件：</strong> <?php echo htmlspecialchars($s['CONDI']); ?>
+                    </p>
+                </div>
+                
+                <div class="mt-auto border-top pt-3">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="edit_scholarship.php?id=<?php echo $s['id']; ?>" class="btn btn-outline-secondary btn-sm w-100">
                                 ✏️ 編輯
                             </a>
-                            <a href="view_applicants.php?provider_id=<?php echo urlencode($provider_id); ?>&scholarship_id=<?php echo $s['id']; ?>"
-                               class="btn btn-outline-primary btn-sm w-50">
-                                瀏覽申請資料
-                            </a>
-                            <a href="broadcast_scholarship.php?id=<?php echo $s['id']; ?>" 
-                            class="btn btn-info btn-sm w-100 text-white shadow-sm fw-semibold">
-                            📣 發送廣播通知
+                        </div>
+                        <div class="col-6">
+                            <a href="view_applicants.php?provider_id=<?php echo urlencode($provider_id); ?>&scholarship_id=<?php echo $s['id']; ?>" class="btn btn-outline-primary btn-sm w-100">
+                                📄 申請資料
                             </a>
                         </div>
                         
-                        
+                        <div class="col-6">
+                            <a href="broadcast_scholarship.php?id=<?php echo $s['id']; ?>" class="btn btn-info btn-sm w-100 text-white shadow-sm">
+                                📣 廣播通知
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <form action="change_scholarship_status.php" method="post" class="m-0 w-100">
+                                <input type="hidden" name="scholarship_id" value="<?= $s['id'] ?>">
+                                <?php if (!isset($s['is_active']) || $s['is_active'] == 1): ?>
+                                    <input type="hidden" name="target_status" value="0">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100" onclick="return confirm('確定要強制關閉此表單嗎？學生將無法繼續申請。');">
+                                        🛑 強制關閉
+                                    </button>
+                                <?php else: ?>
+                                    <input type="hidden" name="target_status" value="1">
+                                    <button type="submit" class="btn btn-sm btn-success w-100" onclick="return confirm('確定要重新開啟此表單嗎？');">
+                                        🟢 重新開啟
+                                    </button>
+                                <?php endif; ?>
+                            </form>
+                        </div>
                     </div>
                 </div>
+                
             </div>
-        <?php endforeach; ?>
+        </div>
+    </div>
+<?php endforeach; ?>
     </div>
 <?php endif; ?>
 
