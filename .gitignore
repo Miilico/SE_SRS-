@@ -2,3 +2,4 @@ scholarship/config.php
 scholarship/dev_db_tool.php
 .idea/
 php-server-*.log
+.vscode/
