@@ -2,6 +2,7 @@
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/../custom_form_helpers.php";
+require_once __DIR__ . "/../application_helpers.php";
 require_role(1);
 
 function h($value) {
@@ -29,7 +30,7 @@ if (!$app) {
     exit("找不到申請資料，或你沒有修改權限。");
 }
 
-if (in_array($app["RESULT"], array("通過", "不通過"), true)) {
+if (application_status_is_final($app["RESULT"])) {
     header("Location: application_detail.php?apno=" . $apno . "&err=" . urlencode("此申請已審核完成，不可修改。"));
     exit;
 }

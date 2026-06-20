@@ -2,6 +2,7 @@
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/../custom_form_helpers.php";
+require_once __DIR__ . "/../application_helpers.php";
 require_role(1);
 
 function h($value) {
@@ -36,6 +37,7 @@ $stmt = $pdo->prepare("
     SELECT id, file_type, original_name, path
     FROM application_files
     WHERE COALESCE(application_id, apno) = :apno
+      AND file_type IN ('autobi', 'support', 'supplement')
     ORDER BY id
 ");
 $stmt->execute(array(":apno" => $apno));
@@ -65,7 +67,7 @@ if (custom_form_tables_ready($pdo)) {
 }
 
 $status = $app["RESULT"];
-$canEdit = !in_array($status, array("通過", "不通過"), true);
+$canEdit = application_status_can_edit($status);
 $canSupplement = ($status === "需補件");
 
 $pageTitle = "申請詳細資料";
@@ -100,6 +102,13 @@ require __DIR__ . "/../header.php";
       <tr><th>審核狀態</th><td><span class="badge bg-secondary"><?= h($status) ?></span></td></tr>
       <tr><th>申請條件</th><td><?= nl2br(h($app["CONDI"])) ?></td></tr>
     </table>
+
+    <?php if (!empty($app["SUPPLEMENT_NOTE"])): ?>
+      <div class="alert alert-warning">
+        <div class="fw-semibold mb-1">補件要求</div>
+        <?= nl2br(h($app["SUPPLEMENT_NOTE"])) ?>
+      </div>
+    <?php endif; ?>
 
     <?php if (!empty($customAnswers)): ?>
       <h2 class="h5 fw-bold mt-4">獎助單位自訂申請資料</h2>

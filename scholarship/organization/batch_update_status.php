@@ -4,15 +4,22 @@ require_once "db.php";
 require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/scholarship_access.php";
 require_once __DIR__ . "/../mail_helpers.php"; // 引入寄信引擎
+require_once __DIR__ . "/../file_helpers.php";
 
 organization_require_scholarship_manager();
 
 $scholarship_id = $_POST['scholarship_id'] ?? null;
 $student_ids_raw = $_POST['student_ids'] ?? '';
 $new_status = $_POST['batch_status'] ?? '';
+$batch_reason = isset($_POST['batch_reason']) ? trim($_POST['batch_reason']) : '';
 
 if (!$scholarship_id || !$new_status || trim($student_ids_raw) === '') {
     header("Location: view_applicants.php?scholarship_id=" . urlencode($scholarship_id) . "&error=" . urlencode("請填寫完整的批次處理資料"));
+    exit;
+}
+
+if ($new_status === '需補件' && $batch_reason === '') {
+    header("Location: view_applicants.php?scholarship_id=" . urlencode($scholarship_id) . "&error=" . urlencode("批次要求補件時，請填寫具體補件原因"));
     exit;
 }
 
@@ -36,7 +43,10 @@ $success_count = 0;
 $mail_count = 0;
 
 // 3. 準備更新與撈取資料的 SQL (依據學號 STID 來更新)
-$update_sql = "UPDATE application SET RESULT = ? WHERE SCID = ? AND STID = ?";
+$hasSupplementNote = table_has_column($pdo, 'application', 'SUPPLEMENT_NOTE');
+$update_sql = $hasSupplementNote
+    ? "UPDATE application SET RESULT = ?, SUPPLEMENT_NOTE = ? WHERE SCID = ? AND STID = ?"
+    : "UPDATE application SET RESULT = ? WHERE SCID = ? AND STID = ?";
 $stmt_update = $pdo->prepare($update_sql);
 
 $info_sql = "SELECT EMAIL, NAME AS student_name FROM users WHERE ID = ?";
@@ -48,7 +58,13 @@ try {
     
     foreach ($student_ids as $stid) {
         // 執行更新
-        $stmt_update->execute([$new_status, $scholarship_id, $stid]);
+        $updateParams = array($new_status);
+        if ($hasSupplementNote) {
+            $updateParams[] = $new_status === '需補件' ? $batch_reason : null;
+        }
+        $updateParams[] = $scholarship_id;
+        $updateParams[] = $stid;
+        $stmt_update->execute($updateParams);
         
         // 若有確實更新到資料 (代表該學生有申請此獎學金且狀態改變)
         if ($stmt_update->rowCount() > 0) {
@@ -68,6 +84,7 @@ try {
                 
                 if ($new_status === '需補件') {
                     $htmlBody .= "<p>請您盡速登入系統完成補件作業，以免影響您的申請權益。</p>";
+                    $htmlBody .= "<p><strong>補件原因：</strong><br>" . nl2br(htmlspecialchars($batch_reason)) . "</p>";
                 } elseif ($new_status === '通過' || $new_status === '已獲獎') {
                     $htmlBody .= "<p>恭喜您通過審查！後續發放事宜將依單位公告為準。</p>";
                 } elseif ($new_status === '不通過' || $new_status === '未獲獎') {

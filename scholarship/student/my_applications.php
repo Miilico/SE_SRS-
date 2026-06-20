@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/../application_helpers.php";
 
 require_role(1);
 
@@ -34,7 +35,7 @@ $stmt->execute(array(":stid" => $stId));
 $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 function can_edit_application($result) {
-    return !in_array($result, array("通過", "不通過"), true);
+    return application_status_can_edit($result);
 }
 
 function can_upload_supplement($result) {

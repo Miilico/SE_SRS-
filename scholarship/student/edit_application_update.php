@@ -3,6 +3,7 @@ require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/../file_helpers.php";
 require_once __DIR__ . "/../custom_form_helpers.php";
+require_once __DIR__ . "/../application_helpers.php";
 require_role(1);
 
 function back_to_edit($apno, $message) {
@@ -63,7 +64,7 @@ try {
         throw new RuntimeException("找不到申請資料。");
     }
 
-    if (in_array($application["RESULT"], array("通過", "不通過"), true)) {
+    if (application_status_is_final($application["RESULT"])) {
         throw new RuntimeException("此申請已審核完成，不可修改。");
     }
 
@@ -91,7 +92,7 @@ try {
     ));
 
     $customFields = custom_form_fields_for_scholarship($pdo, $application["SCID"]);
-    custom_form_save_answers(
+    $replacedCustomFileIds = custom_form_save_answers(
         $pdo,
         $customFields,
         $apno,
@@ -102,6 +103,14 @@ try {
 
     $pdo->commit();
     unset($_SESSION["csrf_token"]);
+
+    foreach ($replacedCustomFileIds as $replacedFileId) {
+        try {
+            delete_uploaded_file_record($pdo, $replacedFileId);
+        } catch (Throwable $cleanupError) {
+            error_log("Unable to remove replaced custom file #" . $replacedFileId . ": " . $cleanupError->getMessage());
+        }
+    }
 
     header(
         "Location: /scholarship/student/application_detail.php?apno=" .
