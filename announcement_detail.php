@@ -9,7 +9,13 @@ function public_detail_h($value)
 
 function public_detail_category_label($category)
 {
-    return (int)$category === 1 ? "獎學金審查結果" : "獎學金公告";
+    if ((int)$category === 1) {
+        return "獎學金審查結果";
+    } else if ((int)$category === 2) {
+        return "獎助單位訊息";
+    } else {
+        return "獎學金公告";
+    }    
 }
 
 $id = isset($_GET["id"]) ? (int)$_GET["id"] : 0;

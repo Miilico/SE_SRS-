@@ -48,7 +48,9 @@ $sc_amount = htmlspecialchars($scholarship['AMOUNT']);
 $sc_deadline = htmlspecialchars($scholarship['DEADLINE']);
 $subject = "【新獎學金開放申請】" . $sc_name;
 
+//直接發送版
 foreach ($students as $student) {
+    
     if (!empty($student['EMAIL'])) {
         $toName = htmlspecialchars($student['NAME']);
         
@@ -63,19 +65,22 @@ foreach ($students as $student) {
 
         // 呼叫寄信引擎
         if (scholarship_send_mail($student['EMAIL'], $student['NAME'], $subject, $htmlBody)) {
-            $success_count++;
+                    $success_count++;
         }
-    }
+    } 
+}
+// 完成後導回清單並顯示成功數量
+header("Location: my_scholarships.php?broadcast_success=1&count=" . $success_count);
+exit;
 
-    /*
-    // 🔽 原本的即時寄信改為寫入 email_queue 的方式
-        // 準備隊列 INSERT 語法
+/*
+// 🔽 原本的即時寄信改為寫入 email_queue 的方式
+    // 準備隊列 INSERT 語法
     $insertQueue = $pdo->prepare("
         INSERT INTO email_queue (recipient_email, recipient_name, subject, body, status) 
         VALUES (?, ?, ?, ?, 'pending')
     ");
 
-    $success_count = 0;
 
     foreach ($students as $student) {
         if (!empty($student['EMAIL'])) {
@@ -99,10 +104,4 @@ foreach ($students as $student) {
     // 完成後導回清單並顯示「已加入排程」的數量 (瞬間跳轉，不會卡頓)
     header("Location: my_scholarships.php?broadcast_success=1&count=" . $success_count);
     exit;
-    
     */ 
-}
-
-// 完成後導回清單並顯示成功數量
-header("Location: my_scholarships.php?broadcast_success=1&count=" . $success_count);
-exit;
