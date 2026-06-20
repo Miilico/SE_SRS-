@@ -56,7 +56,11 @@ $teachers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
 $recommendLink = isset($_SESSION["recommend_link"]) ? $_SESSION["recommend_link"] : "";
+$recommendMailSent = array_key_exists("recommend_mail_sent", $_SESSION)
+    ? (bool)$_SESSION["recommend_mail_sent"]
+    : null;
 unset($_SESSION["recommend_link"]);
+unset($_SESSION["recommend_mail_sent"]);
 
 
 $pageTitle = "申請獎助學金";
@@ -78,15 +82,17 @@ require __DIR__ . "/../header.php";
     </div>
 
     <?php if ($recommendLink): ?>
-        <div class="alert alert-info mt-3 mb-0">
-            <!--<div class="fw-semibold">教授推薦連結（Demo 用）</div>-->
-            <div class="fw-semibold">已傳送推薦信連結至推薦人的信箱</div>
-            <!--<div class="small muted">把這個連結貼給教授，他不用註冊也能填推薦信。</div>-->
-            <!--<div class="mt-2">
-          <a href="<?= htmlspecialchars($recommendLink) ?>" target="_blank" class="text-decoration-none">
-            <?= htmlspecialchars($recommendLink) ?>
-          </a>
-        </div>-->
+        <div class="alert <?= $recommendMailSent ? "alert-success" : "alert-warning" ?> mt-3 mb-0">
+            <div class="fw-semibold">
+                <?= $recommendMailSent ? "推薦信連結已寄至推薦人信箱" : "推薦信 Email 未寄出，請將下方連結提供給推薦人" ?>
+            </div>
+            <?php if (!$recommendMailSent): ?>
+              <div class="mt-2 text-break">
+                <a href="<?= htmlspecialchars($recommendLink) ?>" target="_blank" rel="noopener">
+                  <?= htmlspecialchars($recommendLink) ?>
+                </a>
+              </div>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 </div>

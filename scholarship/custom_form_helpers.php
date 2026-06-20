@@ -184,10 +184,21 @@ function custom_form_uploaded_file($fieldId)
     );
 }
 
+function custom_form_file_id_from_answer($answerValue)
+{
+    $query = parse_url((string)$answerValue, PHP_URL_QUERY);
+    if (!$query) {
+        return null;
+    }
+
+    parse_str($query, $params);
+    return !empty($params["id"]) ? (int)$params["id"] : null;
+}
+
 function custom_form_save_answers($pdo, $fields, $applicationId, $studentId, $scholarshipId, $providerId)
 {
     if (empty($fields)) {
-        return;
+        return array();
     }
     if (!custom_form_table_exists($pdo, "application_custom_answers")) {
         throw new RuntimeException("Custom form migration has not been applied.");
@@ -209,6 +220,7 @@ function custom_form_save_answers($pdo, $fields, $applicationId, $studentId, $sc
     foreach ($existingStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         $existing[(int)$row["field_id"]] = $row;
     }
+    $replacedFileIds = array();
 
     if ($hasFileId) {
         $insertAnswer = $pdo->prepare("
@@ -246,6 +258,12 @@ function custom_form_save_answers($pdo, $fields, $applicationId, $studentId, $sc
             $hasUpload = $upload && (int)$upload["error"] !== UPLOAD_ERR_NO_FILE;
 
             if ($hasUpload) {
+                $oldFileId = null;
+                if (isset($existing[$fieldId])) {
+                    $oldFileId = !empty($existing[$fieldId]["file_id"])
+                        ? (int)$existing[$fieldId]["file_id"]
+                        : custom_form_file_id_from_answer($existing[$fieldId]["answer_value"]);
+                }
                 $saved = store_uploaded_file($pdo, $upload, 2, $studentId, array(
                     "application_id" => $applicationId,
                     "scholarship_id" => $scholarshipId,
@@ -256,6 +274,9 @@ function custom_form_save_answers($pdo, $fields, $applicationId, $studentId, $sc
                 ));
                 $answerValue = $saved["view_url"];
                 $fileId = (int)$saved["id"];
+                if ($oldFileId && $oldFileId !== $fileId) {
+                    $replacedFileIds[] = $oldFileId;
+                }
             } elseif (isset($existing[$fieldId])) {
                 $answerValue = (string)$existing[$fieldId]["answer_value"];
                 $fileId = !isset($existing[$fieldId]["file_id"]) || $existing[$fieldId]["file_id"] === null
@@ -284,4 +305,6 @@ function custom_form_save_answers($pdo, $fields, $applicationId, $studentId, $sc
             }
         }
     }
+
+    return array_values(array_unique(array_map("intval", $replacedFileIds)));
 }

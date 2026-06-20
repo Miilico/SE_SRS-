@@ -216,11 +216,12 @@ try {
 
     $pdo->commit();
 
+    $recommendMailSent = null;
     if ($recommendLink !== "") {
         $safeTeacher = htmlspecialchars($teacherName === "" ? "推薦人" : $teacherName, ENT_QUOTES, "UTF-8");
         $safeStudent = htmlspecialchars($studentName, ENT_QUOTES, "UTF-8");
         $safeLink = htmlspecialchars($recommendLink, ENT_QUOTES, "UTF-8");
-        scholarship_send_mail(
+        $recommendMailSent = scholarship_send_mail(
             $recEmail,
             $teacherName === "" ? "推薦人" : $teacherName,
             "推薦信填寫邀請 - 學生 " . $studentName,
@@ -239,6 +240,10 @@ try {
     site_flash_add("申請已送出，申請編號 APNO={$apno}。", "success");
     if ($recommendLink !== "") {
         $_SESSION["recommend_link"] = $recommendLink;
+        $_SESSION["recommend_mail_sent"] = (bool)$recommendMailSent;
+        if (!$recommendMailSent) {
+            site_flash_add("推薦信 Email 未寄出，請手動將推薦連結提供給推薦人。", "warning");
+        }
     }
     header("Location: /scholarship/student/apply.php");
     exit;
