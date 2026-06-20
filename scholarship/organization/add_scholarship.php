@@ -1,8 +1,12 @@
 <?php
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/scholarship_access.php";
 
-require_role(4);
+organization_require_scholarship_manager();
+
+$isAdmin = organization_is_admin();
+$providerOptions = $isAdmin ? organization_provider_options($pdo) : array();
 
 // 檢查是否有成功或錯誤訊息
 $success = isset($_GET['success']);
@@ -10,7 +14,7 @@ $error   = isset($_GET['error']) ? $_GET['error'] : '';
 
 $pageTitle = "新增獎助學金";
 $activeNav = "add_scholarship.php";
-$siteHeaderRequiredRole = 4;
+$siteHeaderRequiredRole = array(3, 4);
 require __DIR__ . "/../header.php";
 ?>
 
@@ -22,6 +26,21 @@ require __DIR__ . "/../header.php";
             <h1 class="h3 fw-bold mb-4">新增獎助學金</h1>
 
             <form action="insert_scholarship.php" enctype="multipart/form-data" method="post" class="vstack gap-3">
+                <?php if ($isAdmin): ?>
+                    <div>
+                        <label class="form-label fw-semibold">發布獎助單位</label>
+                        <select class="form-select" name="provider_id" required>
+                            <option value="" selected disabled>請選擇獎助單位</option>
+                            <?php foreach ($providerOptions as $provider): ?>
+                                <option value="<?php echo htmlspecialchars($provider["ID"]); ?>">
+                                    <?php echo htmlspecialchars($provider["provider_name"] . "（" . $provider["ID"] . "）"); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text">管理員新增時，獎助學金會掛在所選獎助單位名下。</div>
+                    </div>
+                <?php endif; ?>
+
                 <div>
                     <label class="form-label fw-semibold">獎助學金名稱</label>
                     <input class="form-control" type="text" name="scholarship_name" placeholder="請輸入獎助學金名稱" required>
@@ -55,12 +74,25 @@ require __DIR__ . "/../header.php";
                                 ＋ 增加審查項目
                             </button>
                         </div>
+
+                    <div class="mb-3">
+                        <div class="small fw-semibold text-secondary mb-2">建議欄位</div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="在學證明" data-type="file" data-required="1">在學證明</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="大學期間成績單" data-type="file" data-required="1">大學期間成績單</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="語言能力證明" data-type="file" data-required="0">語言能力證明</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="讀書計畫" data-type="file" data-required="1">讀書計畫</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="自傳" data-type="file" data-required="1">自傳</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="其他有利證明" data-type="file" data-required="0">其他有利證明</button>
+                        </div>
+                    </div>
                 
                     <div id="custom-fields-container" class="vstack gap-3">
                     </div>
                     
                     <div class="text-muted small mt-2">
                         💡 提示：您可以根據此獎學金的需求，要求學生填寫特定文字、數字或上傳相關證明文件（如：清寒證明 PDF）。
+                        GPA／成績、班排／系排與推薦信已是系統固定欄位，不需重複新增。
                     </div>
                     </div>
                 </div>
@@ -118,49 +150,6 @@ document.querySelector("form").addEventListener("submit", function(e) {
     }
 });
 
-// 動態計數器，用來產生唯一的 ID
-let fieldIdx = 0;
-
-document.getElementById('btn-add-custom-field').addEventListener('click', function() {
-    fieldIdx++;
-    const container = document.getElementById('custom-fields-container');
-    
-    // 建立新的一列項目
-    const row = document.createElement('div');
-    row.className = 'row g-2 align-items-center bg-white p-3 rounded border position-relative';
-    row.id = 'custom-field-row-' + fieldIdx;
-    
-    row.innerHTML = `
-        <div class="col-md-5">
-            <label class="form-label small text-secondary fw-semibold">項目名稱 (例如：多益成績單、清寒證明)</label>
-            <input type="text" name="custom_labels[]" class="form-control" placeholder="請輸入項目名稱" required>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label small text-secondary fw-semibold">欄位型態</label>
-            <select name="custom_types[]" class="form-select">
-                <option value="text">單行文字輸入框</option>
-                <option value="number">整數輸入框</option>
-                <option value="textarea">多行文字區塊</option>
-                <option value="file">檔案上傳 (限制 PDF/JPG/PNG 10MB 內)</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small text-secondary fw-semibold">是否必填</label>
-            <select name="custom_required[]" class="form-select">
-                <option value="1">必填</option>
-                <option value="0">選填</option>
-            </select>
-        </div>
-        <div class="col-md-1 text-end mt-4">
-            <button type="button" class="btn btn-outline-danger btn-sm" onclick="document.getElementById('custom-field-row-${fieldIdx}').remove()">
-                移除
-            </button>
-        </div>
-    `;
-    
-    container.appendChild(row);
-});
-
 // 顯示 Modal 提示
 document.addEventListener("DOMContentLoaded", function() {
     <?php if ($error || $success): ?>
@@ -171,6 +160,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 
 </script>
+<script src="/scholarship/organization/custom_field_builder.js"></script>
 
 </main>
 </body>

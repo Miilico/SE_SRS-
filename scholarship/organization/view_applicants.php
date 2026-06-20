@@ -3,25 +3,45 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
 require_once "db.php";
+require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/scholarship_access.php";
 // 若有需要引入其他 helper，請確保檔案存在。
 // require_once __DIR__ . "/../file_helpers.php";
 // ensure_application_files_table($pdo);
 
-// 1. 取得 provider_id
-if (isset($_SESSION['user']['id'])) {
-    $provider_id = $_SESSION['user']['id'];
-} else {
-    $provider_id = isset($_GET['provider_id']) ? $_GET['provider_id'] : null;
-}
+organization_require_scholarship_manager();
 
-if (!$provider_id) {
-    die("請先登入或在網址加上 provider_id 參數");
-}
+$isAdmin = organization_is_admin();
+$provider_id = $isAdmin ? (isset($_GET['provider_id']) ? $_GET['provider_id'] : null) : organization_current_user_id();
 
 // 2. 取得該單位所有的獎學金清單供下拉選單使用
-$sql = "SELECT id, NAME FROM scholarship WHERE provider_id = ?";
-$stmt = $pdo->prepare($sql);
-$stmt->execute(array($provider_id));
+if ($isAdmin) {
+    $providerName = organization_provider_display_expr();
+    if ($provider_id) {
+        if (!organization_validate_provider($pdo, $provider_id)) {
+            die("找不到該獎助單位。");
+        }
+        $sql = "SELECT s.id, s.NAME, s.provider_id, {$providerName} AS provider_name
+                FROM scholarship s
+                JOIN users u ON u.ID = s.provider_id AND u.ROLE = 4
+                LEFT JOIN organization o ON o.ID = s.provider_id
+                WHERE s.provider_id = ?
+                ORDER BY s.id DESC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute(array($provider_id));
+    } else {
+        $sql = "SELECT s.id, s.NAME, s.provider_id, {$providerName} AS provider_name
+                FROM scholarship s
+                JOIN users u ON u.ID = s.provider_id AND u.ROLE = 4
+                LEFT JOIN organization o ON o.ID = s.provider_id
+                ORDER BY provider_name ASC, s.NAME ASC, s.id ASC";
+        $stmt = $pdo->query($sql);
+    }
+} else {
+    $sql = "SELECT id, NAME, provider_id FROM scholarship WHERE provider_id = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(array($provider_id));
+}
 $scholarships = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // 3. 取得當前選擇的獎學金 ID
@@ -30,8 +50,17 @@ if ($scholarship_id == 0 && !empty($scholarships)) {
     $scholarship_id = $scholarships[0]['id'];
 }
 
+if ($scholarship_id && $isAdmin) {
+    $selectedScholarship = organization_fetch_managed_scholarship($pdo, $scholarship_id);
+    if (!$selectedScholarship) {
+        die("找不到該獎助學金或無權限。");
+    }
+    $provider_id = $selectedScholarship['provider_id'];
+}
+
 $rows = array();
 $custom_fields = [];
+$supplementFilesByApplication = array();
 
 // 4. 若有選擇獎學金，撈取該獎學金的申請資料與自訂欄位題目
 if ($scholarship_id) {
@@ -51,11 +80,34 @@ if ($scholarship_id) {
     $stmt_fields = $pdo->prepare($sql_fields);
     $stmt_fields->execute([$scholarship_id]);
     $custom_fields = $stmt_fields->fetchAll(PDO::FETCH_ASSOC);
+
+    if (!empty($rows)) {
+        $applicationIds = array_map(function ($row) {
+            return (int)$row['app_id'];
+        }, $rows);
+        $placeholders = implode(',', array_fill(0, count($applicationIds), '?'));
+        $supplementStmt = $pdo->prepare("
+            SELECT COALESCE(application_id, apno) AS app_id, id, original_name, path, created_at
+            FROM application_files
+            WHERE COALESCE(application_id, apno) IN (" . $placeholders . ")
+              AND file_type = 'supplement'
+            ORDER BY created_at ASC, id ASC
+        ");
+        $supplementStmt->execute($applicationIds);
+        foreach ($supplementStmt->fetchAll(PDO::FETCH_ASSOC) as $supplementFile) {
+            $fileApplicationId = (int)$supplementFile['app_id'];
+            if (!isset($supplementFilesByApplication[$fileApplicationId])) {
+                $supplementFilesByApplication[$fileApplicationId] = array();
+            }
+            $supplementFilesByApplication[$fileApplicationId][] = $supplementFile;
+        }
+    }
 }
 
 $pageTitle = "申請資料";
 $activeNav = "view_applicants.php";
 $siteHeaderMaxWidth = "1000px"; // 讓畫面寬一點較好閱讀
+$siteHeaderRequiredRole = array(3, 4);
 require __DIR__ . "/../header.php";
 ?>
 
@@ -64,14 +116,14 @@ require __DIR__ . "/../header.php";
     
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
         <form method="get" action="view_applicants.php" class="d-flex gap-2 align-items-center">
-            <?php if (isset($_GET['provider_id'])): ?>
-                <input type="hidden" name="provider_id" value="<?php echo htmlspecialchars($_GET['provider_id']); ?>">
+            <?php if ($provider_id): ?>
+                <input type="hidden" name="provider_id" value="<?php echo htmlspecialchars($provider_id); ?>">
             <?php endif; ?>
             <label for="scholarship_id" class="form-label mb-0 fw-semibold text-nowrap">選擇獎助學金：</label>
             <select name="scholarship_id" id="scholarship_id" class="form-select w-auto" onchange="this.form.submit()">
                 <?php foreach ($scholarships as $s): ?>
                     <option value="<?php echo $s['id']; ?>" <?php echo $s['id'] == $scholarship_id ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($s['NAME']); ?>
+                        <?php echo htmlspecialchars($isAdmin && isset($s['provider_name']) ? ($s['provider_name'] . " - " . $s['NAME']) : $s['NAME']); ?>
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -194,6 +246,26 @@ require __DIR__ . "/../header.php";
                                 ?>
                             </div>
 
+                            <?php $rowSupplementFiles = isset($supplementFilesByApplication[(int)$row['app_id']]) ? $supplementFilesByApplication[(int)$row['app_id']] : array(); ?>
+                            <?php if (!empty($rowSupplementFiles)): ?>
+                                <div class="mt-3 border-top pt-3">
+                                    <h6 class="fw-bold text-warning-emphasis mb-3">學生補件</h6>
+                                    <div class="list-group">
+                                        <?php foreach ($rowSupplementFiles as $supplementFile): ?>
+                                            <div class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                                                <div>
+                                                    <div class="fw-semibold"><?= htmlspecialchars($supplementFile['original_name']) ?></div>
+                                                    <div class="small text-secondary"><?= htmlspecialchars($supplementFile['created_at']) ?></div>
+                                                </div>
+                                                <a class="btn btn-sm btn-outline-primary"
+                                                   href="<?= htmlspecialchars($supplementFile['path']) ?>"
+                                                   target="_blank" rel="noopener">查看</a>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+
                             <div class="mt-4 p-3 bg-light rounded">
                                 <form action="review_application.php" method="post" class="d-flex flex-column gap-2 mb-0">
                                     <div class="d-flex flex-column flex-sm-row gap-2 align-items-sm-center">
@@ -202,7 +274,7 @@ require __DIR__ . "/../header.php";
                                         <input type="hidden" name="provider_id" value="<?php echo htmlspecialchars($provider_id ?? ''); ?>">
                                         
                                         <label class="mb-0 fw-semibold text-nowrap">更新狀態：</label>
-                                        <select name="status" class="form-select w-auto" onchange="this.parentElement.nextElementSibling.style.display = (this.value === '需補件') ? 'block' : 'none';">
+                                        <select name="status" class="form-select w-auto" onchange="var box=this.parentElement.nextElementSibling; var needed=this.value === '需補件'; box.style.display=needed ? 'block' : 'none'; box.querySelector('input').required=needed;">
                                             <option value="審查中" <?= $row['RESULT'] === '審查中' ? 'selected' : '' ?>>維持審查中</option>
                                             <option value="通過" <?= $row['RESULT'] === '通過' ? 'selected' : '' ?>>通過</option>
                                             <option value="不通過" <?= $row['RESULT'] === '不通過' ? 'selected' : '' ?>>不通過</option>
@@ -240,13 +312,18 @@ require __DIR__ . "/../header.php";
               
               <div class="mb-3">
                   <label class="form-label fw-semibold">目標狀態</label>
-                  <select name="batch_status" class="form-select" required>
+                  <select name="batch_status" class="form-select" required onchange="var box=document.getElementById('batch-reason-box'); var needed=this.value === '需補件'; box.classList.toggle('d-none', !needed); box.querySelector('textarea').required=needed;">
                       <option value="" disabled selected>請選擇要變更為哪種狀態...</option>
                       <option value="通過">通過</option>
                       <option value="不通過">不通過</option>
                       <option value="需補件">需補件</option>
 
                   </select>
+              </div>
+
+              <div class="mb-3 d-none" id="batch-reason-box">
+                  <label class="form-label fw-semibold">補件原因</label>
+                  <textarea name="batch_reason" class="form-control" rows="3" placeholder="請具體說明學生需要補交的資料"></textarea>
               </div>
               
               <div class="mb-3">

@@ -3,6 +3,7 @@ require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/../file_helpers.php";
 require_once __DIR__ . "/../custom_form_helpers.php";
+require_once __DIR__ . "/../application_helpers.php";
 require_role(1);
 
 function back_to_edit($apno, $message) {
@@ -27,9 +28,6 @@ $rank = isset($_POST["rank"]) ? trim($_POST["rank"]) : "";
 $teacherEmail = isset($_POST["teacher_email"]) ? trim($_POST["teacher_email"]) : "";
 $recRel = isset($_POST["rec_rel"]) ? trim($_POST["rec_rel"]) : "";
 $csrfToken = isset($_POST["csrf_token"]) ? $_POST["csrf_token"] : "";
-$deleteFileIds = isset($_POST["delete_file_ids"]) && is_array($_POST["delete_file_ids"])
-    ? $_POST["delete_file_ids"]
-    : array();
 
 if (
     empty($_SESSION["csrf_token"]) ||
@@ -46,7 +44,7 @@ if ($grade !== "" && (!is_numeric($grade) || $grade < 0 || $grade > 100)) {
     back_to_edit($apno, "成績必須介於 0 到 100。");
 }
 
-if (!filter_var($teacherEmail, FILTER_VALIDATE_EMAIL)) {
+if ($teacherEmail !== "" && !filter_var($teacherEmail, FILTER_VALIDATE_EMAIL)) {
     back_to_edit($apno, "推薦教師 Email 格式不正確。");
 }
 
@@ -66,7 +64,7 @@ try {
         throw new RuntimeException("找不到申請資料。");
     }
 
-    if (in_array($application["RESULT"], array("通過", "不通過"), true)) {
+    if (application_status_is_final($application["RESULT"])) {
         throw new RuntimeException("此申請已審核完成，不可修改。");
     }
 
@@ -82,50 +80,6 @@ try {
         ":stid" => $stId
     ));
 
-    if (
-        !empty($_FILES["AUTOBI_FILE"]) &&
-        isset($_FILES["AUTOBI_FILE"]["error"]) &&
-        $_FILES["AUTOBI_FILE"]["error"] !== UPLOAD_ERR_NO_FILE
-    ) {
-        $oldAutobiStmt = $pdo->prepare("
-            SELECT id
-            FROM application_files
-            WHERE COALESCE(application_id, apno) = ?
-              AND file_type = 'autobi'
-        ");
-        $oldAutobiStmt->execute(array($apno));
-        $oldAutobiFileIds = $oldAutobiStmt->fetchAll(PDO::FETCH_COLUMN);
-
-        $saved = store_uploaded_file(
-            $pdo,
-            $_FILES["AUTOBI_FILE"],
-            2,
-            $stId,
-            array(
-                "application_id" => $apno,
-                "scholarship_id" => $application["SCID"],
-                "scholarship_provider_id" => $application["OID"],
-                "file_subtype" => "autobi",
-                "allowed_ext" => array("pdf", "doc", "docx"),
-                "max_size" => 10 * 1024 * 1024
-            )
-        );
-
-        $stmt = $pdo->prepare("
-            UPDATE application
-            SET AUTOBI = :path
-            WHERE APNO = :apno AND STID = :stid
-        ");
-
-        $stmt->execute(array(
-            ":path" => $saved["view_url"],
-            ":apno" => $apno,
-            ":stid" => $stId
-        ));
-
-        delete_uploaded_files($pdo, $oldAutobiFileIds, 2, "application_id", $apno);
-    }
-
     $stmt = $pdo->prepare("
         UPDATE recommendations
         SET teacher_email = :email, rec_rel = :rec_rel
@@ -137,47 +91,8 @@ try {
         ":apno" => $apno
     ));
 
-    if (
-        !empty($_FILES["OTHER_FILES"]) &&
-        is_array($_FILES["OTHER_FILES"]["name"])
-    ) {
-        $count = count($_FILES["OTHER_FILES"]["name"]);
-
-        for ($i = 0; $i < $count; $i++) {
-            if ($_FILES["OTHER_FILES"]["error"][$i] === UPLOAD_ERR_NO_FILE) {
-                continue;
-            }
-
-            $file = array(
-                "name" => $_FILES["OTHER_FILES"]["name"][$i],
-                "type" => $_FILES["OTHER_FILES"]["type"][$i],
-                "tmp_name" => $_FILES["OTHER_FILES"]["tmp_name"][$i],
-                "error" => $_FILES["OTHER_FILES"]["error"][$i],
-                "size" => $_FILES["OTHER_FILES"]["size"][$i]
-            );
-
-            store_uploaded_file(
-                $pdo,
-                $file,
-                2,
-                $stId,
-                array(
-                    "application_id" => $apno,
-                    "scholarship_id" => $application["SCID"],
-                    "scholarship_provider_id" => $application["OID"],
-                    "file_subtype" => "support",
-                    "allowed_ext" => array(
-                        "pdf", "doc", "docx",
-                        "jpg", "jpeg", "png"
-                    ),
-                    "max_size" => 10 * 1024 * 1024
-                )
-            );
-        }
-    }
-
     $customFields = custom_form_fields_for_scholarship($pdo, $application["SCID"]);
-    custom_form_save_answers(
+    $replacedCustomFileIds = custom_form_save_answers(
         $pdo,
         $customFields,
         $apno,
@@ -186,21 +101,16 @@ try {
         $application["OID"]
     );
 
-    $supportFileStmt = $pdo->prepare("
-        SELECT id
-        FROM application_files
-        WHERE COALESCE(application_id, apno) = ?
-          AND file_category = 2
-          AND file_type = 'support'
-    ");
-    $supportFileStmt->execute(array($apno));
-    $supportFileIds = array_map("intval", $supportFileStmt->fetchAll(PDO::FETCH_COLUMN));
-    $requestedDeleteIds = array_map("intval", $deleteFileIds);
-    $allowedDeleteIds = array_values(array_intersect($requestedDeleteIds, $supportFileIds));
-    delete_uploaded_files($pdo, $allowedDeleteIds, 2, "application_id", $apno);
-
     $pdo->commit();
     unset($_SESSION["csrf_token"]);
+
+    foreach ($replacedCustomFileIds as $replacedFileId) {
+        try {
+            delete_uploaded_file_record($pdo, $replacedFileId);
+        } catch (Throwable $cleanupError) {
+            error_log("Unable to remove replaced custom file #" . $replacedFileId . ": " . $cleanupError->getMessage());
+        }
+    }
 
     header(
         "Location: /scholarship/student/application_detail.php?apno=" .

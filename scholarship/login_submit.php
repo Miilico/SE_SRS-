@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . "/config.php";
+require_once __DIR__ . "/login_helpers.php";
 
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
@@ -24,6 +25,7 @@ $sql = "
     NAME AS name,
     ROLE AS role,
     PWD AS pwd,
+    EMAIL AS email,
     STATUS AS status
   FROM users 
   WHERE ID = :id
@@ -49,32 +51,34 @@ if ((!isset($u["status"]) || $u["status"] !== "active")) {
     site_flash_redirect("login.php", "此帳號尚未啟用（請等待管理員審核）", "warning");
 }
 
+$emailVerificationRequired = login_email_verification_is_enabled($pdo, $u["id"]);
+$totpVerificationRequired = login_totp_verification_is_enabled($pdo, $u["id"]);
 
-session_regenerate_id(true);
+if ($emailVerificationRequired || $totpVerificationRequired) {
+  if ($emailVerificationRequired && !login_send_email_code($pdo, $u)) {
+    site_flash_redirect("login.php", "登入驗證碼寄送失敗，請確認 Email 或稍後再試。", "danger");
+  }
 
-// ✅ session 統一用小寫 key（之後判斷也比較不會混亂）
-$_SESSION["user"] = [
-  "id" => $u["id"],
-  "name" => $u["name"],
-  "role" => (int)$u["role"],
-  "status" => $u["status"]
-];
+  unset($_SESSION["user"]);
+  session_regenerate_id(true);
+  $_SESSION["pending_login_user_id"] = $u["id"];
+  $_SESSION["pending_login_requires_email"] = $emailVerificationRequired ? 1 : 0;
+  $_SESSION["pending_login_requires_totp"] = $totpVerificationRequired ? 1 : 0;
 
-// 如果是學生，查 students 表，存對應的 ID 
-if ((int)$u["role"] === 1) { 
-  $stmt = $pdo->prepare("SELECT ID FROM students WHERE SID = :sid"); 
-  $stmt->execute([":sid" => $u["id"]]); // SID = 學號 (等於 users.id) 
-  $student = $stmt->fetch(PDO::FETCH_ASSOC); 
-  if ($student) { 
-    $_SESSION["user"]["stid"] = $student["ID"]; // 學生表主鍵 ID 
-  } //else { // 沒找到學生資料，視情況要不要丟錯或提示 $_SESSION["user"]["stid"] = null; } }
+  if ($emailVerificationRequired) {
+    $_SESSION["pending_login_email"] = login_mask_email($u["email"]);
+  }
+
+  if ($emailVerificationRequired && $totpVerificationRequired) {
+    site_flash_redirect("login.php", "請輸入 Email 驗證碼與 TOTP 驗證碼完成登入。", "info");
+  } elseif ($emailVerificationRequired) {
+    site_flash_redirect("login.php", "驗證碼已寄出，請於 10 分鐘內輸入。", "info");
+  }
+
+  site_flash_redirect("login.php", "請輸入 TOTP 驗證碼完成登入。", "info");
 }
-// 依角色導向
-if ((int)$u["role"] === 3) {
-  header("Location: /scholarship/admin/admin_dashboard.php");
-} else {
-  header("Location: /scholarship/index.php");
-}
-exit;
+
+login_store_user_session($pdo, $u);
+login_redirect_after_success($u["role"]);
 
 ?>

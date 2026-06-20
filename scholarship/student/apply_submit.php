@@ -23,23 +23,6 @@ function selected_post($key, $default = "")
     return isset($_POST[$key]) ? trim($_POST[$key]) : $default;
 }
 
-function save_application_upload($pdo, $file, $uploaderId, $apno, $scid, $providerId, $fileSubtype, $allowExt)
-{
-    $saved = store_uploaded_file($pdo, $file, 2, $uploaderId, array(
-        "application_id" => $apno,
-        "scholarship_id" => $scid,
-        "scholarship_provider_id" => $providerId,
-        "file_subtype" => $fileSubtype,
-        "allowed_ext" => $allowExt
-    ));
-
-    return array(
-        "original" => $saved["original_name"],
-        "path_url" => $saved["view_url"],
-        "file_id" => $saved["id"]
-    );
-}
-
 function build_recommendation_url($token)
 {
     $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : "127.0.0.1";
@@ -85,10 +68,6 @@ if ($wantsRecommendation && $teacherId === "" && $recUnit === "") {
 
 if ($wantsRecommendation && $teacherId === "" && $recTitle === "") {
     back_err("請填寫推薦人職稱。");
-}
-
-if (empty($_FILES["AUTOBI_FILE"]) || $_FILES["AUTOBI_FILE"]["error"] === UPLOAD_ERR_NO_FILE) {
-    back_err("請上傳自傳檔案。");
 }
 
 try {
@@ -202,48 +181,6 @@ try {
         throw new RuntimeException("無法建立申請資料。");
     }
 
-    $autobi = save_application_upload(
-        $pdo,
-        $_FILES["AUTOBI_FILE"],
-        $studentId,
-        $apno,
-        $scid,
-        $scholarship["provider_id"],
-        "autobi",
-        array("pdf", "doc", "docx")
-    );
-
-    $updateAutobi = $pdo->prepare("UPDATE application SET AUTOBI = ? WHERE APNO = ?");
-    $updateAutobi->execute(array($autobi["path_url"], $apno));
-
-    if (!empty($_FILES["OTHER_FILES"]) && is_array($_FILES["OTHER_FILES"]["name"])) {
-        $names = $_FILES["OTHER_FILES"]["name"];
-        for ($i = 0; $i < count($names); $i++) {
-            if ($_FILES["OTHER_FILES"]["error"][$i] === UPLOAD_ERR_NO_FILE) {
-                continue;
-            }
-
-            $oneFile = array(
-                "name" => $_FILES["OTHER_FILES"]["name"][$i],
-                "type" => $_FILES["OTHER_FILES"]["type"][$i],
-                "tmp_name" => $_FILES["OTHER_FILES"]["tmp_name"][$i],
-                "error" => $_FILES["OTHER_FILES"]["error"][$i],
-                "size" => $_FILES["OTHER_FILES"]["size"][$i],
-            );
-
-            save_application_upload(
-                $pdo,
-                $oneFile,
-                $studentId,
-                $apno,
-                $scid,
-                $scholarship["provider_id"],
-                "support",
-                array("pdf", "doc", "docx", "jpg", "jpeg", "png")
-            );
-        }
-    }
-
     custom_form_save_answers(
         $pdo,
         $customFields,
@@ -279,11 +216,12 @@ try {
 
     $pdo->commit();
 
+    $recommendMailSent = null;
     if ($recommendLink !== "") {
         $safeTeacher = htmlspecialchars($teacherName === "" ? "推薦人" : $teacherName, ENT_QUOTES, "UTF-8");
         $safeStudent = htmlspecialchars($studentName, ENT_QUOTES, "UTF-8");
         $safeLink = htmlspecialchars($recommendLink, ENT_QUOTES, "UTF-8");
-        scholarship_send_mail(
+        $recommendMailSent = scholarship_send_mail(
             $recEmail,
             $teacherName === "" ? "推薦人" : $teacherName,
             "推薦信填寫邀請 - 學生 " . $studentName,
@@ -302,6 +240,10 @@ try {
     site_flash_add("申請已送出，申請編號 APNO={$apno}。", "success");
     if ($recommendLink !== "") {
         $_SESSION["recommend_link"] = $recommendLink;
+        $_SESSION["recommend_mail_sent"] = (bool)$recommendMailSent;
+        if (!$recommendMailSent) {
+            site_flash_add("推薦信 Email 未寄出，請手動將推薦連結提供給推薦人。", "warning");
+        }
     }
     header("Location: /scholarship/student/apply.php");
     exit;

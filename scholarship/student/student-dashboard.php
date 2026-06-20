@@ -2,6 +2,7 @@
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/../recommendation_helpers.php";
+require_once __DIR__ . "/../file_helpers.php";
 
 require_role(1);
 
@@ -37,7 +38,7 @@ $approvedThisYearStmt = $pdo->prepare("
     SELECT COUNT(*)
     FROM application
     WHERE STID = :student_id
-      AND RESULT = '通過'
+      AND RESULT IN ('通過', '已獲獎')
       AND YEAR(APDATE) = YEAR(CURDATE())
 ");
 $approvedThisYearStmt->execute(array(":student_id" => $studentId));
@@ -46,7 +47,7 @@ $approvedThisYear = (int)$approvedThisYearStmt->fetchColumn();
 $paidStmt = $pdo->prepare("
     SELECT IFNULL(SUM(AMOUNT), 0)
     FROM application
-    WHERE STID = :student_id AND RESULT = '通過'
+    WHERE STID = :student_id AND RESULT IN ('通過', '已獲獎')
 ");
 $paidStmt->execute(array(":student_id" => $studentId));
 $paid = (int)$paidStmt->fetchColumn();
@@ -75,11 +76,14 @@ $appsStmt = $pdo->prepare("
 $appsStmt->execute(array(":student_id" => $studentId));
 $apps = $appsStmt->fetchAll(PDO::FETCH_ASSOC);
 
+$supplementNoteSelect = table_has_column($pdo, "application", "SUPPLEMENT_NOTE")
+    ? ", SUPPLEMENT_NOTE"
+    : "";
 $notiStmt = $pdo->prepare("
-    SELECT APNO, APDATE, RESULT
+    SELECT APNO, APDATE, RESULT" . $supplementNoteSelect . "
     FROM application
     WHERE STID = :student_id
-      AND RESULT IN ('需補件', '不通過')
+      AND RESULT IN ('需補件', '不通過', '未獲獎')
     ORDER BY APDATE DESC, APNO DESC
     LIMIT 3
 ");
@@ -111,8 +115,19 @@ require __DIR__ . "/../header.php";
   <div class="col-md-3">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body">
-        <div class="text-secondary">需補件</div>
+        <div class="d-flex align-items-center gap-2">
+          <div class="text-secondary">需補件</div>
+          <?php if ($needFix > 0): ?>
+            <span class="badge bg-danger rounded-circle d-inline-flex align-items-center justify-content-center"
+                  style="width: 24px; height: 24px; font-size: 0.75rem; padding: 0;">
+              <?= $needFix ?>
+            </span>
+          <?php endif; ?>
+        </div>
         <div class="display-6 fw-bold"><?= $needFix ?></div>
+        <?php if ($needFix > 0): ?>
+          <a class="btn btn-sm btn-warning mt-2" href="/scholarship/student/my_applications.php">前往補件</a>
+        <?php endif; ?>
       </div>
     </div>
   </div>
@@ -150,6 +165,10 @@ require __DIR__ . "/../header.php";
                   申請編號 <?= h($n["APNO"]) ?>
                 </div>
                 <div class="text-secondary small mt-1"><?= h($n["APDATE"]) ?></div>
+                <?php if ($n["RESULT"] === "需補件" && !empty($n["SUPPLEMENT_NOTE"])): ?>
+                  <div class="small mt-1"><?= nl2br(h($n["SUPPLEMENT_NOTE"])) ?></div>
+                <?php endif; ?>
+                <a class="small" href="/scholarship/student/application_detail.php?apno=<?= h($n["APNO"]) ?>">查看申請</a>
               </div>
             <?php endforeach; ?>
           </div>
