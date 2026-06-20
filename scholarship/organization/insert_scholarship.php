@@ -2,6 +2,7 @@
 session_start();
 require_once "db.php";
 require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/../custom_form_helpers.php";
 require_once __DIR__ . "/scholarship_access.php";
 
 // 1. 基本權限檢查
@@ -29,6 +30,7 @@ $deadline = $_POST['deadline'] ?? '';
 $custom_labels = $_POST['custom_labels'] ?? [];
 $custom_types = $_POST['custom_types'] ?? [];
 $custom_required = $_POST['custom_required'] ?? [];
+$custom_notes = $_POST['custom_notes'] ?? [];
 
 if (!$name || !$start_date || !$deadline) {
     header("Location: add_scholarship.php?error=" . urlencode("請填寫必填欄位"));
@@ -36,6 +38,7 @@ if (!$name || !$start_date || !$deadline) {
 }
 
 try {
+    custom_form_validate_unique_labels($custom_labels);
     $pdo->beginTransaction();
 
     // 3. 寫入 scholarship 表 (注意：稍早新增的 is_active 欄位會自動套用預設值 1)
@@ -47,20 +50,14 @@ try {
     $scholarship_id = $pdo->lastInsertId();
 
     // 4. 寫入 scholarship_fields 自訂表單欄位
-    if (!empty($custom_labels)) {
-        $field_sql = "INSERT INTO scholarship_fields (scholarship_id, field_label, field_type, is_required) VALUES (?, ?, ?, ?)";
-        $field_stmt = $pdo->prepare($field_sql);
-        
-        for ($i = 0; $i < count($custom_labels); $i++) {
-            $label = trim($custom_labels[$i]);
-            if (empty($label)) continue; // 跳過空標題
-            
-            $type = $custom_types[$i];
-            $is_req = $custom_required[$i];
-            
-            $field_stmt->execute([$scholarship_id, $label, $type, $is_req]);
-        }
-    }
+    custom_form_replace_fields(
+        $pdo,
+        $scholarship_id,
+        $custom_labels,
+        $custom_types,
+        $custom_required,
+        $custom_notes
+    );
 
     // 🔽 5. 處理官方附件上傳 (FR-SSS22) 
     if (isset($_FILES['scholarship_attachment']) && $_FILES['scholarship_attachment']['error'] === UPLOAD_ERR_OK) {
@@ -112,8 +109,10 @@ try {
     header("Location: my_scholarships.php?success=add");
     exit;
 
-} catch (PDOException $e) {
-    $pdo->rollBack();
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     header("Location: add_scholarship.php?error=" . urlencode("資料庫錯誤：" . $e->getMessage()));
     exit;
 }

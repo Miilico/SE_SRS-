@@ -1,11 +1,14 @@
 <?php
 $customFields = isset($customFields) && is_array($customFields) ? $customFields : array();
 $customValues = isset($customValues) && is_array($customValues) ? $customValues : array();
+$customFieldsSectionTitle = isset($customFieldsSectionTitle)
+    ? (string)$customFieldsSectionTitle
+    : "獎助單位自訂申請資料";
 ?>
 
 <?php if (!empty($customFields)): ?>
   <section class="border-top pt-4 mt-4" id="custom-application-fields">
-    <h2 class="h5 fw-bold mb-3">獎助單位自訂申請資料</h2>
+    <h2 class="h5 fw-bold mb-3"><?= htmlspecialchars($customFieldsSectionTitle, ENT_QUOTES, "UTF-8") ?></h2>
 
     <div class="vstack gap-3">
       <?php foreach ($customFields as $field): ?>
@@ -36,6 +39,9 @@ $customValues = isset($customValues) && is_array($customValues) ? $customValues 
                    name="CUSTOM_FIELDS[<?= $fieldId ?>]"
                    value="<?= htmlspecialchars($value, ENT_QUOTES, "UTF-8") ?>"
                    <?= $required ? "required" : "" ?>>
+          <?php endif; ?>
+          <?php if (!empty($field["field_note"])): ?>
+            <div class="form-text"><?= htmlspecialchars($field["field_note"], ENT_QUOTES, "UTF-8") ?></div>
           <?php endif; ?>
         </div>
       <?php endforeach; ?>

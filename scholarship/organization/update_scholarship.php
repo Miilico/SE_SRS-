@@ -2,6 +2,7 @@
 session_start();
 require_once "db.php";
 require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/../custom_form_helpers.php";
 require_once __DIR__ . "/scholarship_access.php";
 
 // 權限檢查
@@ -14,6 +15,10 @@ $start_date = trim($_POST['start_date'] ?? '');
 $deadline   = trim($_POST['deadline'] ?? '');
 $condi      = trim($_POST['conditions'] ?? '');
 $amount     = trim($_POST['amount'] ?? '');
+$customLabels = $_POST['custom_labels'] ?? array();
+$customTypes = $_POST['custom_types'] ?? array();
+$customRequired = $_POST['custom_required'] ?? array();
+$customNotes = $_POST['custom_notes'] ?? array();
 
 $redirect_url = "edit_scholarship.php?id=" . urlencode($scholarship_id);
 
@@ -39,6 +44,7 @@ if (!$managedScholarship) {
 }
 
 try {
+    custom_form_validate_unique_labels($customLabels);
     $pdo->beginTransaction();
 
     // 1. 更新主表
@@ -54,29 +60,14 @@ try {
         $stmt->execute([$name, $deadline, $condi, $amount, $start_date, $scholarship_id, organization_current_user_id()]);
     }
             
-    // 2. 清除舊的自訂欄位
-    $del_fields_sql = "DELETE FROM scholarship_fields WHERE scholarship_id = ?";
-    $pdo->prepare($del_fields_sql)->execute([$scholarship_id]);
-
-    // 3. 寫入新的自訂欄位
-    if (isset($_POST['custom_labels']) && is_array($_POST['custom_labels'])) {
-        $labels    = $_POST['custom_labels'];
-        $types     = $_POST['custom_types'];
-        $requireds = $_POST['custom_required'];
-
-        $field_sql = "INSERT INTO scholarship_fields (scholarship_id, field_label, field_type, is_required) VALUES (?, ?, ?, ?)";
-        $field_stmt = $pdo->prepare($field_sql);
-
-        for ($i = 0; $i < count($labels); $i++) {
-            $label = trim($labels[$i]);
-            $type  = $types[$i];
-            $req   = intval($requireds[$i]);
-
-            if ($label !== '') {
-                $field_stmt->execute([$scholarship_id, $label, $type, $req]);
-            }
-        }
-    }
+    custom_form_replace_fields(
+        $pdo,
+        $scholarship_id,
+        $customLabels,
+        $customTypes,
+        $customRequired,
+        $customNotes
+    );
     if (isset($_FILES['scholarship_attachment']) && $_FILES['scholarship_attachment']['error'] === UPLOAD_ERR_OK) {
         $file_tmp  = $_FILES['scholarship_attachment']['tmp_name'];
         $file_name = $_FILES['scholarship_attachment']['name'];
@@ -116,8 +107,10 @@ try {
     header("Location: " . $redirect_url . "&success=1"); 
     exit; 
 
-} catch (PDOException $e) { 
-    $pdo->rollBack();
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     header("Location: " . $redirect_url . "&error=" . urlencode("更新失敗：" . $e->getMessage())); 
     exit; 
 }
