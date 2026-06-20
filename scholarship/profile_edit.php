@@ -9,6 +9,9 @@ ensure_teachers_table($pdo);
 $target_id = isset($_SESSION["user"]["id"]) ? $_SESSION["user"]["id"] : null;
 $message = "";
 $messageType = "success";
+$emailLoginVerificationAvailable = table_has_column($pdo, "users", "EMAIL_LOGIN_VERIFY_ENABLED")
+    && table_has_column($pdo, "users", "EMAIL_LOGIN_CODE")
+    && table_has_column($pdo, "users", "EMAIL_LOGIN_CODE_EXPIRES_AT");
 
 function h($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
@@ -44,8 +47,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $currentPassword = isset($_POST["CURRENT_PWD"]) ? $_POST["CURRENT_PWD"] : "";
         $newPassword = isset($_POST["NEW_PWD"]) ? $_POST["NEW_PWD"] : "";
         $confirmPassword = isset($_POST["CONFIRM_PWD"]) ? $_POST["CONFIRM_PWD"] : "";
+        $name = isset($_POST["NAME"]) ? trim($_POST["NAME"]) : "";
+        $tel = isset($_POST["TEL"]) ? trim($_POST["TEL"]) : "";
+        $email = isset($_POST["EMAIL"]) ? trim($_POST["EMAIL"]) : "";
+        $emailLoginVerifyEnabled = ($emailLoginVerificationAvailable && isset($_POST["EMAIL_LOGIN_VERIFY_ENABLED"])) ? 1 : 0;
         $changePassword = ($currentPassword !== "" || $newPassword !== "" || $confirmPassword !== "");
         $passwordHash = null;
+
+        if ($name === "") {
+            throw new Exception("單位/姓名不可空白。");
+        }
+
+        if ($emailLoginVerifyEnabled && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception("開啟 Email 登入驗證碼前，請先填寫有效的 Email。");
+        }
 
         if ($changePassword) {
             if ($currentPassword === "" || $newPassword === "" || $confirmPassword === "") {
@@ -70,13 +85,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $pdo->beginTransaction();
 
         // 1. 更新 users 基本資料
-        $sql1 = $changePassword
-            ? "UPDATE users SET NAME = ?, TEL = ?, EMAIL = ?, PWD = ? WHERE ID = ?"
-            : "UPDATE users SET NAME = ?, TEL = ?, EMAIL = ? WHERE ID = ?";
+        if ($emailLoginVerificationAvailable) {
+            $sql1 = $changePassword
+                ? "UPDATE users SET NAME = ?, TEL = ?, EMAIL = ?, EMAIL_LOGIN_VERIFY_ENABLED = ?, EMAIL_LOGIN_CODE = NULL, EMAIL_LOGIN_CODE_EXPIRES_AT = NULL, PWD = ? WHERE ID = ?"
+                : "UPDATE users SET NAME = ?, TEL = ?, EMAIL = ?, EMAIL_LOGIN_VERIFY_ENABLED = ?, EMAIL_LOGIN_CODE = NULL, EMAIL_LOGIN_CODE_EXPIRES_AT = NULL WHERE ID = ?";
+            $params1 = $changePassword
+                ? [$name, $tel, $email, $emailLoginVerifyEnabled, $passwordHash, $target_id]
+                : [$name, $tel, $email, $emailLoginVerifyEnabled, $target_id];
+        } else {
+            $sql1 = $changePassword
+                ? "UPDATE users SET NAME = ?, TEL = ?, EMAIL = ?, PWD = ? WHERE ID = ?"
+                : "UPDATE users SET NAME = ?, TEL = ?, EMAIL = ? WHERE ID = ?";
+            $params1 = $changePassword
+                ? [$name, $tel, $email, $passwordHash, $target_id]
+                : [$name, $tel, $email, $target_id];
+        }
         $stmt1 = $pdo->prepare($sql1);
-        $params1 = $changePassword
-            ? [$_POST["NAME"], $_POST["TEL"], $_POST["EMAIL"], $passwordHash, $target_id]
-            : [$_POST["NAME"], $_POST["TEL"], $_POST["EMAIL"], $target_id];
         $stmt1->execute($params1);
 
         // 2. 根據角色更新擴展資料
@@ -88,7 +112,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $stmt2->execute([$_POST["DNAME"], $_POST["UNIT_NAME"], $_POST["JOB_TITLE"], $target_id]);
         } elseif ($role == 4) {
             $stmt2 = $pdo->prepare("UPDATE organization SET ONAME = ?, CONTACT = ? WHERE ID = ?");
-            $stmt2->execute([$_POST["NAME"], $_POST["CONTACT"], $target_id]);
+            $stmt2->execute([$name, $_POST["CONTACT"], $target_id]);
 
             $pdo->prepare("DELETE FROM ophone WHERE ID = ?")->execute([$target_id]);
             if (!empty($_POST["ORG_PHONES"])) {
@@ -104,7 +128,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         $pdo->commit();
-        $_SESSION["user"]["name"] = $_POST["NAME"];
+        $_SESSION["user"]["name"] = $name;
         $message = "更新成功！";
         $messageType = "success";
     } catch (Exception $e) {
@@ -197,10 +221,22 @@ require __DIR__ . "/header.php";
                                 <input type="text" id="TEL" name="TEL" class="form-control" value="<?php echo h($user["TEL"]); ?>">
                             </div>
 
-                            <div class="mb-0">
+                            <div class="mb-3">
                                 <label for="EMAIL" class="form-label fw-semibold">Email</label>
                                 <input type="email" id="EMAIL" name="EMAIL" class="form-control" value="<?php echo h($user["EMAIL"]); ?>">
                             </div>
+
+                            <?php if ($emailLoginVerificationAvailable): ?>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="EMAIL_LOGIN_VERIFY_ENABLED" name="EMAIL_LOGIN_VERIFY_ENABLED" value="1" <?php echo !empty($user["EMAIL_LOGIN_VERIFY_ENABLED"]) ? "checked" : ""; ?>>
+                                    <label class="form-check-label fw-semibold" for="EMAIL_LOGIN_VERIFY_ENABLED">Email 登入驗證碼</label>
+                                    <div class="form-text">開啟後，每次密碼正確後都需輸入寄到 Email 的 6 位數驗證碼。</div>
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-warning mb-0">
+                                    Email 登入驗證碼欄位尚未建立，請先執行資料庫 SQL。
+                                </div>
+                            <?php endif; ?>
                         </section>
 
                         <?php if ($role === 1): ?>

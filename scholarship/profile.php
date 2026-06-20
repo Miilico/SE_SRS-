@@ -7,6 +7,7 @@ require_login();
 ensure_teachers_table($pdo);
 
 $target_id = isset($_SESSION["user"]["id"]) ? $_SESSION["user"]["id"] : null;
+$emailLoginVerificationAvailable = table_has_column($pdo, "users", "EMAIL_LOGIN_VERIFY_ENABLED");
 
 function h($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
@@ -52,13 +53,19 @@ try {
     if ($user) {
         $role = (int)$user["ROLE"];
 
+        $basicItems = [
+            "使用者 ID" => $user["ID"],
+            "身分" => role_name($role),
+            "Email" => $user["EMAIL"],
+        ];
+
+        if ($emailLoginVerificationAvailable) {
+            $basicItems["Email 登入驗證碼"] = !empty($user["EMAIL_LOGIN_VERIFY_ENABLED"]) ? "已開啟" : "未開啟";
+        }
+
         $sections[] = [
             "title" => "基本帳號",
-            "items" => [
-                "使用者 ID" => $user["ID"],
-                "身分" => role_name($role),
-                "Email" => $user["EMAIL"],
-            ],
+            "items" => $basicItems,
         ];
 
         if ($role === 1) {
