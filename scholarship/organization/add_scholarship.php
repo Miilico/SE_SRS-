@@ -158,7 +158,7 @@ document.getElementById('btn-add-custom-field').addEventListener('click', functi
             <label class="form-label small text-secondary fw-semibold">欄位型態</label>
             <select name="custom_types[]" class="form-select">
                 <option value="text">單行文字輸入框</option>
-                <option value="number">數字輸入框</option>
+                <option value="number">整數輸入框</option>
                 <option value="textarea">多行文字區塊</option>
                 <option value="file">檔案上傳 (限制 PDF/JPG/PNG 10MB 內)</option>
             </select>

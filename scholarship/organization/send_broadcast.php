@@ -66,6 +66,41 @@ foreach ($students as $student) {
             $success_count++;
         }
     }
+
+    /*
+    // 🔽 原本的即時寄信改為寫入 email_queue 的方式
+        // 準備隊列 INSERT 語法
+    $insertQueue = $pdo->prepare("
+        INSERT INTO email_queue (recipient_email, recipient_name, subject, body, status) 
+        VALUES (?, ?, ?, ?, 'pending')
+    ");
+
+    $success_count = 0;
+
+    foreach ($students as $student) {
+        if (!empty($student['EMAIL'])) {
+            $toName = htmlspecialchars($student['NAME']);
+            
+            $htmlBody = "<p>親愛的 {$toName} 同學您好：</p>";
+            $htmlBody .= "<p>系統已發佈新的獎助學金：<strong style='color:#0d6efd;'>{$sc_name}</strong>，歡迎符合資格的同學踴躍申請！</p>";
+            $htmlBody .= "<ul style='background-color:#f8f9fa; padding: 15px 30px; border-radius: 5px;'>";
+            $htmlBody .= "<li><strong>獎助金額：</strong> {$sc_amount} 元</li>";
+            $htmlBody .= "<li><strong>申請截止日期：</strong> {$sc_deadline}</li>";
+            $htmlBody .= "</ul>";
+            $htmlBody .= "<p>詳細申請條件與辦法，請登入「高大獎助學金系統」查看並線上提交申請表。</p>";
+            $htmlBody .= "<p><br>系統自動發送，請勿直接回覆本信件。</p>";
+
+            // 🔽 將原本的 scholarship_send_mail 改為塞入資料庫隊列
+            $insertQueue->execute([$student['EMAIL'], $toName, $subject, $htmlBody]);
+            $success_count++;
+        }
+    }
+
+    // 完成後導回清單並顯示「已加入排程」的數量 (瞬間跳轉，不會卡頓)
+    header("Location: my_scholarships.php?broadcast_success=1&count=" . $success_count);
+    exit;
+    
+    */ 
 }
 
 // 完成後導回清單並顯示成功數量

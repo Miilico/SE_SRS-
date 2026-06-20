@@ -94,6 +94,7 @@ if (!defined("SITE_HEADER_FUNCTIONS_LOADED")) {
                 array("/scholarship/organization/my_scholarships.php", "我的獎助學金"),
                 array("/scholarship/organization/view_applicants.php", "申請資料"),
                 array("/scholarship/organization/add_scholarship.php", "新增獎助學金"),
+                array("/scholarship/organization/org_post_management.php", "公告管理"),
                 array("/scholarship/ticket_list.php", "回報問題"),
                 array("/scholarship/profile.php", "個人檔案"),
             );

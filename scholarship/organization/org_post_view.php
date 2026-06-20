@@ -3,6 +3,7 @@ $adminHeaderBootstrapOnly = true;
 require __DIR__ . "/../header.php";
 unset($adminHeaderBootstrapOnly);
 require_once __DIR__ . "/../file_helpers.php";
+require_role(4);
 
 // 取得公告 ID
 $id = isset($_GET['id']) ? $_GET['id'] : die("未指定公告");
@@ -20,7 +21,7 @@ try {
     die("查詢失敗：" . $e->getMessage());
 }
 $pageTitle = $post['title'];
-$activeNav = "post_management.php";
+$activeNav = "org_post_management.php";
 ?>
 <?php require __DIR__ . "/../header.php"; ?>
 
@@ -31,7 +32,7 @@ $activeNav = "post_management.php";
         <h1 class="h3 fw-bold border-bottom pb-3 mb-3"><?php echo htmlspecialchars($post['title']); ?></h1>
         <div class="text-secondary small mb-4">
             發佈日期：<?php echo $post['ADATE']; ?> <?php echo $post['ATIME']; ?> | 
-            發布者：<?php echo htmlspecialchars($post['AID']); ?>
+            管理員：<?php echo htmlspecialchars($post['AID']); ?>
         </div>
         <div class="fs-6 lh-lg mb-4"><?php echo nl2br(htmlspecialchars($post['CONTENT'])); ?></div>
 

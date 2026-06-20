@@ -106,7 +106,7 @@ require __DIR__ . "/../header.php";
                                             <label class="form-label small text-secondary fw-semibold">欄位型態</label>
                                             <select name="custom_types[]" class="form-select">
                                                 <option value="text" <?= $field['field_type'] == 'text' ? 'selected' : '' ?>>單行文字輸入框</option>
-                                                <option value="number" <?= $field['field_type'] == 'number' ? 'selected' : '' ?>>數字輸入框</option>
+                                                <option value="number" <?= $field['field_type'] == 'number' ? 'selected' : '' ?>>整數輸入框</option>
                                                 <option value="textarea" <?= $field['field_type'] == 'textarea' ? 'selected' : '' ?>>多行文字區塊</option>
                                                 <option value="file" <?= $field['field_type'] == 'file' ? 'selected' : '' ?>>檔案上傳</option>
                                             </select>
@@ -209,7 +209,7 @@ document.getElementById('btn-add-custom-field').addEventListener('click', functi
             <label class="form-label small text-secondary fw-semibold">欄位型態</label>
             <select name="custom_types[]" class="form-select">
                 <option value="text">單行文字輸入框</option>
-                <option value="number">數字輸入框</option>
+                <option value="number">整數輸入框</option>
                 <option value="textarea">多行文字區塊</option>
                 <option value="file">檔案上傳</option>
             </select>
