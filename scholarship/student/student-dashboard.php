@@ -111,8 +111,19 @@ require __DIR__ . "/../header.php";
   <div class="col-md-3">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body">
-        <div class="text-secondary">需補件</div>
+        <div class="d-flex align-items-center gap-2">
+          <div class="text-secondary">需補件</div>
+          <?php if ($needFix > 0): ?>
+            <span class="badge bg-danger rounded-circle d-inline-flex align-items-center justify-content-center"
+                  style="width: 24px; height: 24px; font-size: 0.75rem; padding: 0;">
+              <?= $needFix ?>
+            </span>
+          <?php endif; ?>
+        </div>
         <div class="display-6 fw-bold"><?= $needFix ?></div>
+        <?php if ($needFix > 0): ?>
+          <a class="btn btn-sm btn-warning mt-2" href="/scholarship/student/my_applications.php">前往補件</a>
+        <?php endif; ?>
       </div>
     </div>
   </div>

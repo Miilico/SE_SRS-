@@ -218,31 +218,10 @@ require __DIR__ . "/../header.php";
         </div>
     </div>
 
-    <?php require __DIR__ . "/partials/application_custom_fields.php"; ?>
-
-    <!-- 5. 自傳/讀書計畫 -->
-    <div class="mb-4">
-        <div class="fw-bold mb-2">5. 自傳 <span class="text-danger" aria-label="必填">*</span></div>
-        <div class="border border-2 rounded bg-white p-3">
-            <input class="form-control" type="file" name="AUTOBI_FILE" accept=".pdf,.doc,.docx" required>
-            <div class="text-muted small mt-2">允許格式：PDF、DOC、DOCX；單檔上限 20MB。</div>
-        </div>
-    </div>
-    <!--<div class="mb-4">
-        <div class="section-title mb-2">5. 自傳（最多1000字）</div>
-        <div class="section-title mb-2">5. 自傳 / 讀書計畫（必傳）</div>
-        <textarea class="form-control" name="AUTOBI_TEXT" rows="8" placeholder="請在此輸入自傳…" required></textarea>
-        <div class="text-muted small mt-2">請直接輸入文字內容，建議 500–1000 字。</div>
-      </div>-->
-
-    <!-- 6. 其他有利審查資料 -->
-    <div class="mb-2">
-        <div class="fw-bold mb-2">6. 其他有利審查資料（可多檔）</div>
-        <div class="border border-2 rounded bg-white p-3">
-            <input class="form-control" type="file" name="OTHER_FILES[]" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-            <div class="text-muted small mt-2">獎狀、證照、作品集、證明等可多檔上傳；允許格式：PDF、DOC、DOCX、JPG、JPEG、PNG；單檔上限 20MB。</div>
-        </div>
-    </div>
+    <?php
+    $customFieldsSectionTitle = "5. 獎助單位自訂申請資料";
+    require __DIR__ . "/partials/application_custom_fields.php";
+    ?>
 
     <div class="form-check mt-4">
         <input class="form-check-input" type="checkbox" value="1" id="agree" required>

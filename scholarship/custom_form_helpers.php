@@ -17,10 +17,75 @@ function custom_form_table_exists($pdo, $tableName)
     return (bool)$stmt->fetchColumn();
 }
 
+function custom_form_column_exists($pdo, $tableName, $columnName)
+{
+    $stmt = $pdo->prepare("
+        SELECT 1
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+        LIMIT 1
+    ");
+    $stmt->execute(array((string)$tableName, (string)$columnName));
+    return (bool)$stmt->fetchColumn();
+}
+
 function custom_form_tables_ready($pdo)
 {
     return custom_form_table_exists($pdo, "scholarship_fields")
         && custom_form_table_exists($pdo, "application_custom_answers");
+}
+
+function custom_form_normalized_label($label)
+{
+    $label = trim((string)$label);
+    $label = preg_replace('/[\s\x{3000}\-_\/]+/u', '', $label);
+    return function_exists('mb_strtolower')
+        ? mb_strtolower($label, 'UTF-8')
+        : strtolower($label);
+}
+
+function custom_form_reserved_labels()
+{
+    return array(
+        'gpa',
+        '成績',
+        'gpa成績',
+        '學業成績',
+        '排名',
+        '班排',
+        '系排',
+        '班排名',
+        '系排名',
+        '班排系排',
+        '推薦信',
+        '推薦人',
+        '推薦教師',
+        '推薦人email',
+        '推薦教師email',
+    );
+}
+
+function custom_form_validate_unique_labels($labels)
+{
+    $seen = array();
+    $reserved = array_fill_keys(custom_form_reserved_labels(), true);
+    foreach ((array)$labels as $rawLabel) {
+        $label = trim((string)$rawLabel);
+        if ($label === '') {
+            continue;
+        }
+
+        $normalized = custom_form_normalized_label($label);
+        if (isset($reserved[$normalized])) {
+            throw new InvalidArgumentException('「' . $label . '」是系統固定欄位，不可重複新增。');
+        }
+        if (isset($seen[$normalized])) {
+            throw new InvalidArgumentException('自訂欄位名稱不可重複：「' . $label . '」。');
+        }
+        $seen[$normalized] = true;
+    }
 }
 
 function custom_form_fields_for_scholarship($pdo, $scholarshipId)
@@ -29,8 +94,11 @@ function custom_form_fields_for_scholarship($pdo, $scholarshipId)
         return array();
     }
 
+    $noteColumn = custom_form_column_exists($pdo, "scholarship_fields", "field_note")
+        ? "field_note"
+        : "'' AS field_note";
     $stmt = $pdo->prepare("
-        SELECT id, scholarship_id, field_label, field_type, is_required, sort_order
+        SELECT id, scholarship_id, field_label, field_type, is_required, sort_order, " . $noteColumn . "
         FROM scholarship_fields
         WHERE scholarship_id = ?
         ORDER BY sort_order, id
@@ -39,7 +107,7 @@ function custom_form_fields_for_scholarship($pdo, $scholarshipId)
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function custom_form_replace_fields($pdo, $scholarshipId, $labels, $types, $requiredValues)
+function custom_form_replace_fields($pdo, $scholarshipId, $labels, $types, $requiredValues, $notes = array())
 {
     if (!custom_form_tables_ready($pdo)) {
         throw new RuntimeException("Custom form migration has not been applied.");
@@ -48,15 +116,24 @@ function custom_form_replace_fields($pdo, $scholarshipId, $labels, $types, $requ
     $labels = is_array($labels) ? $labels : array();
     $types = is_array($types) ? $types : array();
     $requiredValues = is_array($requiredValues) ? $requiredValues : array();
+    $notes = is_array($notes) ? $notes : array();
+    custom_form_validate_unique_labels($labels);
 
     $pdo->prepare("DELETE FROM scholarship_fields WHERE scholarship_id = ?")
         ->execute(array((int)$scholarshipId));
 
-    $insert = $pdo->prepare("
-        INSERT INTO scholarship_fields
-            (scholarship_id, field_label, field_type, is_required, sort_order)
-        VALUES (?, ?, ?, ?, ?)
-    ");
+    $hasNote = custom_form_column_exists($pdo, "scholarship_fields", "field_note");
+    $insert = $hasNote
+        ? $pdo->prepare("
+            INSERT INTO scholarship_fields
+                (scholarship_id, field_label, field_type, is_required, sort_order, field_note)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ")
+        : $pdo->prepare("
+            INSERT INTO scholarship_fields
+                (scholarship_id, field_label, field_type, is_required, sort_order)
+            VALUES (?, ?, ?, ?, ?)
+        ");
 
     $allowedTypes = custom_form_allowed_types();
     foreach ($labels as $index => $rawLabel) {
@@ -71,7 +148,12 @@ function custom_form_replace_fields($pdo, $scholarshipId, $labels, $types, $requ
         }
 
         $isRequired = !empty($requiredValues[$index]) ? 1 : 0;
-        $insert->execute(array((int)$scholarshipId, $label, $type, $isRequired, $index));
+        $note = isset($notes[$index]) ? trim((string)$notes[$index]) : "";
+        $params = array((int)$scholarshipId, $label, $type, $isRequired, $index);
+        if ($hasNote) {
+            $params[] = $note === "" ? null : $note;
+        }
+        $insert->execute($params);
     }
 }
 
@@ -112,8 +194,12 @@ function custom_form_save_answers($pdo, $fields, $applicationId, $studentId, $sc
     }
 
     $values = custom_form_answer_values_from_post();
+    $hasFileId = custom_form_column_exists($pdo, "application_custom_answers", "file_id");
+    $existingColumns = $hasFileId
+        ? "id, field_id, answer_value, file_id"
+        : "id, field_id, answer_value";
     $existingStmt = $pdo->prepare("
-        SELECT field_id, answer_value, file_id
+        SELECT " . $existingColumns . "
         FROM application_custom_answers
         WHERE application_id = ?
     ");
@@ -124,15 +210,29 @@ function custom_form_save_answers($pdo, $fields, $applicationId, $studentId, $sc
         $existing[(int)$row["field_id"]] = $row;
     }
 
-    $upsert = $pdo->prepare("
-        INSERT INTO application_custom_answers
-            (application_id, field_id, answer_value, file_id)
-        VALUES (?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-            answer_value = VALUES(answer_value),
-            file_id = VALUES(file_id),
-            updated_at = CURRENT_TIMESTAMP
-    ");
+    if ($hasFileId) {
+        $insertAnswer = $pdo->prepare("
+            INSERT INTO application_custom_answers
+                (application_id, field_id, answer_value, file_id)
+            VALUES (?, ?, ?, ?)
+        ");
+        $updateAnswer = $pdo->prepare("
+            UPDATE application_custom_answers
+            SET answer_value = ?, file_id = ?
+            WHERE id = ?
+        ");
+    } else {
+        $insertAnswer = $pdo->prepare("
+            INSERT INTO application_custom_answers
+                (application_id, field_id, answer_value)
+            VALUES (?, ?, ?)
+        ");
+        $updateAnswer = $pdo->prepare("
+            UPDATE application_custom_answers
+            SET answer_value = ?
+            WHERE id = ?
+        ");
+    }
 
     foreach ($fields as $field) {
         $fieldId = (int)$field["id"];
@@ -158,7 +258,7 @@ function custom_form_save_answers($pdo, $fields, $applicationId, $studentId, $sc
                 $fileId = (int)$saved["id"];
             } elseif (isset($existing[$fieldId])) {
                 $answerValue = (string)$existing[$fieldId]["answer_value"];
-                $fileId = $existing[$fieldId]["file_id"] === null
+                $fileId = !isset($existing[$fieldId]["file_id"]) || $existing[$fieldId]["file_id"] === null
                     ? null
                     : (int)$existing[$fieldId]["file_id"];
             }
@@ -171,7 +271,17 @@ function custom_form_save_answers($pdo, $fields, $applicationId, $studentId, $sc
         }
 
         if ($answerValue !== "" || $required || isset($existing[$fieldId])) {
-            $upsert->execute(array($applicationId, $fieldId, $answerValue, $fileId));
+            if (isset($existing[$fieldId])) {
+                if ($hasFileId) {
+                    $updateAnswer->execute(array($answerValue, $fileId, $existing[$fieldId]["id"]));
+                } else {
+                    $updateAnswer->execute(array($answerValue, $existing[$fieldId]["id"]));
+                }
+            } elseif ($hasFileId) {
+                $insertAnswer->execute(array($applicationId, $fieldId, $answerValue, $fileId));
+            } else {
+                $insertAnswer->execute(array($applicationId, $fieldId, $answerValue));
+            }
         }
     }
 }
