@@ -37,8 +37,8 @@ function ensure_can_upload($pdo, $fileType, $user, $context) {
     $role = isset($user["role"]) ? (int)$user["role"] : 0;
 
     if ($fileType === 1) {
-        if ($role !== 3) {
-            upload_fail("只有管理員可以上傳公告附件。", 403);
+        if ($role !== 3 && $role !== 4) {
+            upload_fail("只有管理員或獎助單位可以上傳公告附件。", 403);
         }
         return $context;
     }

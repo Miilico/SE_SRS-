@@ -45,6 +45,16 @@ require __DIR__ . "/../header.php";
   </div>
 
   <div class="col">
+      <div class="card border-0 shadow-sm h-100">
+          <div class="card-body p-4">
+              <h2 class="h5 fw-bold">公告管理</h2>
+              <p class="text-secondary">發佈與管理獎助學金相關公告</p>
+              <a class="btn btn-primary" href="/scholarship/organization/org_post_management.php">前往</a>
+          </div>
+      </div>
+  </div>
+
+  <div class="col">
   <div class="card border-0 shadow-sm h-100">
     <div class="card-body p-4">
     <h2 class="h5 fw-bold">新增獎助學金</h2>
