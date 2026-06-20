@@ -50,7 +50,9 @@ $activeNav = "post_management.php";
                         <?php
                         if (isset($p['CATEGORY']) && $p['CATEGORY'] == 1) {
                             echo '<span>獎學金</span>';
-                        } else {
+                        } else if (isset($p['CATEGORY']) && $p['CATEGORY'] == 2) {
+                            echo '<span>獎助單位</span>';
+                        } else{
                             echo '<span>一般</span>';
                         }
                         ?>

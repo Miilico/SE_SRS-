@@ -28,6 +28,9 @@ if ($id) {
         $default_content = $post['CONTENT'];
         // 假設資料庫已新增 CATEGORY 欄位，若無則預設為 0
         $default_cat = isset($post['CATEGORY']) ? $post['CATEGORY'] : 0;
+        if ($default_cat != 2) {
+            die("無法編輯非獎助單位公告");
+        }
         $announcementId = isset($post["id"]) ? (int)$post["id"] : (int)$id;
         $files = fetch_uploaded_files($pdo, 1, "announcement_id", $announcementId);
     }
@@ -53,7 +56,7 @@ $activeNav = "org_post_management.php";
             <div>
                 <label class="form-label fw-semibold">公告類別：</label>
                 <select class="form-select" name="category">
-                    <option value="0" <?php echo $default_cat == 0 ? 'selected' : ''; ?>>一般系統公告</option>
+                    <option value="2" <?php echo $default_cat == 2 ? 'selected' : ''; ?>>獎助單位訊息</option>
                 </select>
                 <?php if($default_cat == 1): ?>
                     <div class="form-text text-danger">提醒：已自動帶入獲獎學生名單，發佈前請確認格式。</div>

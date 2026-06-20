@@ -32,7 +32,7 @@ $activeNav = "org_post_management.php";
         <h1 class="h3 fw-bold border-bottom pb-3 mb-3"><?php echo htmlspecialchars($post['title']); ?></h1>
         <div class="text-secondary small mb-4">
             發佈日期：<?php echo $post['ADATE']; ?> <?php echo $post['ATIME']; ?> | 
-            管理員：<?php echo htmlspecialchars($post['AID']); ?>
+            發布者：<?php echo htmlspecialchars($post['AID']); ?>
         </div>
         <div class="fs-6 lh-lg mb-4"><?php echo nl2br(htmlspecialchars($post['CONTENT'])); ?></div>
 

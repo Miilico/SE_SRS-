@@ -57,6 +57,7 @@ $activeNav = "post_management.php";
                 <select class="form-select" name="category">
                     <option value="0" <?php echo $default_cat == 0 ? 'selected' : ''; ?>>一般系統公告</option>
                     <option value="1" <?php echo $default_cat == 1 ? 'selected' : ''; ?>>獎學金審查結果</option>
+                    <option value="2" <?php echo $default_cat == 2 ? 'selected' : ''; ?>>獎助單位訊息</option>
                 </select>
                 <?php if($default_cat == 1): ?>
                     <div class="form-text text-danger">提醒：已自動帶入獲獎學生名單，發佈前請確認格式。</div>
