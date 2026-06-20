@@ -2,7 +2,6 @@
 require_once __DIR__ . "/config.php";
 require_once __DIR__ . "/auth.php";
 require_once __DIR__ . "/file_helpers.php";
-require_once __DIR__ . "/login_helpers.php";
 
 require_login();
 ensure_teachers_table($pdo);
@@ -10,13 +9,6 @@ ensure_teachers_table($pdo);
 $target_id = isset($_SESSION["user"]["id"]) ? $_SESSION["user"]["id"] : null;
 $message = "";
 $messageType = "success";
-$emailLoginVerificationAvailable = table_has_column($pdo, "users", "EMAIL_LOGIN_VERIFY_ENABLED")
-    && table_has_column($pdo, "users", "EMAIL_LOGIN_CODE")
-    && table_has_column($pdo, "users", "EMAIL_LOGIN_CODE_EXPIRES_AT");
-$totpLoginVerificationAvailable = table_has_column($pdo, "users", "TOTP_LOGIN_VERIFY_ENABLED")
-    && table_has_column($pdo, "users", "TOTP_SECRET");
-$totpSetupSecret = "";
-$totpSetupUri = "";
 
 function h($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
@@ -49,64 +41,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         $role = (int)$account["ROLE"];
-        $currentPassword = isset($_POST["CURRENT_PWD"]) ? $_POST["CURRENT_PWD"] : "";
-        $newPassword = isset($_POST["NEW_PWD"]) ? $_POST["NEW_PWD"] : "";
-        $confirmPassword = isset($_POST["CONFIRM_PWD"]) ? $_POST["CONFIRM_PWD"] : "";
         $name = isset($_POST["NAME"]) ? trim($_POST["NAME"]) : "";
         $tel = isset($_POST["TEL"]) ? trim($_POST["TEL"]) : "";
         $email = isset($_POST["EMAIL"]) ? trim($_POST["EMAIL"]) : "";
-        $emailLoginVerifyEnabled = ($emailLoginVerificationAvailable && isset($_POST["EMAIL_LOGIN_VERIFY_ENABLED"])) ? 1 : 0;
-        $totpLoginVerifyEnabled = ($totpLoginVerificationAvailable && isset($_POST["TOTP_LOGIN_VERIFY_ENABLED"])) ? 1 : 0;
-        $totpSetupCode = isset($_POST["TOTP_SETUP_CODE"]) ? trim($_POST["TOTP_SETUP_CODE"]) : "";
-        $totpSecretToSave = $totpLoginVerificationAvailable ? (isset($account["TOTP_SECRET"]) ? $account["TOTP_SECRET"] : null) : null;
-        $changePassword = ($currentPassword !== "" || $newPassword !== "" || $confirmPassword !== "");
-        $passwordHash = null;
 
         if ($name === "") {
             throw new Exception("單位/姓名不可空白。");
-        }
-
-        if ($emailLoginVerifyEnabled && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new Exception("開啟 Email 登入驗證碼前，請先填寫有效的 Email。");
-        }
-
-        if ($totpLoginVerifyEnabled) {
-            $existingTotpEnabled = !empty($account["TOTP_LOGIN_VERIFY_ENABLED"]) && !empty($account["TOTP_SECRET"]);
-
-            if (!$existingTotpEnabled) {
-                $pendingSecret = isset($_SESSION["profile_totp_setup_secret"]) ? $_SESSION["profile_totp_setup_secret"] : "";
-                if ($pendingSecret === "") {
-                    throw new Exception("TOTP 設定金鑰已失效，請重新整理頁面後再試。");
-                }
-
-                if (!login_totp_verify_code($pendingSecret, $totpSetupCode)) {
-                    throw new Exception("TOTP 驗證碼不正確，請確認驗證器 App 的時間同步後再試。");
-                }
-
-                $totpSecretToSave = $pendingSecret;
-            }
-        } else {
-            $totpSecretToSave = null;
-        }
-
-        if ($changePassword) {
-            if ($currentPassword === "" || $newPassword === "" || $confirmPassword === "") {
-                throw new Exception("如需修改密碼，請完整填寫目前密碼、新密碼與確認新密碼。");
-            }
-
-            if (!password_verify($currentPassword, $account["PWD"])) {
-                throw new Exception("目前密碼不正確。");
-            }
-
-            if ($newPassword !== $confirmPassword) {
-                throw new Exception("新密碼與確認新密碼不一致。");
-            }
-
-            if (mb_strlen($newPassword) < 6) {
-                throw new Exception("新密碼至少 6 碼。");
-            }
-
-            $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
         }
 
         $pdo->beginTransaction();
@@ -114,25 +54,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         // 1. 更新 users 基本資料
         $setParts = ["NAME = ?", "TEL = ?", "EMAIL = ?"];
         $params1 = [$name, $tel, $email];
-
-        if ($emailLoginVerificationAvailable) {
-            $setParts[] = "EMAIL_LOGIN_VERIFY_ENABLED = ?";
-            $setParts[] = "EMAIL_LOGIN_CODE = NULL";
-            $setParts[] = "EMAIL_LOGIN_CODE_EXPIRES_AT = NULL";
-            $params1[] = $emailLoginVerifyEnabled;
-        }
-
-        if ($totpLoginVerificationAvailable) {
-            $setParts[] = "TOTP_LOGIN_VERIFY_ENABLED = ?";
-            $setParts[] = "TOTP_SECRET = ?";
-            $params1[] = $totpLoginVerifyEnabled;
-            $params1[] = $totpSecretToSave;
-        }
-
-        if ($changePassword) {
-            $setParts[] = "PWD = ?";
-            $params1[] = $passwordHash;
-        }
 
         $sql1 = "UPDATE users SET " . implode(", ", $setParts) . " WHERE ID = ?";
         $params1[] = $target_id;
@@ -164,9 +85,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         $pdo->commit();
-        if ($totpLoginVerificationAvailable) {
-            unset($_SESSION["profile_totp_setup_secret"]);
-        }
         $_SESSION["user"]["name"] = $name;
         $message = "更新成功！";
         $messageType = "success";
@@ -188,15 +106,6 @@ try {
     if (!$user) {
         header("Location: login.php");
         exit;
-    }
-
-    if ($totpLoginVerificationAvailable && (empty($user["TOTP_LOGIN_VERIFY_ENABLED"]) || empty($user["TOTP_SECRET"]))) {
-        if (empty($_SESSION["profile_totp_setup_secret"])) {
-            $_SESSION["profile_totp_setup_secret"] = login_totp_generate_secret();
-        }
-
-        $totpSetupSecret = $_SESSION["profile_totp_setup_secret"];
-        $totpSetupUri = login_totp_otpauth_uri($user["ID"], $totpSetupSecret);
     }
 
     $extra = [];
@@ -273,55 +182,6 @@ require __DIR__ . "/header.php";
                                 <label for="EMAIL" class="form-label fw-semibold">Email</label>
                                 <input type="email" id="EMAIL" name="EMAIL" class="form-control" value="<?php echo h($user["EMAIL"]); ?>">
                             </div>
-
-                            <div class="border rounded p-3">
-                                <div class="fw-bold mb-2">登入驗證設定</div>
-
-                                <?php if ($emailLoginVerificationAvailable): ?>
-                                    <div class="form-check form-switch mb-3">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="EMAIL_LOGIN_VERIFY_ENABLED" name="EMAIL_LOGIN_VERIFY_ENABLED" value="1" <?php echo !empty($user["EMAIL_LOGIN_VERIFY_ENABLED"]) ? "checked" : ""; ?>>
-                                        <label class="form-check-label fw-semibold" for="EMAIL_LOGIN_VERIFY_ENABLED">Email 登入驗證碼</label>
-                                        <div class="form-text">開啟後，每次密碼正確後都需輸入寄到 Email 的 6 位數驗證碼。</div>
-                                    </div>
-                                <?php else: ?>
-                                    <div class="alert alert-warning">
-                                        Email 登入驗證碼欄位尚未建立，請先執行資料庫 SQL。
-                                    </div>
-                                <?php endif; ?>
-
-                                <?php if ($totpLoginVerificationAvailable): ?>
-                                    <div class="form-check form-switch mb-2">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="TOTP_LOGIN_VERIFY_ENABLED" name="TOTP_LOGIN_VERIFY_ENABLED" value="1" <?php echo !empty($user["TOTP_LOGIN_VERIFY_ENABLED"]) ? "checked" : ""; ?>>
-                                        <label class="form-check-label fw-semibold" for="TOTP_LOGIN_VERIFY_ENABLED">TOTP 驗證器 App</label>
-                                        <div class="form-text">可使用 Google Authenticator、Microsoft Authenticator、1Password 等支援 TOTP 的 App。</div>
-                                    </div>
-
-                                    <?php if (empty($user["TOTP_LOGIN_VERIFY_ENABLED"]) || empty($user["TOTP_SECRET"])): ?>
-                                        <div class="bg-body-tertiary border rounded p-3 mt-3">
-                                            <div class="fw-semibold mb-2">首次啟用 TOTP</div>
-                                            <div class="small text-secondary mb-2">在驗證器 App 選擇手動輸入設定金鑰，加入帳號後輸入 App 顯示的 6 位數代碼再儲存。</div>
-                                            <div class="mb-2">
-                                                <label class="form-label small text-secondary mb-1" for="TOTP_SETUP_SECRET">設定金鑰</label>
-                                                <input class="form-control font-monospace" id="TOTP_SETUP_SECRET" type="text" value="<?php echo h(login_totp_format_secret($totpSetupSecret)); ?>" readonly>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label small text-secondary mb-1" for="TOTP_SETUP_URI">otpauth URI</label>
-                                                <input class="form-control font-monospace" id="TOTP_SETUP_URI" type="text" value="<?php echo h($totpSetupUri); ?>" readonly>
-                                            </div>
-                                            <div>
-                                                <label class="form-label fw-semibold" for="TOTP_SETUP_CODE">TOTP 驗證碼</label>
-                                                <input class="form-control" id="TOTP_SETUP_CODE" name="TOTP_SETUP_CODE" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="勾選 TOTP 時請輸入 6 位數代碼" autocomplete="one-time-code">
-                                            </div>
-                                        </div>
-                                    <?php else: ?>
-                                        <div class="form-text">取消勾選並儲存後會清除目前綁定的 TOTP 金鑰。</div>
-                                    <?php endif; ?>
-                                <?php else: ?>
-                                    <div class="alert alert-warning mb-0">
-                                        TOTP 登入驗證欄位尚未建立，請先執行資料庫 SQL。
-                                    </div>
-                                <?php endif; ?>
-                            </div>
                         </section>
 
                         <?php if ($role === 1): ?>
@@ -378,28 +238,6 @@ require __DIR__ . "/header.php";
                                 </div>
                             </section>
                         <?php endif; ?>
-
-                        <section class="mb-4">
-                            <div class="border-start border-4 border-primary bg-body-tertiary px-3 py-2 fw-bold mb-3">
-                                修改密碼
-                            </div>
-                            <div class="text-secondary small mb-3"><span class="text-danger" aria-label="條件式必填">*</span> 如需修改密碼，目前密碼、新密碼與確認新密碼皆需填寫。</div>
-
-                            <div class="mb-3">
-                                <label for="CURRENT_PWD" class="form-label fw-semibold">目前密碼</label>
-                                <input type="password" id="CURRENT_PWD" name="CURRENT_PWD" class="form-control" autocomplete="current-password" placeholder="不修改密碼可留空">
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="NEW_PWD" class="form-label fw-semibold">新密碼</label>
-                                <input type="password" id="NEW_PWD" name="NEW_PWD" class="form-control" minlength="6" autocomplete="new-password" placeholder="至少 6 碼">
-                            </div>
-
-                            <div class="mb-0">
-                                <label for="CONFIRM_PWD" class="form-label fw-semibold">確認新密碼</label>
-                                <input type="password" id="CONFIRM_PWD" name="CONFIRM_PWD" class="form-control" minlength="6" autocomplete="new-password" placeholder="再次輸入新密碼">
-                            </div>
-                        </section>
 
                         <div class="d-flex flex-column flex-sm-row gap-2 pt-2">
                             <button type="submit" class="btn btn-primary">儲存修改</button>

@@ -7,9 +7,6 @@ require_login();
 ensure_teachers_table($pdo);
 
 $target_id = isset($_SESSION["user"]["id"]) ? $_SESSION["user"]["id"] : null;
-$emailLoginVerificationAvailable = table_has_column($pdo, "users", "EMAIL_LOGIN_VERIFY_ENABLED");
-$totpLoginVerificationAvailable = table_has_column($pdo, "users", "TOTP_LOGIN_VERIFY_ENABLED")
-    && table_has_column($pdo, "users", "TOTP_SECRET");
 
 function h($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
@@ -60,14 +57,6 @@ try {
             "身分" => role_name($role),
             "Email" => $user["EMAIL"],
         ];
-
-        if ($emailLoginVerificationAvailable) {
-            $basicItems["Email 登入驗證碼"] = !empty($user["EMAIL_LOGIN_VERIFY_ENABLED"]) ? "已開啟" : "未開啟";
-        }
-
-        if ($totpLoginVerificationAvailable) {
-            $basicItems["TOTP 驗證器 App"] = (!empty($user["TOTP_LOGIN_VERIFY_ENABLED"]) && !empty($user["TOTP_SECRET"])) ? "已開啟" : "未開啟";
-        }
 
         $sections[] = [
             "title" => "基本帳號",
@@ -136,54 +125,81 @@ try {
 
 $dashboardUrl = $user ? dashboard_url($user["ROLE"]) : "/scholarship/login.php";
 
-$pageTitle = "個人資料";
+$pageTitle = "個人資料管理";
 $activeNav = "profile.php";
 $siteHeaderRequireLogin = true;
 $siteHeaderMainClass = "site-shell py-5";
+$siteHeaderExtraHead = '
+    <style>
+        .profile-settings-sidebar {
+            border-right: 1px solid var(--site-border);
+        }
+
+        @media (max-width: 767.98px) {
+            .profile-settings-sidebar {
+                border-right: 0;
+                border-bottom: 1px solid var(--site-border);
+                padding-bottom: 16px;
+            }
+        }
+    </style>
+';
 require __DIR__ . "/header.php";
 ?>
     <div class="row justify-content-center">
-        <div class="col-12 col-lg-8">
+        <div class="col-12 col-lg-10">
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4 p-md-5">
-                    <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
-                        <div>
-                            <h1 class="h3 fw-bold mb-1">個人帳號資訊</h1>
-                            <div class="text-secondary">查看您的登入帳號、身分與角色相關資料。</div>
-                        </div>
-                        <?php if ($user): ?>
-                            <span class="badge rounded-pill text-bg-primary align-self-start px-3 py-2">
-                                <?php echo h(role_name($user["ROLE"])); ?>
-                            </span>
-                        <?php endif; ?>
-                    </div>
+                    <div class="row g-4">
+                        <aside class="col-12 col-md-3 profile-settings-sidebar">
+                            <div class="fw-bold mb-3">個人設定</div>
+                            <nav class="nav nav-pills flex-column gap-2" aria-label="個人設定二級目錄">
+                                <a class="nav-link active" href="profile.php">資料修改</a>
+                                <a class="nav-link" href="security.php">安全設定</a>
+                            </nav>
+                        </aside>
 
-                    <?php if ($errorMessage): ?>
-                        <div class="alert alert-danger mb-0"><?php echo h($errorMessage); ?></div>
-                    <?php else: ?>
-                        <?php foreach ($sections as $section): ?>
-                            <section class="mb-4">
-                                <div class="border-start border-4 border-primary bg-body-tertiary px-3 py-2 fw-bold mb-2">
-                                    <?php echo h($section["title"]); ?>
+                        <div class="col-12 col-md-9">
+                            <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+                                <div>
+                                    <h1 class="h3 fw-bold mb-1">個人資料管理</h1>
+                                    <div class="text-secondary">查看您的基本聯絡資料與角色相關資料。</div>
                                 </div>
+                                <?php if ($user): ?>
+                                    <span class="badge rounded-pill text-bg-primary align-self-start px-3 py-2">
+                                        <?php echo h(role_name($user["ROLE"])); ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
 
-                                <div class="list-group list-group-flush border rounded">
-                                    <?php foreach ($section["items"] as $label => $value): ?>
-                                        <div class="list-group-item">
-                                            <div class="row g-2 align-items-center">
-                                                <div class="col-sm-4 text-secondary fw-semibold"><?php echo h($label); ?></div>
-                                                <div class="col-sm-8"><?php echo h($value !== "" && $value !== null ? $value : "尚未填寫"); ?></div>
-                                            </div>
+                            <?php if ($errorMessage): ?>
+                                <div class="alert alert-danger mb-0"><?php echo h($errorMessage); ?></div>
+                            <?php else: ?>
+                                <?php foreach ($sections as $section): ?>
+                                    <section class="mb-4">
+                                        <div class="border-start border-4 border-primary bg-body-tertiary px-3 py-2 fw-bold mb-2">
+                                            <?php echo h($section["title"]); ?>
                                         </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            </section>
-                        <?php endforeach; ?>
 
-                        <div class="d-flex flex-column flex-sm-row gap-2 pt-2">
-                            <a href="profile_edit.php" class="btn btn-primary">修改</a>
+                                        <div class="list-group list-group-flush border rounded">
+                                            <?php foreach ($section["items"] as $label => $value): ?>
+                                                <div class="list-group-item">
+                                                    <div class="row g-2 align-items-center">
+                                                        <div class="col-sm-4 text-secondary fw-semibold"><?php echo h($label); ?></div>
+                                                        <div class="col-sm-8"><?php echo h($value !== "" && $value !== null ? $value : "尚未填寫"); ?></div>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </section>
+                                <?php endforeach; ?>
+
+                                <div class="d-flex flex-column flex-sm-row gap-2 pt-2">
+                                    <a href="profile_edit.php" class="btn btn-primary">修改</a>
+                                </div>
+                            <?php endif; ?>
                         </div>
-                    <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
