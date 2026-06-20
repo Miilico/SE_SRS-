@@ -51,16 +51,31 @@ if ((!isset($u["status"]) || $u["status"] !== "active")) {
     site_flash_redirect("login.php", "此帳號尚未啟用（請等待管理員審核）", "warning");
 }
 
-if (login_email_verification_is_enabled($pdo, $u["id"])) {
-  if (!login_send_email_code($pdo, $u)) {
+$emailVerificationRequired = login_email_verification_is_enabled($pdo, $u["id"]);
+$totpVerificationRequired = login_totp_verification_is_enabled($pdo, $u["id"]);
+
+if ($emailVerificationRequired || $totpVerificationRequired) {
+  if ($emailVerificationRequired && !login_send_email_code($pdo, $u)) {
     site_flash_redirect("login.php", "登入驗證碼寄送失敗，請確認 Email 或稍後再試。", "danger");
   }
 
   unset($_SESSION["user"]);
   session_regenerate_id(true);
   $_SESSION["pending_login_user_id"] = $u["id"];
-  $_SESSION["pending_login_email"] = login_mask_email($u["email"]);
-  site_flash_redirect("login.php", "驗證碼已寄出，請於 10 分鐘內輸入。", "info");
+  $_SESSION["pending_login_requires_email"] = $emailVerificationRequired ? 1 : 0;
+  $_SESSION["pending_login_requires_totp"] = $totpVerificationRequired ? 1 : 0;
+
+  if ($emailVerificationRequired) {
+    $_SESSION["pending_login_email"] = login_mask_email($u["email"]);
+  }
+
+  if ($emailVerificationRequired && $totpVerificationRequired) {
+    site_flash_redirect("login.php", "請輸入 Email 驗證碼與 TOTP 驗證碼完成登入。", "info");
+  } elseif ($emailVerificationRequired) {
+    site_flash_redirect("login.php", "驗證碼已寄出，請於 10 分鐘內輸入。", "info");
+  }
+
+  site_flash_redirect("login.php", "請輸入 TOTP 驗證碼完成登入。", "info");
 }
 
 login_store_user_session($pdo, $u);

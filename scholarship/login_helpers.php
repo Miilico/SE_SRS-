@@ -15,6 +15,19 @@ function login_email_verification_available($pdo)
     return (int)$stmt->fetchColumn() === 3;
 }
 
+function login_totp_verification_available($pdo)
+{
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*)
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'users'
+          AND COLUMN_NAME IN ('TOTP_LOGIN_VERIFY_ENABLED', 'TOTP_SECRET')
+    ");
+    $stmt->execute();
+    return (int)$stmt->fetchColumn() === 2;
+}
+
 function login_email_verification_is_enabled($pdo, $userId)
 {
     if (!login_email_verification_available($pdo)) {
@@ -24,6 +37,41 @@ function login_email_verification_is_enabled($pdo, $userId)
     $stmt = $pdo->prepare("SELECT EMAIL_LOGIN_VERIFY_ENABLED FROM users WHERE ID = ? LIMIT 1");
     $stmt->execute(array($userId));
     return (int)$stmt->fetchColumn() === 1;
+}
+
+function login_totp_verification_is_enabled($pdo, $userId)
+{
+    if (!login_totp_verification_available($pdo)) {
+        return false;
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT TOTP_LOGIN_VERIFY_ENABLED
+        FROM users
+        WHERE ID = ?
+          AND TOTP_SECRET IS NOT NULL
+          AND TOTP_SECRET <> ''
+        LIMIT 1
+    ");
+    $stmt->execute(array($userId));
+    return (int)$stmt->fetchColumn() === 1;
+}
+
+function login_pending_session_keys()
+{
+    return array(
+        "pending_login_user_id",
+        "pending_login_email",
+        "pending_login_requires_email",
+        "pending_login_requires_totp",
+    );
+}
+
+function login_clear_pending_session()
+{
+    foreach (login_pending_session_keys() as $key) {
+        unset($_SESSION[$key]);
+    }
 }
 
 function login_store_user_session($pdo, $u)
@@ -120,4 +168,108 @@ function login_mask_email($email)
     $domain = $parts[1];
     $visible = substr($name, 0, 2);
     return $visible . str_repeat("*", max(2, strlen($name) - 2)) . "@" . $domain;
+}
+
+function login_totp_generate_secret($byteLength = 20)
+{
+    return login_totp_base32_encode(random_bytes($byteLength));
+}
+
+function login_totp_base32_encode($data)
+{
+    $alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    $bits = "";
+    $encoded = "";
+
+    for ($i = 0; $i < strlen($data); $i++) {
+        $bits .= str_pad(decbin(ord($data[$i])), 8, "0", STR_PAD_LEFT);
+    }
+
+    for ($i = 0; $i < strlen($bits); $i += 5) {
+        $chunk = substr($bits, $i, 5);
+        if (strlen($chunk) < 5) {
+            $chunk = str_pad($chunk, 5, "0", STR_PAD_RIGHT);
+        }
+        $encoded .= $alphabet[bindec($chunk)];
+    }
+
+    return $encoded;
+}
+
+function login_totp_base32_decode($secret)
+{
+    $alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    $secret = strtoupper(preg_replace("/[^A-Z2-7]/", "", (string)$secret));
+    $buffer = 0;
+    $bitsLeft = 0;
+    $decoded = "";
+
+    for ($i = 0; $i < strlen($secret); $i++) {
+        $value = strpos($alphabet, $secret[$i]);
+        if ($value === false) {
+            return false;
+        }
+
+        $buffer = ($buffer << 5) | $value;
+        $bitsLeft += 5;
+
+        if ($bitsLeft >= 8) {
+            $bitsLeft -= 8;
+            $decoded .= chr(($buffer >> $bitsLeft) & 0xff);
+        }
+    }
+
+    return $decoded;
+}
+
+function login_totp_generate_code($secret, $timestamp = null)
+{
+    $key = login_totp_base32_decode($secret);
+    if ($key === false || $key === "") {
+        return null;
+    }
+
+    $timeSlice = (int)floor(($timestamp === null ? time() : $timestamp) / 30);
+    $high = (int)floor($timeSlice / 4294967296);
+    $low = $timeSlice & 0xffffffff;
+    $counter = pack("N2", $high, $low);
+    $hash = hash_hmac("sha1", $counter, $key, true);
+    $offset = ord($hash[strlen($hash) - 1]) & 0x0f;
+    $part = unpack("N", substr($hash, $offset, 4));
+    $number = ($part[1] & 0x7fffffff) % 1000000;
+
+    return str_pad((string)$number, 6, "0", STR_PAD_LEFT);
+}
+
+function login_totp_verify_code($secret, $code, $window = 1)
+{
+    $code = trim((string)$code);
+    if (!preg_match("/^[0-9]{6}$/", $code)) {
+        return false;
+    }
+
+    $now = time();
+    for ($i = -$window; $i <= $window; $i++) {
+        $expected = login_totp_generate_code($secret, $now + ($i * 30));
+        if ($expected !== null && hash_equals($expected, $code)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function login_totp_format_secret($secret)
+{
+    return trim(chunk_split((string)$secret, 4, " "));
+}
+
+function login_totp_otpauth_uri($accountLabel, $secret)
+{
+    $issuer = "高大獎助學金系統";
+    return "otpauth://totp/"
+        . rawurlencode($issuer . ":" . $accountLabel)
+        . "?secret=" . rawurlencode($secret)
+        . "&issuer=" . rawurlencode($issuer)
+        . "&algorithm=SHA1&digits=6&period=30";
 }

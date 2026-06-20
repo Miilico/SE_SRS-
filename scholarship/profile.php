@@ -8,6 +8,8 @@ ensure_teachers_table($pdo);
 
 $target_id = isset($_SESSION["user"]["id"]) ? $_SESSION["user"]["id"] : null;
 $emailLoginVerificationAvailable = table_has_column($pdo, "users", "EMAIL_LOGIN_VERIFY_ENABLED");
+$totpLoginVerificationAvailable = table_has_column($pdo, "users", "TOTP_LOGIN_VERIFY_ENABLED")
+    && table_has_column($pdo, "users", "TOTP_SECRET");
 
 function h($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
@@ -61,6 +63,10 @@ try {
 
         if ($emailLoginVerificationAvailable) {
             $basicItems["Email 登入驗證碼"] = !empty($user["EMAIL_LOGIN_VERIFY_ENABLED"]) ? "已開啟" : "未開啟";
+        }
+
+        if ($totpLoginVerificationAvailable) {
+            $basicItems["TOTP 驗證器 App"] = (!empty($user["TOTP_LOGIN_VERIFY_ENABLED"]) && !empty($user["TOTP_SECRET"])) ? "已開啟" : "未開啟";
         }
 
         $sections[] = [
