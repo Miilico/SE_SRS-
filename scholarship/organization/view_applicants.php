@@ -106,12 +106,11 @@ if ($scholarship_id) {
 
 $pageTitle = "申請資料";
 $activeNav = "view_applicants.php";
-$siteHeaderMaxWidth = "1000px"; // 讓畫面寬一點較好閱讀
 $siteHeaderRequiredRole = array(3, 4);
 require __DIR__ . "/../header.php";
 ?>
 
-<div class="container py-4">
+<div class="container py-4" style="max-width: 1000px;">
     <h1 class="h3 fw-bold mb-4">申請資料</h1>
     
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
