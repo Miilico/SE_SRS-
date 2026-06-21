@@ -99,7 +99,8 @@ if (!empty($record["expires_at"]) && strtotime($record["expires_at"]) < time()) 
 }
 
 $teacherNameValue = $teacherNameInput !== "" ? $teacherNameInput : (string)($record["teacher_name"] ?? "");
-$teacherEmailValue = $teacherEmailInput !== "" ? $teacherEmailInput : (string)($record["teacher_email"] ?? "");
+$storedTeacherEmail = trim((string)($record["teacher_email"] ?? ""));
+$teacherEmailValue = $storedTeacherEmail !== "" ? $storedTeacherEmail : $teacherEmailInput;
 $teacherUnitValue = $teacherUnitInput !== "" ? $teacherUnitInput : (string)($record["teacher_unit"] ?? "");
 $teacherTitleValue = $teacherTitleInput !== "" ? $teacherTitleInput : (string)($record["teacher_title"] ?? "");
 

@@ -90,6 +90,7 @@ $canWrite = in_array($statusLabel, array("待填寫", "草稿"), true);
 $draftText = $recommendation["draft_content"] !== null && $recommendation["draft_content"] !== ""
   ? $recommendation["draft_content"]
   : "";
+$teacherEmailLocked = trim((string)($recommendation["teacher_email"] ?? "")) !== "";
 
 $pageTitle = "推薦信";
 require __DIR__ . "/../header.php";
@@ -228,7 +229,10 @@ require __DIR__ . "/../header.php";
           </div>
           <div class="col-md-6">
             <label for="teacher_email" class="form-label">推薦人 Email</label>
-            <input type="email" name="teacher_email" id="teacher_email" class="form-control" maxlength="255" value="<?= h($recommendation["teacher_email"] ?? "") ?>">
+            <input type="email" name="teacher_email" id="teacher_email" class="form-control" maxlength="255" value="<?= h($recommendation["teacher_email"] ?? "") ?>"<?= $teacherEmailLocked ? " readonly" : "" ?>>
+            <?php if ($teacherEmailLocked): ?>
+              <div class="form-text">此 Email 來自推薦邀請連結，不可修改。</div>
+            <?php endif; ?>
           </div>
           <div class="col-md-6">
             <label for="teacher_unit" class="form-label">單位名稱 <span class="text-danger" aria-label="必填">*</span></label>
