@@ -67,7 +67,7 @@ if (!$recommendation) {
 }
 
 $fileStmt = $pdo->prepare("
-    SELECT id, file_type, original_name, path
+    SELECT id, file_type, original_name, path, recommendation_id
     FROM application_files
     WHERE apno = :apno
     ORDER BY id ASC
@@ -77,9 +77,12 @@ $files = $fileStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $autobiFiles = array();
 $supportFiles = array();
+$recommendationFiles = array();
 foreach ($files as $file) {
   if ($file["file_type"] === "autobi") {
     $autobiFiles[] = $file;
+  } elseif ($file["file_type"] === "recommendation" && (empty($file["recommendation_id"]) || (int)$file["recommendation_id"] === (int)$recommendation["recommendation_id"])) {
+    $recommendationFiles[] = $file;
   } else {
     $supportFiles[] = $file;
   }
@@ -214,7 +217,26 @@ require __DIR__ . "/../header.php";
     <?php if ($statusLabel === "已提交"): ?>
       <h2 class="h5 fw-bold mb-3">已提交推薦信</h2>
       <p class="text-secondary">提交時間：<?= h($recommendation["submitted_at"]) ?></p>
-      <div class="border rounded p-3 bg-light"><?= nl2br(h($recommendation["content"])) ?></div>
+      <h3 class="h6 fw-bold mt-3">推薦信內容</h3>
+      <?php if (trim((string)$recommendation["content"]) !== ""): ?>
+        <div class="border rounded p-3 bg-light mb-3"><?= nl2br(h($recommendation["content"])) ?></div>
+      <?php elseif (!empty($recommendationFiles)): ?>
+        <p class="text-secondary">推薦人以附件提交推薦信。</p>
+      <?php else: ?>
+        <p class="text-secondary">未填寫推薦信內容。</p>
+      <?php endif; ?>
+      <?php if (!empty($recommendationFiles)): ?>
+        <h3 class="h6 fw-bold mt-3">推薦信附件</h3>
+        <ul class="mb-0">
+          <?php foreach ($recommendationFiles as $file): ?>
+            <li>
+              <?= h($file["original_name"]) ?>
+              <a class="ms-2" href="/scholarship/file_preview.php?id=<?= urlencode($file["id"]) ?>&rec_token=<?= urlencode($token) ?>" target="_blank">查看</a>
+              <a class="ms-2" href="/scholarship/file_view.php?id=<?= urlencode($file["id"]) ?>&rec_token=<?= urlencode($token) ?>" target="_blank">下載</a>
+            </li>
+          <?php endforeach; ?>
+        </ul>
+      <?php endif; ?>
     <?php elseif ($statusLabel === "已駁回"): ?>
       <h2 class="h5 fw-bold mb-3">推薦信已駁回</h2>
       <p class="text-secondary mb-0">此請求已被駁回，不可再填寫推薦信。</p>
@@ -244,14 +266,14 @@ require __DIR__ . "/../header.php";
           </div>
         </div>
         <div class="mb-3">
-          <label for="content" class="form-label">推薦信內容 <span class="text-danger" aria-label="必填">*</span></label>
-          <textarea name="content" id="content" class="form-control" rows="8" required><?= h($draftText) ?></textarea>
-          <div class="form-text">可先暫存草稿；正式提交後不可再次編輯。</div>
+          <label for="content" class="form-label">推薦信內容</label>
+          <textarea name="content" id="content" class="form-control" rows="8"><?= h($draftText) ?></textarea>
+          <div class="form-text">可填寫文字內容，或改以上傳附件方式提交；正式提交後不可再次編輯。</div>
         </div>
         <div class="mb-3">
-          <label for="recommendation_file" class="form-label">推薦信附件（選填，提交時上傳）</label>
+          <label for="recommendation_file" class="form-label">推薦信附件</label>
           <input type="file" name="RECOMMENDATION_FILE" id="recommendation_file" class="form-control" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-          <div class="form-text">允許格式：PDF、DOC、DOCX、JPG、JPEG、PNG；單檔上限 20MB。</div>
+          <div class="form-text">推薦信內容與附件至少擇一；允許格式：PDF、DOC、DOCX、JPG、JPEG、PNG；單檔上限 20MB。</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
           <button type="submit" name="action" value="save_draft" class="btn btn-outline-primary">暫存草稿</button>
