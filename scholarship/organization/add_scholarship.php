@@ -34,7 +34,7 @@ require __DIR__ . "/../header.php";
 
                 <div>
                     <label class="form-label fw-semibold">申請條件</label>
-                    <textarea class="form-control" name="conditions" rows="4" placeholder="請輸入申請限制條件"></textarea>
+                    <textarea class="form-control" name="conditions" rows="4" placeholder="請輸入申請限制條件 (系統已預設成績、名次與自傳欄位)"></textarea>
                 </div>
 
                 <div>

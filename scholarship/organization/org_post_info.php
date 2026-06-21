@@ -28,7 +28,7 @@ if ($id) {
         $default_content = $post['CONTENT'];
         // 假設資料庫已新增 CATEGORY 欄位，若無則預設為 0
         $default_cat = isset($post['CATEGORY']) ? $post['CATEGORY'] : 0;
-        if ($default_cat != 2) {
+        if ((int)$default_cat != 2) {
             die("無法編輯非獎助單位公告");
         }
         $announcementId = isset($post["id"]) ? (int)$post["id"] : (int)$id;
