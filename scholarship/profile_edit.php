@@ -32,7 +32,7 @@ function role_name($role) {
 // 處理表單提交
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     try {
-        $stmt = $pdo->prepare("SELECT ROLE, PWD FROM users WHERE ID = ?");
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE ID = ?");
         $stmt->execute([$target_id]);
         $account = $stmt->fetch();
 
@@ -41,42 +41,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         $role = (int)$account["ROLE"];
-        $currentPassword = isset($_POST["CURRENT_PWD"]) ? $_POST["CURRENT_PWD"] : "";
-        $newPassword = isset($_POST["NEW_PWD"]) ? $_POST["NEW_PWD"] : "";
-        $confirmPassword = isset($_POST["CONFIRM_PWD"]) ? $_POST["CONFIRM_PWD"] : "";
-        $changePassword = ($currentPassword !== "" || $newPassword !== "" || $confirmPassword !== "");
-        $passwordHash = null;
+        $name = isset($_POST["NAME"]) ? trim($_POST["NAME"]) : "";
+        $tel = isset($_POST["TEL"]) ? trim($_POST["TEL"]) : "";
+        $email = isset($_POST["EMAIL"]) ? trim($_POST["EMAIL"]) : "";
 
-        if ($changePassword) {
-            if ($currentPassword === "" || $newPassword === "" || $confirmPassword === "") {
-                throw new Exception("如需修改密碼，請完整填寫目前密碼、新密碼與確認新密碼。");
-            }
-
-            if (!password_verify($currentPassword, $account["PWD"])) {
-                throw new Exception("目前密碼不正確。");
-            }
-
-            if ($newPassword !== $confirmPassword) {
-                throw new Exception("新密碼與確認新密碼不一致。");
-            }
-
-            if (mb_strlen($newPassword) < 6) {
-                throw new Exception("新密碼至少 6 碼。");
-            }
-
-            $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+        if ($name === "") {
+            throw new Exception("單位/姓名不可空白。");
         }
 
         $pdo->beginTransaction();
 
         // 1. 更新 users 基本資料
-        $sql1 = $changePassword
-            ? "UPDATE users SET NAME = ?, TEL = ?, EMAIL = ?, PWD = ? WHERE ID = ?"
-            : "UPDATE users SET NAME = ?, TEL = ?, EMAIL = ? WHERE ID = ?";
+        $setParts = ["NAME = ?", "TEL = ?", "EMAIL = ?"];
+        $params1 = [$name, $tel, $email];
+
+        $sql1 = "UPDATE users SET " . implode(", ", $setParts) . " WHERE ID = ?";
+        $params1[] = $target_id;
         $stmt1 = $pdo->prepare($sql1);
-        $params1 = $changePassword
-            ? [$_POST["NAME"], $_POST["TEL"], $_POST["EMAIL"], $passwordHash, $target_id]
-            : [$_POST["NAME"], $_POST["TEL"], $_POST["EMAIL"], $target_id];
         $stmt1->execute($params1);
 
         // 2. 根據角色更新擴展資料
@@ -88,7 +69,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $stmt2->execute([$_POST["DNAME"], $_POST["UNIT_NAME"], $_POST["JOB_TITLE"], $target_id]);
         } elseif ($role == 4) {
             $stmt2 = $pdo->prepare("UPDATE organization SET ONAME = ?, CONTACT = ? WHERE ID = ?");
-            $stmt2->execute([$_POST["NAME"], $_POST["CONTACT"], $target_id]);
+            $stmt2->execute([$name, $_POST["CONTACT"], $target_id]);
 
             $pdo->prepare("DELETE FROM ophone WHERE ID = ?")->execute([$target_id]);
             if (!empty($_POST["ORG_PHONES"])) {
@@ -104,7 +85,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         $pdo->commit();
-        $_SESSION["user"]["name"] = $_POST["NAME"];
+        $_SESSION["user"]["name"] = $name;
         $message = "更新成功！";
         $messageType = "success";
     } catch (Exception $e) {
@@ -197,7 +178,7 @@ require __DIR__ . "/header.php";
                                 <input type="text" id="TEL" name="TEL" class="form-control" value="<?php echo h($user["TEL"]); ?>">
                             </div>
 
-                            <div class="mb-0">
+                            <div class="mb-3">
                                 <label for="EMAIL" class="form-label fw-semibold">Email</label>
                                 <input type="email" id="EMAIL" name="EMAIL" class="form-control" value="<?php echo h($user["EMAIL"]); ?>">
                             </div>
@@ -257,28 +238,6 @@ require __DIR__ . "/header.php";
                                 </div>
                             </section>
                         <?php endif; ?>
-
-                        <section class="mb-4">
-                            <div class="border-start border-4 border-primary bg-body-tertiary px-3 py-2 fw-bold mb-3">
-                                修改密碼
-                            </div>
-                            <div class="text-secondary small mb-3"><span class="text-danger" aria-label="條件式必填">*</span> 如需修改密碼，目前密碼、新密碼與確認新密碼皆需填寫。</div>
-
-                            <div class="mb-3">
-                                <label for="CURRENT_PWD" class="form-label fw-semibold">目前密碼</label>
-                                <input type="password" id="CURRENT_PWD" name="CURRENT_PWD" class="form-control" autocomplete="current-password" placeholder="不修改密碼可留空">
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="NEW_PWD" class="form-label fw-semibold">新密碼</label>
-                                <input type="password" id="NEW_PWD" name="NEW_PWD" class="form-control" minlength="6" autocomplete="new-password" placeholder="至少 6 碼">
-                            </div>
-
-                            <div class="mb-0">
-                                <label for="CONFIRM_PWD" class="form-label fw-semibold">確認新密碼</label>
-                                <input type="password" id="CONFIRM_PWD" name="CONFIRM_PWD" class="form-control" minlength="6" autocomplete="new-password" placeholder="再次輸入新密碼">
-                            </div>
-                        </section>
 
                         <div class="d-flex flex-column flex-sm-row gap-2 pt-2">
                             <button type="submit" class="btn btn-primary">儲存修改</button>

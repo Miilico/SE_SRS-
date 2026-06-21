@@ -1,14 +1,11 @@
 <?php
 session_start();
 require_once "db.php";
+require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/scholarship_access.php";
 
 // 1. 基本登入檢查
-if (!isset($_SESSION['user']['id'])) {
-    die("請先登入");
-}
-
-$provider_id = $_SESSION['user']['id'];
-
+organization_require_scholarship_manager();
 
 $scholarship_id = isset($_GET['scholarship_id']) ? $_GET['scholarship_id'] : null;
 
@@ -18,9 +15,15 @@ if (!$scholarship_id) {
 }
 
 try {
-    $sql = "DELETE FROM scholarship WHERE id = ? AND provider_id = ?";
+    $scholarship = organization_fetch_managed_scholarship($pdo, $scholarship_id);
+    if (!$scholarship) {
+        header("Location: my_scholarships.php?error=" . urlencode("刪除失敗：找不到該項目或您無權限刪除"));
+        exit;
+    }
+
+    $sql = "DELETE FROM scholarship WHERE id = ?";
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$scholarship_id, $provider_id]);
+    $stmt->execute([$scholarship_id]);
 
     if ($stmt->rowCount() > 0) {
         header("Location: my_scholarships.php?success=delete");

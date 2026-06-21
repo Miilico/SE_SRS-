@@ -104,4 +104,4 @@ exit;
     // 完成後導回清單並顯示「已加入排程」的數量 (瞬間跳轉，不會卡頓)
     header("Location: my_scholarships.php?broadcast_success=1&count=" . $success_count);
     exit;
-*/
+    */ 

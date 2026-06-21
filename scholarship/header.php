@@ -60,10 +60,11 @@ if (!defined("SITE_HEADER_FUNCTIONS_LOADED")) {
                 array("/scholarship/admin/admin_users_pending.php", "帳號審核"),
                 array("/scholarship/admin/account_management.php", "帳號管理"),
                 array("/scholarship/admin/post_management.php", "公告管理"),
-                array("/scholarship/admin/document_management.php", "文件管理"),
-                array("/scholarship/admin/app_management.php", "申請管理"),
-                array("/scholarship/profile.php", "個人檔案"),
-                array("/scholarship/ticket_list.php", "回報問題"),
+                array("/scholarship/admin/document_management.php", "檔案管理"),
+                array("/scholarship/admin/app_management.php", "獎助學金申請管理"),
+                array("/scholarship/organization/my_scholarships.php", "獎助學金表單管理"),
+                array("/scholarship/ticket_list.php", "工單管理"),
+                array("/scholarship/profile.php", "個人設定"),
             );
         }
 
@@ -75,7 +76,7 @@ if (!defined("SITE_HEADER_FUNCTIONS_LOADED")) {
                 array("/scholarship/student/my_applications.php", "我的申請"),
                 array("/index.php", "查看公告"),
                 array("/scholarship/ticket_list.php", "回報問題"),
-                array("/scholarship/profile.php", "個人檔案"),
+                array("/scholarship/profile.php", "個人設定"),
             );
         }
 
@@ -83,7 +84,7 @@ if (!defined("SITE_HEADER_FUNCTIONS_LOADED")) {
             return array(
                 array("/scholarship/professor/tea_dashboard.php", "總覽"),
                 array("/scholarship/ticket_list.php", "回報問題"),
-                array("/scholarship/profile.php", "個人檔案"),
+                array("/scholarship/profile.php", "個人設定"),
             );
         }
 
@@ -95,7 +96,7 @@ if (!defined("SITE_HEADER_FUNCTIONS_LOADED")) {
                 array("/scholarship/organization/add_scholarship.php", "新增獎助學金"),
                 array("/scholarship/organization/org_post_management.php", "公告管理"),
                 array("/scholarship/ticket_list.php", "回報問題"),
-                array("/scholarship/profile.php", "個人檔案"),
+                array("/scholarship/profile.php", "個人設定"),
             );
         }
 

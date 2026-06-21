@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS scholarship_fields (
     id INT NOT NULL AUTO_INCREMENT,
     scholarship_id INT NOT NULL,
     field_label VARCHAR(255) NOT NULL,
+    field_note VARCHAR(500) NULL,
     field_type ENUM('text', 'number', 'textarea', 'file') NOT NULL,
     is_required TINYINT(1) NOT NULL DEFAULT 1,
     sort_order INT NOT NULL DEFAULT 0,
@@ -23,6 +24,7 @@ CREATE TABLE IF NOT EXISTS scholarship_fields (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 ALTER TABLE scholarship_fields
+    ADD COLUMN IF NOT EXISTS field_note VARCHAR(500) NULL AFTER field_label,
     ADD COLUMN IF NOT EXISTS sort_order INT NOT NULL DEFAULT 0 AFTER is_required,
     ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER sort_order,
     ADD COLUMN IF NOT EXISTS updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
