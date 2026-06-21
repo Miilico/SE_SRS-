@@ -35,6 +35,8 @@ $teacherEmailInput = isset($_POST["teacher_email"]) ? trim($_POST["teacher_email
 $teacherUnitInput = isset($_POST["teacher_unit"]) ? trim($_POST["teacher_unit"]) : "";
 $teacherTitleInput = isset($_POST["teacher_title"]) ? trim($_POST["teacher_title"]) : "";
 $action = isset($_POST["action"]) ? trim($_POST["action"]) : "submit";
+$recommendationUpload = isset($_FILES["RECOMMENDATION_FILE"]) ? $_FILES["RECOMMENDATION_FILE"] : null;
+$hasRecommendationUpload = !empty($recommendationUpload) && (int)($recommendationUpload["error"] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
 
 if ($token === "") {
     fail_and_back("缺少推薦信 token。", "");
@@ -99,7 +101,8 @@ if (!empty($record["expires_at"]) && strtotime($record["expires_at"]) < time()) 
 }
 
 $teacherNameValue = $teacherNameInput !== "" ? $teacherNameInput : (string)($record["teacher_name"] ?? "");
-$teacherEmailValue = $teacherEmailInput !== "" ? $teacherEmailInput : (string)($record["teacher_email"] ?? "");
+$storedTeacherEmail = trim((string)($record["teacher_email"] ?? ""));
+$teacherEmailValue = $storedTeacherEmail !== "" ? $storedTeacherEmail : $teacherEmailInput;
 $teacherUnitValue = $teacherUnitInput !== "" ? $teacherUnitInput : (string)($record["teacher_unit"] ?? "");
 $teacherTitleValue = $teacherTitleInput !== "" ? $teacherTitleInput : (string)($record["teacher_title"] ?? "");
 
@@ -133,8 +136,8 @@ if ($action === "save_draft") {
     back_to_recommendation($token, array("message" => "草稿已暫存。", "type" => "success"));
 }
 
-if ($content === "") {
-    fail_and_back("請先填寫推薦信內容。", $token);
+if ($content === "" && !$hasRecommendationUpload) {
+    fail_and_back("請填寫推薦信內容或上傳推薦信附件。", $token);
 }
 
 if ($teacherNameValue === "") {
@@ -179,10 +182,10 @@ try {
         throw new RuntimeException("推薦信狀態已變更，請重新整理頁面。");
     }
 
-    if (!empty($_FILES["RECOMMENDATION_FILE"]) && $_FILES["RECOMMENDATION_FILE"]["error"] !== UPLOAD_ERR_NO_FILE) {
+    if ($hasRecommendationUpload) {
         $uploaderId = empty($record["teacher_id"]) ? "EXTERNAL" : $record["teacher_id"];
 
-        store_uploaded_file($pdo, $_FILES["RECOMMENDATION_FILE"], 4, $uploaderId, array(
+        store_uploaded_file($pdo, $recommendationUpload, 4, $uploaderId, array(
             "application_id" => $record["APNO"],
             "scholarship_id" => $record["SCID"],
             "scholarship_provider_id" => $record["provider_id"],
