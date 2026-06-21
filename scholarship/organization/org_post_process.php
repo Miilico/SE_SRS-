@@ -46,9 +46,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $category = $_POST['category'];
     $title    = $_POST['title']; // 例如：【結果公告】校內優秀獎學金 獲獎名單
     $content  = $_POST['content'];
+    $scholarship_id = !empty($_POST['scholarship_id']) ? (int)$_POST['scholarship_id'] : null;
     $aid      = $_POST['aid'];
     $adate    = date("Y-m-d");
     $atime    = date("H:i:s");
+    
 
     // 從 Session 取得獎助單位 ID 
     $aid = isset($_SESSION['user']['id']) ? $_SESSION['user']['id'] : null;
@@ -60,15 +62,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     try {
         if ($mode == 'edit') {
-            // 修改模式 (注意您的 SQL 語法在 ATIME 後面漏了一個逗號)
-            $sql = "UPDATE announcement SET TITLE = ?, CONTENT = ?, ADATE = ?, ATIME = ?, CATEGORY = ? WHERE ID = ?";
-            $pdo->prepare($sql)->execute([$title, $content, $adate, $atime, $category, $id]);
+            // 🔽 SQL 加上 scholarship_id = ?
+            $sql = "UPDATE announcement SET TITLE = ?, CONTENT = ?, ADATE = ?, ATIME = ?, CATEGORY = ?, scholarship_id = ? WHERE ID = ?";
+            $pdo->prepare($sql)->execute([$title, $content, $adate, $atime, $category, $scholarship_id, $id]);
             $announcementId = (int)$id;
             $msg = "公告修改成功！";
         } else {
             // 新增模式
-            $sql = "INSERT INTO announcement (ADATE, ATIME, CONTENT, AID, TITLE, CATEGORY) VALUES (?, ?, ?, ?, ?, ?)";
-            $pdo->prepare($sql)->execute([$adate, $atime, $content, $aid, $title, $category]);
+            $sql = "INSERT INTO announcement (ADATE, ATIME, CONTENT, AID, TITLE, CATEGORY, scholarship_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            $pdo->prepare($sql)->execute([$adate, $atime, $content, $aid, $title, $category, $scholarship_id]);
             $announcementId = (int)$pdo->lastInsertId();
             $msg = "公告發佈成功！";
 

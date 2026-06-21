@@ -16,6 +16,16 @@ $default_title = isset($_GET['title']) ? $_GET['title'] : '';
 $default_content = isset($_GET['content']) ? $_GET['content'] : '';
 $default_cat = isset($_GET['cat']) ? (int)$_GET['cat'] : 0;
 
+// 取得登入單位的 ID
+$provider_id = isset($_SESSION['user']['id']) ? $_SESSION['user']['id'] : null;
+
+// 撈取該單位目前建立的獎學金清單
+$stmtSc = $pdo->prepare("SELECT id, NAME FROM scholarship WHERE provider_id = ? ORDER BY id DESC");
+$stmtSc->execute([$provider_id]);
+$scholarships = $stmtSc->fetchAll(PDO::FETCH_ASSOC);
+
+$default_scholarship_id = ''; // 預設不綁定
+
 // 如果有 ID，進入修改模式並抓取舊資料
 if ($id) {
     $provider_id = isset($_SESSION['user']['id']) ? $_SESSION['user']['id'] : null;
@@ -28,6 +38,10 @@ if ($id) {
         $default_content = $post['CONTENT'];
         // 假設資料庫已新增 CATEGORY 欄位，若無則預設為 0
         $default_cat = isset($post['CATEGORY']) ? $post['CATEGORY'] : 0;
+        if ((int)$default_cat != 2) {
+            die("無法編輯非獎助單位公告");
+        }
+        $default_scholarship_id = isset($post['scholarship_id']) ? $post['scholarship_id'] : '';
         $announcementId = isset($post["id"]) ? (int)$post["id"] : (int)$id;
         $files = fetch_uploaded_files($pdo, 1, "announcement_id", $announcementId);
     }
@@ -53,13 +67,26 @@ $activeNav = "org_post_management.php";
             <div>
                 <label class="form-label fw-semibold">公告類別：</label>
                 <select class="form-select" name="category">
-                    <option value="0" <?php echo $default_cat == 0 ? 'selected' : ''; ?>>一般系統公告</option>
+                    <option value="2" <?php echo $default_cat == 2 ? 'selected' : ''; ?>>獎助單位訊息</option>
                 </select>
                 <?php if($default_cat == 1): ?>
                     <div class="form-text text-danger">提醒：已自動帶入獲獎學生名單，發佈前請確認格式。</div>
                 <?php endif; ?>
             </div>
-
+            
+            <div class="mb-3">
+                <label class="form-label fw-semibold">綁定獎助學金申請表單：</label>
+                <select class="form-select" name="scholarship_id">
+                    <option value="">-- 純公告 (不綁定任何表單) --</option>
+                    <?php foreach ($scholarships as $s): ?>
+                        <option value="<?= $s['id'] ?>" <?= ($default_scholarship_id == $s['id']) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($s['NAME']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <div class="form-text">選擇後，學生可在閱讀這篇公告時，直接點擊按鈕進入該獎學金的申請頁面。</div>
+            </div>
+            
             <div>
                 <label class="form-label fw-semibold">公告標題：<span class="text-danger" aria-label="必填">*</span></label>
                 <input class="form-control" type="text" name="title" value="<?php echo htmlspecialchars($default_title); ?>" placeholder="例如：2024年第一季獎學金錄取名單" required>

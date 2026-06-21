@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/../custom_form_helpers.php";
 require_once "db.php";
 require_once __DIR__ . "/scholarship_access.php";
 
@@ -21,6 +22,7 @@ if (!$scholarship) {
 }
 
 $provider_id = $scholarship['provider_id'];
+$customFormLocked = custom_form_collection_has_opened($scholarship);
 
 // 2. 取得自訂表單欄位資料
 $field_sql = "SELECT * FROM scholarship_fields WHERE scholarship_id = ?";
@@ -78,7 +80,13 @@ require __DIR__ . "/../header.php";
 
                     <div>
                         <label class="form-label fw-semibold">申請開始日期</label>
-                        <input class="form-control" type="date" name="start_date" value="<?= htmlspecialchars($scholarship['start_date']) ?>" required>
+                        <?php if ($customFormLocked): ?>
+                            <input type="hidden" name="start_date" value="<?= htmlspecialchars($scholarship['start_date']) ?>">
+                            <input class="form-control" type="date" value="<?= htmlspecialchars($scholarship['start_date']) ?>" disabled>
+                            <div class="form-text">收集表單已開放填寫，開始日期不可再調整。</div>
+                        <?php else: ?>
+                            <input class="form-control" type="date" name="start_date" value="<?= htmlspecialchars($scholarship['start_date']) ?>" required>
+                        <?php endif; ?>
                     </div>
 
                     <div>
@@ -90,35 +98,41 @@ require __DIR__ . "/../header.php";
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="fw-bold mb-0">🛠️ 學生申請表單——自訂收集項目設定</h5>
-                                <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" id="btn-add-custom-field">
+                                <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" id="btn-add-custom-field" <?= $customFormLocked ? 'disabled' : '' ?>>
                                     ＋ 增加審查項目
                                 </button>
                             </div>
 
+                            <?php if ($customFormLocked): ?>
+                                <div class="alert alert-warning py-2 mb-3">
+                                    此獎助學金收集表單已開放填寫，自訂收集項目禁止修改。
+                                </div>
+                            <?php endif; ?>
+
                             <div class="mb-3">
                                 <div class="small fw-semibold text-secondary mb-2">建議欄位</div>
                                 <div class="d-flex flex-wrap gap-2">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="在學證明" data-type="file" data-required="1">在學證明</button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="大學期間成績單" data-type="file" data-required="1">大學期間成績單</button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="語言能力證明" data-type="file" data-required="0">語言能力證明</button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="讀書計畫" data-type="file" data-required="1">讀書計畫</button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="自傳" data-type="file" data-required="1">自傳</button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="其他有利證明" data-type="file" data-required="0">其他有利證明</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="在學證明" data-type="file" data-required="1" <?= $customFormLocked ? 'disabled' : '' ?>>在學證明</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="大學期間成績單" data-type="file" data-required="1" <?= $customFormLocked ? 'disabled' : '' ?>>大學期間成績單</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="語言能力證明" data-type="file" data-required="0" <?= $customFormLocked ? 'disabled' : '' ?>>語言能力證明</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="讀書計畫" data-type="file" data-required="1" <?= $customFormLocked ? 'disabled' : '' ?>>讀書計畫</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="自傳" data-type="file" data-required="1" <?= $customFormLocked ? 'disabled' : '' ?>>自傳</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-custom-preset data-label="其他有利證明" data-type="file" data-required="0" <?= $customFormLocked ? 'disabled' : '' ?>>其他有利證明</button>
                                 </div>
                             </div>
                     
-                            <div id="custom-fields-container" class="vstack gap-3">
+                            <div id="custom-fields-container" class="vstack gap-3" data-custom-form-locked="<?= $customFormLocked ? '1' : '0' ?>">
                                 <?php foreach ($custom_fields as $index => $field): ?>
                                     <div class="custom-field-row row g-2 align-items-center bg-white p-3 rounded border position-relative" id="custom-field-row-<?= $index ?>">
                                         <input type="hidden" name="custom_field_ids[]" value="<?= (int)$field['id'] ?>">
                                         <div class="col-md-5">
                                             <label class="form-label small text-secondary fw-semibold">項目名稱</label>
-                                            <input type="text" name="custom_labels[]" class="form-control" value="<?= htmlspecialchars($field['field_label']) ?>" required>
+                                            <input type="text" name="custom_labels[]" class="form-control" value="<?= htmlspecialchars($field['field_label']) ?>" required <?= $customFormLocked ? 'disabled' : '' ?>>
                                             <div class="invalid-feedback">此為系統固定欄位，不可重複新增。</div>
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label small text-secondary fw-semibold">欄位型態</label>
-                                            <select name="custom_types[]" class="form-select">
+                                            <select name="custom_types[]" class="form-select" <?= $customFormLocked ? 'disabled' : '' ?>>
                                                 <option value="text" <?= $field['field_type'] == 'text' ? 'selected' : '' ?>>單行文字輸入框</option>
                                                 <option value="number" <?= $field['field_type'] == 'number' ? 'selected' : '' ?>>整數輸入框</option>
                                                 <option value="textarea" <?= $field['field_type'] == 'textarea' ? 'selected' : '' ?>>多行文字區塊</option>
@@ -127,19 +141,19 @@ require __DIR__ . "/../header.php";
                                         </div>
                                         <div class="col-md-2">
                                             <label class="form-label small text-secondary fw-semibold">是否必填</label>
-                                            <select name="custom_required[]" class="form-select">
+                                            <select name="custom_required[]" class="form-select" <?= $customFormLocked ? 'disabled' : '' ?>>
                                                 <option value="1" <?= $field['is_required'] == 1 ? 'selected' : '' ?>>必填</option>
                                                 <option value="0" <?= $field['is_required'] == 0 ? 'selected' : '' ?>>選填</option>
                                             </select>
                                         </div>
                                         <div class="col-md-1 text-end mt-4">
-                                            <button type="button" class="btn btn-outline-danger btn-sm" data-remove-custom-field>移除</button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" data-remove-custom-field <?= $customFormLocked ? 'disabled' : '' ?>>移除</button>
                                         </div>
                                         <div class="col-12">
                                             <label class="form-label small text-secondary fw-semibold">備註（選填，顯示給學生）</label>
                                             <input type="text" name="custom_notes[]" class="form-control" maxlength="500"
                                                    value="<?= htmlspecialchars(isset($field['field_note']) ? $field['field_note'] : '') ?>"
-                                                   placeholder="例如：請上傳最近一學期、需包含學校核章">
+                                                   placeholder="例如：請上傳最近一學期、需包含學校核章" <?= $customFormLocked ? 'disabled' : '' ?>>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>

@@ -9,7 +9,13 @@ function public_detail_h($value)
 
 function public_detail_category_label($category)
 {
-    return (int)$category === 1 ? "獎學金審查結果" : "獎學金公告";
+    if ((int)$category === 1) {
+        return "獎學金審查結果";
+    } else if ((int)$category === 2) {
+        return "獎助單位訊息";
+    } else {
+        return "獎學金公告";
+    }    
 }
 
 $id = isset($_GET["id"]) ? (int)$_GET["id"] : 0;
@@ -20,7 +26,7 @@ if ($id <= 0) {
 
 try {
     $stmt = $pdo->prepare("
-        SELECT id, title, ADATE, ATIME, CONTENT, AID, CATEGORY
+        SELECT id, title, ADATE, ATIME, CONTENT, AID, CATEGORY, scholarship_id
         FROM announcement
         WHERE id = ?
         LIMIT 1
@@ -93,7 +99,22 @@ require __DIR__ . "/scholarship/header.php";
                 </ul>
             </section>
         <?php endif; ?>
-
+        <?php if (!empty($post["scholarship_id"])): ?>
+            <section class="mt-5 text-center bg-light p-4 rounded border border-primary-subtle">
+                <h2 class="h5 fw-bold mb-3 text-dark">符合資格嗎？馬上提出申請！</h2>
+                <p class="text-secondary small mb-3">點擊下方按鈕，系統將為您自動帶入本獎助學金的申請表單。</p>
+                
+                <?php if ($isLoggedIn && isset($_SESSION["user"]["role"]) && (int)$_SESSION["user"]["role"] === 1): ?>
+                    <a href="/scholarship/student/apply.php?scid=<?php echo urlencode((string)$post["scholarship_id"]); ?>" class="btn btn-primary btn-lg px-5 shadow-sm">
+                        🚀 立即前往申請
+                    </a>
+                <?php else: ?>
+                    <a href="/scholarship/login.php" class="btn btn-outline-primary btn-lg px-5 shadow-sm">
+                        請先登入學生帳號再申請
+                    </a>
+                <?php endif; ?>
+            </section>
+        <?php endif; ?>                
     </div>
 </article>
 

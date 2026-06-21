@@ -37,7 +37,7 @@ CREATE TABLE `scholarship_attachments` (
   FOREIGN KEY (`scholarship_id`) REFERENCES `scholarship`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-NEW!!
+
 獎助學金公告需要權限
 ALTER TABLE `announcement` DROP FOREIGN KEY `announcement_ibfk_1`;
 
@@ -55,3 +55,6 @@ CREATE TABLE `email_queue` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 伺服器上設定 Cron Job 每分鐘執行一次process_email_queue.php
+
+NEW!!
+ALTER TABLE `announcement` ADD `scholarship_id` INT NULL DEFAULT NULL COMMENT '綁定的獎學金ID';

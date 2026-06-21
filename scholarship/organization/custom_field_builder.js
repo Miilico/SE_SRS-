@@ -3,6 +3,7 @@
     var addButton = document.getElementById("btn-add-custom-field");
     var form = container ? container.closest("form") : null;
     var nextId = container ? container.children.length : 0;
+    var locked = container && container.getAttribute("data-custom-form-locked") === "1";
     var reservedLabels = [
         "gpa", "成績", "gpa成績", "學業成績",
         "排名", "班排", "系排", "班排名", "系排名", "班排系排",
@@ -67,11 +68,15 @@
 
     function updatePresetButtons() {
         document.querySelectorAll("[data-custom-preset]").forEach(function (button) {
-            button.disabled = hasLabel(button.dataset.label);
+            button.disabled = locked || hasLabel(button.dataset.label);
         });
     }
 
     function addRow(values) {
+        if (locked) {
+            return;
+        }
+
         values = values || {};
         nextId++;
 
@@ -123,11 +128,17 @@
     }
 
     addButton.addEventListener("click", function () {
+        if (locked) {
+            return;
+        }
         addRow();
     });
 
     document.querySelectorAll("[data-custom-preset]").forEach(function (button) {
         button.addEventListener("click", function () {
+            if (locked) {
+                return;
+            }
             if (hasLabel(button.dataset.label)) {
                 alert("這個欄位已經加入，不能重複新增。");
                 return;
@@ -143,7 +154,7 @@
 
     container.addEventListener("click", function (event) {
         var removeButton = event.target.closest("[data-remove-custom-field]");
-        if (!removeButton) {
+        if (!removeButton || locked) {
             return;
         }
         removeButton.closest(".custom-field-row").remove();

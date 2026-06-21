@@ -61,6 +61,7 @@ if ($scholarship_id && $isAdmin) {
 $rows = array();
 $custom_fields = [];
 $supplementFilesByApplication = array();
+$recommendationFilesByApplication = array();
 
 // 4. 若有選擇獎學金，撈取該獎學金的申請資料與自訂欄位題目
 if ($scholarship_id) {
@@ -101,17 +102,32 @@ if ($scholarship_id) {
             }
             $supplementFilesByApplication[$fileApplicationId][] = $supplementFile;
         }
+
+        $recommendationStmt = $pdo->prepare("
+            SELECT COALESCE(application_id, apno) AS app_id, id, original_name, path, created_at
+            FROM application_files
+            WHERE COALESCE(application_id, apno) IN (" . $placeholders . ")
+              AND file_type = 'recommendation'
+            ORDER BY created_at ASC, id ASC
+        ");
+        $recommendationStmt->execute($applicationIds);
+        foreach ($recommendationStmt->fetchAll(PDO::FETCH_ASSOC) as $recommendationFile) {
+            $fileApplicationId = (int)$recommendationFile['app_id'];
+            if (!isset($recommendationFilesByApplication[$fileApplicationId])) {
+                $recommendationFilesByApplication[$fileApplicationId] = array();
+            }
+            $recommendationFilesByApplication[$fileApplicationId][] = $recommendationFile;
+        }
     }
 }
 
 $pageTitle = "申請資料";
 $activeNav = "view_applicants.php";
-$siteHeaderMaxWidth = "1000px"; // 讓畫面寬一點較好閱讀
 $siteHeaderRequiredRole = array(3, 4);
 require __DIR__ . "/../header.php";
 ?>
 
-<div class="container py-4">
+<div class="container py-4" style="max-width: 1000px;">
     <h1 class="h3 fw-bold mb-4">申請資料</h1>
     
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
@@ -201,9 +217,23 @@ require __DIR__ . "/../header.php";
 
                             <div class="mb-3 p-3 bg-light rounded border">
                                 <p class="mb-1"><strong>推薦老師：</strong> <?php echo htmlspecialchars($row['teacher_name'] ?? '尚未指定或無'); ?></p>
+                                <?php $recommendationFiles = $recommendationFilesByApplication[(int)$row['app_id']] ?? array(); ?>
+                                <?php $recommendationContent = trim((string)($row['recommendation_content'] ?? '')); ?>
                                 <p class="mb-1"><strong>推薦信內容：</strong><br> 
-                                    <span class="text-secondary"><?php echo nl2br(htmlspecialchars($row['recommendation_content'] ?? '尚無推薦信內容')); ?></span>
+                                    <span class="text-secondary"><?php echo $recommendationContent !== '' ? nl2br(htmlspecialchars($recommendationContent)) : (!empty($recommendationFiles) ? '以附件提交推薦信' : '尚無推薦信內容'); ?></span>
                                 </p>
+                                <?php if (!empty($recommendationFiles)): ?>
+                                    <div class="mt-2">
+                                        <strong>推薦信附件：</strong>
+                                        <div class="d-flex flex-wrap gap-2 mt-1">
+                                            <?php foreach ($recommendationFiles as $recommendationFile): ?>
+                                                <a href="<?php echo htmlspecialchars($recommendationFile['path']); ?>" target="_blank" class="btn btn-sm btn-outline-info">
+                                                    <?php echo htmlspecialchars($recommendationFile['original_name']); ?>
+                                                </a>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
                             </div>
 
                             <div class="mt-3 border-top pt-3">

@@ -37,6 +37,21 @@ function custom_form_tables_ready($pdo)
         && custom_form_table_exists($pdo, "application_custom_answers");
 }
 
+function custom_form_collection_has_opened($scholarship, $today = null)
+{
+    if (empty($scholarship["start_date"])) {
+        return false;
+    }
+
+    $startDate = substr((string)$scholarship["start_date"], 0, 10);
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
+        return false;
+    }
+
+    $today = $today === null ? date("Y-m-d") : substr((string)$today, 0, 10);
+    return $startDate <= $today;
+}
+
 function custom_form_normalized_label($label)
 {
     $label = trim((string)$label);
