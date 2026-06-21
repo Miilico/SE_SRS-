@@ -22,7 +22,23 @@ $customNotes = $_POST['custom_notes'] ?? array();
 
 $redirect_url = "edit_scholarship.php?id=" . urlencode($scholarship_id);
 
-if (!$scholarship_id || $name === '' || $amount === '' || $start_date === '' || $deadline === '') { 
+if (!$scholarship_id) {
+    header("Location: my_scholarships.php?error=" . urlencode("缺少必要的獎助學金參數"));
+    exit;
+}
+
+$managedScholarship = organization_fetch_managed_scholarship($pdo, $scholarship_id);
+if (!$managedScholarship) {
+    header("Location: my_scholarships.php?error=" . urlencode("找不到該獎助學金或您無權限編輯"));
+    exit;
+}
+
+$customFormLocked = custom_form_collection_has_opened($managedScholarship);
+if ($customFormLocked) {
+    $start_date = $managedScholarship["start_date"];
+}
+
+if ($name === '' || $amount === '' || $start_date === '' || $deadline === '') {
     header("Location: " . $redirect_url . "&error=" . urlencode("請完整填寫必填欄位")); 
     exit; 
 }
@@ -37,14 +53,10 @@ if (strtotime($start_date) > strtotime($deadline)) {
     exit; 
 }
 
-$managedScholarship = organization_fetch_managed_scholarship($pdo, $scholarship_id);
-if (!$managedScholarship) {
-    header("Location: my_scholarships.php?error=" . urlencode("找不到該獎助學金或您無權限編輯"));
-    exit;
-}
-
 try {
-    custom_form_validate_unique_labels($customLabels);
+    if (!$customFormLocked) {
+        custom_form_validate_unique_labels($customLabels);
+    }
     $pdo->beginTransaction();
 
     // 1. 更新主表
@@ -59,15 +71,16 @@ try {
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$name, $deadline, $condi, $amount, $start_date, $scholarship_id, organization_current_user_id()]);
     }
-            
-    custom_form_replace_fields(
-        $pdo,
-        $scholarship_id,
-        $customLabels,
-        $customTypes,
-        $customRequired,
-        $customNotes
-    );
+    if (!$customFormLocked) {
+        custom_form_replace_fields(
+            $pdo,
+            $scholarship_id,
+            $customLabels,
+            $customTypes,
+            $customRequired,
+            $customNotes
+        );
+    }
     if (isset($_FILES['scholarship_attachment']) && $_FILES['scholarship_attachment']['error'] === UPLOAD_ERR_OK) {
         $file_tmp  = $_FILES['scholarship_attachment']['tmp_name'];
         $file_name = $_FILES['scholarship_attachment']['name'];
