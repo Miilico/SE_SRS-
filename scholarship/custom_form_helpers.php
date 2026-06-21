@@ -122,7 +122,7 @@ function custom_form_fields_for_scholarship($pdo, $scholarshipId)
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function custom_form_replace_fields($pdo, $scholarshipId, $labels, $types, $requiredValues, $notes = array())
+function custom_form_replace_fields($pdo, $scholarshipId, $labels, $types, $requiredValues, $notes = array(), $fieldIds = array())
 {
     if (!custom_form_tables_ready($pdo)) {
         throw new RuntimeException("Custom form migration has not been applied.");
@@ -132,10 +132,8 @@ function custom_form_replace_fields($pdo, $scholarshipId, $labels, $types, $requ
     $types = is_array($types) ? $types : array();
     $requiredValues = is_array($requiredValues) ? $requiredValues : array();
     $notes = is_array($notes) ? $notes : array();
+    $fieldIds = is_array($fieldIds) ? $fieldIds : array();
     custom_form_validate_unique_labels($labels);
-
-    $pdo->prepare("DELETE FROM scholarship_fields WHERE scholarship_id = ?")
-        ->execute(array((int)$scholarshipId));
 
     $hasNote = custom_form_column_exists($pdo, "scholarship_fields", "field_note");
     $insert = $hasNote
@@ -149,6 +147,25 @@ function custom_form_replace_fields($pdo, $scholarshipId, $labels, $types, $requ
                 (scholarship_id, field_label, field_type, is_required, sort_order)
             VALUES (?, ?, ?, ?, ?)
         ");
+    $update = $hasNote
+        ? $pdo->prepare("
+            UPDATE scholarship_fields
+            SET field_label = ?, field_type = ?, is_required = ?, sort_order = ?, field_note = ?
+            WHERE id = ? AND scholarship_id = ?
+        ")
+        : $pdo->prepare("
+            UPDATE scholarship_fields
+            SET field_label = ?, field_type = ?, is_required = ?, sort_order = ?
+            WHERE id = ? AND scholarship_id = ?
+        ");
+
+    $existingStmt = $pdo->prepare("SELECT id, field_type FROM scholarship_fields WHERE scholarship_id = ?");
+    $existingStmt->execute(array((int)$scholarshipId));
+    $existing = array();
+    foreach ($existingStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $existing[(int)$row["id"]] = $row;
+    }
+    $keptIds = array();
 
     $allowedTypes = custom_form_allowed_types();
     foreach ($labels as $index => $rawLabel) {
@@ -164,11 +181,46 @@ function custom_form_replace_fields($pdo, $scholarshipId, $labels, $types, $requ
 
         $isRequired = !empty($requiredValues[$index]) ? 1 : 0;
         $note = isset($notes[$index]) ? trim((string)$notes[$index]) : "";
+        $fieldId = isset($fieldIds[$index]) ? (int)$fieldIds[$index] : 0;
+
+        if ($fieldId > 0 && isset($existing[$fieldId])) {
+            if ($existing[$fieldId]["field_type"] !== $type) {
+                $answerStmt = $pdo->prepare("SELECT 1 FROM application_custom_answers WHERE field_id = ? LIMIT 1");
+                $answerStmt->execute(array($fieldId));
+                if ($answerStmt->fetchColumn()) {
+                    throw new InvalidArgumentException("已有學生填寫的欄位不可變更欄位類型。");
+                }
+            }
+            $params = array($label, $type, $isRequired, $index);
+            if ($hasNote) {
+                $params[] = $note === "" ? null : $note;
+            }
+            $params[] = $fieldId;
+            $params[] = (int)$scholarshipId;
+            $update->execute($params);
+            $keptIds[$fieldId] = true;
+            continue;
+        }
+
         $params = array((int)$scholarshipId, $label, $type, $isRequired, $index);
         if ($hasNote) {
             $params[] = $note === "" ? null : $note;
         }
         $insert->execute($params);
+        $keptIds[(int)$pdo->lastInsertId()] = true;
+    }
+
+    foreach (array_keys($existing) as $existingId) {
+        if (isset($keptIds[$existingId])) {
+            continue;
+        }
+        $answerStmt = $pdo->prepare("SELECT 1 FROM application_custom_answers WHERE field_id = ? LIMIT 1");
+        $answerStmt->execute(array($existingId));
+        if ($answerStmt->fetchColumn()) {
+            throw new InvalidArgumentException("已有學生填寫的欄位不可刪除，可改為非必填或修改顯示名稱。");
+        }
+        $pdo->prepare("DELETE FROM scholarship_fields WHERE id = ? AND scholarship_id = ?")
+            ->execute(array($existingId, (int)$scholarshipId));
     }
 }
 
@@ -220,6 +272,9 @@ function custom_form_save_answers($pdo, $fields, $applicationId, $studentId, $sc
     }
 
     $values = custom_form_answer_values_from_post();
+    $deleteFileFields = isset($_POST["DELETE_CUSTOM_FILES"]) && is_array($_POST["DELETE_CUSTOM_FILES"])
+        ? array_fill_keys(array_map("intval", $_POST["DELETE_CUSTOM_FILES"]), true)
+        : array();
     $hasFileId = custom_form_column_exists($pdo, "application_custom_answers", "file_id");
     $existingColumns = $hasFileId
         ? "id, field_id, answer_value, file_id"
@@ -292,6 +347,15 @@ function custom_form_save_answers($pdo, $fields, $applicationId, $studentId, $sc
                 if ($oldFileId && $oldFileId !== $fileId) {
                     $replacedFileIds[] = $oldFileId;
                 }
+            } elseif (!empty($deleteFileFields[$fieldId]) && isset($existing[$fieldId])) {
+                $oldFileId = !empty($existing[$fieldId]["file_id"])
+                    ? (int)$existing[$fieldId]["file_id"]
+                    : custom_form_file_id_from_answer($existing[$fieldId]["answer_value"]);
+                if ($oldFileId) {
+                    $replacedFileIds[] = $oldFileId;
+                }
+                $answerValue = "";
+                $fileId = null;
             } elseif (isset($existing[$fieldId])) {
                 $answerValue = (string)$existing[$fieldId]["answer_value"];
                 $fileId = !isset($existing[$fieldId]["file_id"]) || $existing[$fieldId]["file_id"] === null

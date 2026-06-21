@@ -6,23 +6,35 @@ require_once __DIR__ . "/../file_helpers.php";
 
 require_role(1);
 
+$studentIds = array_values(array_unique(array_filter(array(
+    isset($_SESSION["user"]["stid"]) ? (string)$_SESSION["user"]["stid"] : "",
+    isset($_SESSION["user"]["id"]) ? (string)$_SESSION["user"]["id"] : "",
+))));
+$studentPlaceholders = implode(",", array_fill(0, count($studentIds), "?"));
+
 // 查詢尚未開始申請的獎學金
 $activeScholarshipSql = table_has_column($pdo, "scholarship", "is_active")
     ? " AND is_active = 1"
     : "";
 $stmt_not_started = $pdo->query("
-    SELECT * FROM scholarship
+    SELECT s.* FROM scholarship s
     WHERE start_date > CURDATE()" . $activeScholarshipSql . "
     ORDER BY start_date ASC
 ");
 $not_started = $stmt_not_started->fetchAll(PDO::FETCH_ASSOC);
 
 // 查詢申請期限中的獎學金 
-$stmt_open = $pdo->query("
-    SELECT * FROM scholarship
+$stmt_open = $pdo->prepare("
+    SELECT s.*,
+           EXISTS (
+               SELECT 1 FROM application a
+               WHERE a.SCID = s.id AND a.STID IN (" . $studentPlaceholders . ")
+           ) AS has_applied
+    FROM scholarship s
     WHERE start_date <= CURDATE() AND deadline >= CURDATE()" . $activeScholarshipSql . "
     ORDER BY deadline ASC
 ");
+$stmt_open->execute($studentIds);
 $open = $stmt_open->fetchAll(PDO::FETCH_ASSOC);
 
 $pageTitle = "瀏覽獎助學金";
@@ -55,7 +67,11 @@ require __DIR__ . "/../header.php";
                                 <td><?php echo htmlspecialchars($s['DEADLINE']); ?></td>
                                 <td><?php echo htmlspecialchars($s['CONDI']); ?></td>
                                 <td>
-                                    <a href="apply.php?id=<?php echo $s['id']; ?>" class="btn btn-sm btn-success">立即申請</a>
+                                    <?php if (!empty($s['has_applied'])): ?>
+                                        <span class="badge bg-secondary">已申請</span>
+                                    <?php else: ?>
+                                        <a href="apply.php?id=<?php echo $s['id']; ?>" class="btn btn-sm btn-success">立即申請</a>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

@@ -229,11 +229,13 @@ try {
     }
 
     $pdo->commit();
+    commit_uploaded_request_files();
     back_to_recommendation($token, array("message" => "推薦信已提交。提交後不可再次編輯。", "type" => "success"));
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+    rollback_uploaded_request_files();
 
     fail_and_back("推薦信提交失敗：" . $e->getMessage(), $token);
 }

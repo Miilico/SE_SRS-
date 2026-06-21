@@ -25,6 +25,10 @@ define("SCHOLARSHIP_SMTP_PASSWORD", "");
 define("SCHOLARSHIP_SMTP_FROM_EMAIL", "");
 define("SCHOLARSHIP_SMTP_FROM_NAME", "Scholarship System");
 define("SCHOLARSHIP_SMTP_SECURE", "tls");
+// Public URL used in email links. Example: http://127.0.0.1:8081/scholarship
+define("SCHOLARSHIP_BASE_URL", "");
+// Optional private directory outside the public web root for fallback data.
+define("SCHOLARSHIP_PRIVATE_DATA_DIR", "");
 
 // TAR recommendation request auto-rejection threshold.
 define("TAR_AUTO_REJECT_DAYS", 14);

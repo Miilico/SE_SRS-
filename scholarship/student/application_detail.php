@@ -3,6 +3,7 @@ require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/../custom_form_helpers.php";
 require_once __DIR__ . "/../application_helpers.php";
+require_once __DIR__ . "/../supplement_note_helpers.php";
 require_role(1);
 
 function h($value) {
@@ -64,9 +65,30 @@ if (custom_form_tables_ready($pdo)) {
     ");
     $stmt->execute(array(":apno" => $apno, ":scid" => $app["SCID"]));
     $customAnswers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($customAnswers as $index => $answer) {
+        if ($answer["field_type"] !== "file" || empty($answer["answer_value"])) {
+            continue;
+        }
+        $fileId = custom_form_file_id_from_answer($answer["answer_value"]);
+        if ($fileId <= 0) {
+            continue;
+        }
+        $fileStmt = $pdo->prepare("
+            SELECT original_name, file_size, created_at
+            FROM application_files
+            WHERE id = ? AND COALESCE(application_id, apno) = ?
+            LIMIT 1
+        ");
+        $fileStmt->execute(array($fileId, $apno));
+        $fileDetail = $fileStmt->fetch(PDO::FETCH_ASSOC);
+        if ($fileDetail) {
+            $customAnswers[$index]["file_detail"] = $fileDetail;
+        }
+    }
 }
 
 $status = $app["RESULT"];
+$supplementNote = supplement_note_get($pdo, $apno, isset($app["SUPPLEMENT_NOTE"]) ? $app["SUPPLEMENT_NOTE"] : null);
 $canEdit = application_status_can_edit($status);
 $canSupplement = ($status === "需補件");
 
@@ -103,10 +125,10 @@ require __DIR__ . "/../header.php";
       <tr><th>申請條件</th><td><?= nl2br(h($app["CONDI"])) ?></td></tr>
     </table>
 
-    <?php if (!empty($app["SUPPLEMENT_NOTE"])): ?>
+    <?php if ($supplementNote !== ""): ?>
       <div class="alert alert-warning">
         <div class="fw-semibold mb-1">補件要求</div>
-        <?= nl2br(h($app["SUPPLEMENT_NOTE"])) ?>
+        <?= nl2br(h($supplementNote)) ?>
       </div>
     <?php endif; ?>
 
@@ -117,7 +139,19 @@ require __DIR__ . "/../header.php";
           <div class="list-group-item">
             <div class="small text-secondary mb-1"><?= h($answer["field_label"]) ?></div>
             <?php if ($answer["field_type"] === "file" && !empty($answer["answer_value"])): ?>
-              <a class="btn btn-sm btn-outline-primary" href="<?= h($answer["answer_value"]) ?>" target="_blank" rel="noopener">查看檔案</a>
+              <?php $fileDetail = isset($answer["file_detail"]) ? $answer["file_detail"] : array(); ?>
+              <div class="d-flex justify-content-between align-items-center gap-3">
+                <div class="text-truncate">
+                  <div class="fw-semibold text-truncate"><?= h(!empty($fileDetail["original_name"]) ? $fileDetail["original_name"] : "已上傳檔案") ?></div>
+                  <?php if (!empty($fileDetail)): ?>
+                    <div class="small text-secondary">
+                      <?= !empty($fileDetail["file_size"]) ? number_format(((int)$fileDetail["file_size"]) / 1024, 1) . " KB" : "" ?>
+                      <?= !empty($fileDetail["created_at"]) ? " · " . h($fileDetail["created_at"]) : "" ?>
+                    </div>
+                  <?php endif; ?>
+                </div>
+                <a class="btn btn-sm btn-outline-primary flex-shrink-0" href="<?= h($answer["answer_value"]) ?>" target="_blank" rel="noopener">查看</a>
+              </div>
             <?php else: ?>
               <div><?= $answer["answer_value"] !== null && $answer["answer_value"] !== "" ? nl2br(h($answer["answer_value"])) : "未填寫" ?></div>
             <?php endif; ?>

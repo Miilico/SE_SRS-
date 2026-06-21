@@ -19,6 +19,7 @@ $customLabels = $_POST['custom_labels'] ?? array();
 $customTypes = $_POST['custom_types'] ?? array();
 $customRequired = $_POST['custom_required'] ?? array();
 $customNotes = $_POST['custom_notes'] ?? array();
+$customFieldIds = $_POST['custom_field_ids'] ?? array();
 
 $redirect_url = "edit_scholarship.php?id=" . urlencode($scholarship_id);
 
@@ -78,7 +79,8 @@ try {
             $customLabels,
             $customTypes,
             $customRequired,
-            $customNotes
+            $customNotes,
+            $customFieldIds
         );
     }
     if (isset($_FILES['scholarship_attachment']) && $_FILES['scholarship_attachment']['error'] === UPLOAD_ERR_OK) {

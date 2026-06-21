@@ -84,6 +84,7 @@
         row.className = "custom-field-row bg-white p-3 rounded border";
         row.id = "custom-field-row-" + nextId;
         row.innerHTML = `
+            <input type="hidden" name="custom_field_ids[]" value="0">
             <div class="row g-2 align-items-end">
                 <div class="col-md-5">
                     <label class="form-label small text-secondary fw-semibold">項目名稱</label>

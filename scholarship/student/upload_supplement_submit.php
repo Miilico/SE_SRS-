@@ -20,12 +20,16 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 
 $user = isset($_SESSION["user"]) ? $_SESSION["user"] : array();
 $studentId = !empty($user["stid"]) ? $user["stid"] : (!empty($user["id"]) ? $user["id"] : "");
+$studentIds = array_values(array_unique(array_filter(array(
+    !empty($user["stid"]) ? (string)$user["stid"] : "",
+    !empty($user["id"]) ? (string)$user["id"] : "",
+))));
 $apno = isset($_POST["apno"]) ? (int)$_POST["apno"] : 0;
 $csrfToken = isset($_POST["csrf_token"]) ? (string)$_POST["csrf_token"] : "";
 
 if (
-    empty($_SESSION["csrf_token"]) ||
-    !hash_equals($_SESSION["csrf_token"], $csrfToken)
+    empty($_SESSION["supplement_csrf_token"]) ||
+    !hash_equals($_SESSION["supplement_csrf_token"], $csrfToken)
 ) {
     supplement_redirect($apno, "表單驗證失敗，請重新操作。");
 }
@@ -46,14 +50,15 @@ $savedPaths = array();
 try {
     $pdo->beginTransaction();
 
+    $studentPlaceholders = implode(",", array_fill(0, count($studentIds), "?"));
     $stmt = $pdo->prepare("
         SELECT APNO, RESULT, SCID, OID
         FROM application
-        WHERE APNO = ? AND STID = ?
+        WHERE APNO = ? AND STID IN (" . $studentPlaceholders . ")
         LIMIT 1
         FOR UPDATE
     ");
-    $stmt->execute(array($apno, $studentId));
+    $stmt->execute(array_merge(array($apno), $studentIds));
     $application = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$application) {
@@ -78,12 +83,13 @@ try {
     $updateStmt = $pdo->prepare("
         UPDATE application
         SET RESULT = '已補件'
-        WHERE APNO = ? AND STID = ?
+        WHERE APNO = ?
     ");
-    $updateStmt->execute(array($apno, $studentId));
+    $updateStmt->execute(array($apno));
 
     $pdo->commit();
-    unset($_SESSION["csrf_token"]);
+    commit_uploaded_request_files();
+    unset($_SESSION["supplement_csrf_token"]);
 
     header(
         "Location: /scholarship/student/application_detail.php?apno=" .
@@ -94,6 +100,7 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+    rollback_uploaded_request_files();
 
     foreach ($savedPaths as $relativePath) {
         $fullPath = realpath(__DIR__ . "/../" . $relativePath);

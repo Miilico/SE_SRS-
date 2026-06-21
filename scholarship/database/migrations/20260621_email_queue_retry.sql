@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS email_queue (
+    id INT NOT NULL AUTO_INCREMENT,
+    recipient_email VARCHAR(255) NOT NULL,
+    recipient_name VARCHAR(100) NULL,
+    subject VARCHAR(255) NOT NULL,
+    body MEDIUMTEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    attempts INT NOT NULL DEFAULT 0,
+    available_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    error_msg TEXT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    sent_at DATETIME NULL,
+    PRIMARY KEY (id),
+    KEY idx_email_queue_delivery (status, available_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE email_queue
+    ADD COLUMN IF NOT EXISTS attempts INT NOT NULL DEFAULT 0 AFTER status,
+    ADD COLUMN IF NOT EXISTS available_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER attempts,
+    ADD COLUMN IF NOT EXISTS error_msg TEXT NULL AFTER available_at,
+    ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER error_msg,
+    ADD COLUMN IF NOT EXISTS sent_at DATETIME NULL AFTER created_at;

@@ -3,6 +3,7 @@ require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/../recommendation_helpers.php";
 require_once __DIR__ . "/../file_helpers.php";
+require_once __DIR__ . "/../supplement_note_helpers.php";
 
 require_role(1);
 
@@ -78,7 +79,7 @@ $apps = $appsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $supplementNoteSelect = table_has_column($pdo, "application", "SUPPLEMENT_NOTE")
     ? ", SUPPLEMENT_NOTE"
-    : "";
+    : ", NULL AS SUPPLEMENT_NOTE";
 $notiStmt = $pdo->prepare("
     SELECT APNO, APDATE, RESULT" . $supplementNoteSelect . "
     FROM application
@@ -89,6 +90,15 @@ $notiStmt = $pdo->prepare("
 ");
 $notiStmt->execute(array(":student_id" => $studentId));
 $notis = $notiStmt->fetchAll(PDO::FETCH_ASSOC);
+foreach ($notis as $index => $notification) {
+  if ($notification["RESULT"] === "需補件") {
+    $notis[$index]["SUPPLEMENT_NOTE"] = supplement_note_get(
+      $pdo,
+      $notification["APNO"],
+      isset($notification["SUPPLEMENT_NOTE"]) ? $notification["SUPPLEMENT_NOTE"] : null
+    );
+  }
+}
 
 $pageTitle = "學生總覽";
 $activeNav = "student-dashboard.php";

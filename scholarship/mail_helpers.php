@@ -28,6 +28,25 @@ if (!defined("SCHOLARSHIP_SMTP_FROM_NAME")) {
 if (!defined("SCHOLARSHIP_SMTP_SECURE")) {
     define("SCHOLARSHIP_SMTP_SECURE", "tls");
 }
+if (!defined("SCHOLARSHIP_BASE_URL")) {
+    define("SCHOLARSHIP_BASE_URL", "");
+}
+
+function scholarship_public_url($path)
+{
+    $baseUrl = rtrim((string)SCHOLARSHIP_BASE_URL, "/");
+    if ($baseUrl === "") {
+        $https = !empty($_SERVER["HTTPS"]) && strtolower((string)$_SERVER["HTTPS"]) !== "off";
+        $scheme = $https ? "https" : "http";
+        $host = isset($_SERVER["HTTP_HOST"]) ? (string)$_SERVER["HTTP_HOST"] : "127.0.0.1";
+        if (!preg_match('/^[A-Za-z0-9.\-:\[\]]+$/', $host)) {
+            $host = "127.0.0.1";
+        }
+        $baseUrl = $scheme . "://" . $host . "/scholarship";
+    }
+
+    return $baseUrl . "/" . ltrim((string)$path, "/");
+}
 
 function scholarship_mail_is_configured()
 {

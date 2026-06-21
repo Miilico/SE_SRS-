@@ -23,17 +23,15 @@ function selected_post($key, $default = "")
     return isset($_POST[$key]) ? trim($_POST[$key]) : $default;
 }
 
-function build_recommendation_url($token)
-{
-    $host = isset($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : "127.0.0.1";
-    return "http://" . $host . "/scholarship/professor/recommendation.php?token=" . urlencode($token);
-}
-
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     back_err("請使用表單送出申請。");
 }
 
 $studentId = isset($_SESSION["user"]["stid"]) ? $_SESSION["user"]["stid"] : $_SESSION["user"]["id"];
+$studentIds = array_values(array_unique(array_filter(array(
+    isset($_SESSION["user"]["stid"]) ? (string)$_SESSION["user"]["stid"] : "",
+    isset($_SESSION["user"]["id"]) ? (string)$_SESSION["user"]["id"] : "",
+))));
 $studentName = isset($_SESSION["user"]["name"]) ? $_SESSION["user"]["name"] : "學生";
 $scid = isset($_POST["SCID"]) ? (int)$_POST["SCID"] : 0;
 $grade = selected_post("GRADE");
@@ -46,8 +44,25 @@ $recEmail = selected_post("REC_EMAIL");
 $recRel = selected_post("REC_REL");
 $wantsRecommendation = ($teacherId !== "" || $recName !== "" || $recUnit !== "" || $recTitle !== "" || $recEmail !== "" || $recRel !== "");
 
+$csrfToken = isset($_POST["csrf_token"]) ? (string)$_POST["csrf_token"] : "";
+if (empty($_SESSION["application_csrf_token"]) || !hash_equals($_SESSION["application_csrf_token"], $csrfToken)) {
+    back_err("表單驗證失敗，請重新操作。");
+}
+
+if (empty($_POST["agree"])) {
+    back_err("請先確認申請資料正確並勾選同意。");
+}
+
 if ($scid <= 0) {
     back_err("請選擇獎助學金。");
+}
+
+if ($grade !== "" && (!is_numeric($grade) || (float)$grade < 0 || (float)$grade > 100)) {
+    back_err("GPA／成績必須是 0 到 100 之間的數字。");
+}
+
+if (strlen($rank) > 11) {
+    back_err("班排／系排名稱不可超過 11 個字元。");
 }
 
 if ($recEmail !== "" && !filter_var($recEmail, FILTER_VALIDATE_EMAIL)) {
@@ -145,17 +160,15 @@ try {
 
     $pdo->beginTransaction();
 
+    $studentPlaceholders = implode(",", array_fill(0, count($studentIds), "?"));
     $duplicateStmt = $pdo->prepare("
         SELECT APNO
         FROM application
-        WHERE STID = :stid AND SCID = :scid
+        WHERE SCID = ? AND STID IN (" . $studentPlaceholders . ")
         LIMIT 1
         FOR UPDATE
     ");
-    $duplicateStmt->execute(array(
-        ":stid" => $studentId,
-        ":scid" => $scid,
-    ));
+    $duplicateStmt->execute(array_merge(array($scid), $studentIds));
     if ($duplicateStmt->fetchColumn()) {
         throw new RuntimeException("你已經申請過這項獎學金，不可重複申請。");
     }
@@ -193,7 +206,7 @@ try {
     $recommendLink = "";
     if ($wantsRecommendation) {
         $token = bin2hex(random_bytes(32));
-        $recommendLink = build_recommendation_url($token);
+        $recommendLink = scholarship_public_url("/professor/recommendation.php?token=" . urlencode($token));
 
         $insertRec = $pdo->prepare("
             INSERT INTO recommendations
@@ -215,6 +228,8 @@ try {
     }
 
     $pdo->commit();
+    commit_uploaded_request_files();
+    unset($_SESSION["application_csrf_token"]);
 
     $recommendMailSent = null;
     if ($recommendLink !== "") {
@@ -251,5 +266,6 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+    rollback_uploaded_request_files();
     back_err("送出失敗：" . $e->getMessage());
 }

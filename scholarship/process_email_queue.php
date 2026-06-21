@@ -1,57 +1,64 @@
 <?php
-// 這支程式負責在背景把 email_queue 裡的信寄出去
+
+if (PHP_SAPI !== "cli") {
+    http_response_code(404);
+    exit;
+}
+
 require_once __DIR__ . "/config.php";
-require_once __DIR__ . "/mail_helpers.php"; // 引入你們強大的寄信模組
+require_once __DIR__ . "/mail_helpers.php";
+require_once __DIR__ . "/file_helpers.php";
 
 try {
-    // 1. 鎖定並撈取 50 筆待寄送的信件 (FOR UPDATE 可以防止多個排程同時搶同一封信)
     $pdo->beginTransaction();
-    
-    $stmt = $pdo->query("SELECT * FROM email_queue WHERE status = 'pending' LIMIT 50 FOR UPDATE");
+
+    $hasRetryColumns = table_has_column($pdo, "email_queue", "attempts")
+        && table_has_column($pdo, "email_queue", "available_at");
+    $where = $hasRetryColumns
+        ? "status = 'pending' OR (status = 'failed' AND attempts < 3 AND available_at <= NOW())"
+        : "status = 'pending'";
+
+    $stmt = $pdo->query("SELECT * FROM email_queue WHERE " . $where . " ORDER BY id LIMIT 50 FOR UPDATE");
     $emails = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     if (empty($emails)) {
         $pdo->commit();
-        exit("沒有需要寄送的信件。\n");
+        exit("No queued email." . PHP_EOL);
     }
 
-    // 將狀態改為 processing，避免下一分鐘的排程重複抓取
-    $ids = array_column($emails, 'id');
-    $placeholders = implode(',', array_fill(0, count($ids), '?'));
-    $updateStmt = $pdo->prepare("UPDATE email_queue SET status = 'processing' WHERE id IN ($placeholders)");
+    $ids = array_column($emails, "id");
+    $placeholders = implode(",", array_fill(0, count($ids), "?"));
+    $updateStmt = $pdo->prepare("UPDATE email_queue SET status = 'processing' WHERE id IN (" . $placeholders . ")");
     $updateStmt->execute($ids);
-    
     $pdo->commit();
 
-    // 2. 開始逐一寄信
     $successStmt = $pdo->prepare("UPDATE email_queue SET status = 'sent', sent_at = NOW() WHERE id = ?");
-    $failStmt = $pdo->prepare("UPDATE email_queue SET status = 'failed', error_msg = ? WHERE id = ?");
+    $failStmt = $hasRetryColumns
+        ? $pdo->prepare("UPDATE email_queue SET status = 'failed', attempts = attempts + 1, available_at = DATE_ADD(NOW(), INTERVAL 5 MINUTE), error_msg = ? WHERE id = ?")
+        : $pdo->prepare("UPDATE email_queue SET status = 'failed', error_msg = ? WHERE id = ?");
 
     $successCount = 0;
     foreach ($emails as $email) {
-        // 呼叫你們寫好的 scholarship_send_mail
-        $isSent = scholarship_send_mail(
-            $email['recipient_email'], 
-            $email['recipient_name'], 
-            $email['subject'], 
-            $email['body']
+        $sent = scholarship_send_mail(
+            $email["recipient_email"],
+            $email["recipient_name"],
+            $email["subject"],
+            $email["body"]
         );
 
-        if ($isSent) {
-            $successStmt->execute([$email['id']]);
+        if ($sent) {
+            $successStmt->execute(array($email["id"]));
             $successCount++;
         } else {
-            // 如果寄送失敗，記錄下來
-            $failStmt->execute(["PHPMailer 寄送失敗", $email['id']]);
+            $failStmt->execute(array("PHPMailer delivery failed", $email["id"]));
         }
     }
-    
-    echo "成功處理 " . count($emails) . " 封信件，實際寄出 " . $successCount . " 封。\n";
 
-} catch (Exception $e) {
+    echo "Processed " . count($emails) . " email(s); sent " . $successCount . "." . PHP_EOL;
+} catch (Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    die("處理佇列發生錯誤：" . $e->getMessage());
+    fwrite(STDERR, "Email queue failed: " . $e->getMessage() . PHP_EOL);
+    exit(1);
 }
-?>

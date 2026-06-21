@@ -285,6 +285,32 @@ function guess_upload_mime_type($tmpPath)
     return "application/octet-stream";
 }
 
+function register_uploaded_request_file($path)
+{
+    if (!isset($GLOBALS["scholarship_request_uploads"])) {
+        $GLOBALS["scholarship_request_uploads"] = array();
+    }
+    $GLOBALS["scholarship_request_uploads"][] = $path;
+}
+
+function commit_uploaded_request_files()
+{
+    $GLOBALS["scholarship_request_uploads"] = array();
+}
+
+function rollback_uploaded_request_files()
+{
+    $paths = isset($GLOBALS["scholarship_request_uploads"])
+        ? $GLOBALS["scholarship_request_uploads"]
+        : array();
+    foreach (array_unique($paths) as $path) {
+        if (is_string($path) && is_file($path)) {
+            @unlink($path);
+        }
+    }
+    $GLOBALS["scholarship_request_uploads"] = array();
+}
+
 function store_uploaded_file($pdo, $file, $fileType, $uploaderId, $context)
 {
     ensure_application_files_table($pdo);
@@ -354,6 +380,7 @@ function store_uploaded_file($pdo, $file, $fileType, $uploaderId, $context)
     if (!move_uploaded_file($tmpPath, $dest)) {
         throw new RuntimeException("檔案搬移失敗");
     }
+    register_uploaded_request_file($dest);
 
     $normalized = normalize_uploaded_context($context);
     $mimeType = guess_upload_mime_type($dest);

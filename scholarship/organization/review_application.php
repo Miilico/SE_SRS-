@@ -7,6 +7,8 @@ require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/scholarship_access.php";
 require_once __DIR__ . "/../mail_helpers.php"; // 引入寄信引擎模組
 require_once __DIR__ . "/../file_helpers.php";
+require_once __DIR__ . "/../application_helpers.php";
+require_once __DIR__ . "/../supplement_note_helpers.php";
 
 organization_require_scholarship_manager();
 
@@ -17,6 +19,11 @@ $reject_reason  = isset($_POST['reject_reason']) ? trim($_POST['reject_reason'])
 
 if (!$application_id || !$scholarship_id || !$new_status) {
     die("❌ 缺少必要的參數，請回到上一頁重試。");
+}
+
+if (!application_status_is_allowed($new_status)) {
+    http_response_code(422);
+    die("不允許的申請狀態。");
 }
 
 if ($new_status === '需補件' && $reject_reason === '') {
@@ -47,6 +54,10 @@ $updateParams[] = $application_id;
 $updateParams[] = $scholarship_id;
 $updateParams[] = $provider_id;
 $ok = $stmt->execute($updateParams);
+$ok = $ok && $stmt->rowCount() === 1;
+if ($ok && !$hasSupplementNote) {
+    supplement_note_save($pdo, $application_id, $new_status === '需補件' ? $reject_reason : "");
+}
 
 // 2. 寄發 Email 通知邏輯
 $mailSent = false;
