@@ -7,7 +7,15 @@ require_role(1); // 1=學生
 
 ensure_teachers_table($pdo);
 
+if (empty($_SESSION["application_csrf_token"])) {
+    $_SESSION["application_csrf_token"] = bin2hex(random_bytes(32));
+}
+
 $stId = $_SESSION["user"]["id"];
+$studentIds = array_values(array_unique(array_filter(array(
+    isset($_SESSION["user"]["stid"]) ? (string)$_SESSION["user"]["stid"] : "",
+    isset($_SESSION["user"]["id"]) ? (string)$_SESSION["user"]["id"] : "",
+))));
 //$userName = $_SESSION["user"]["name"] ?? "";
 $userName = isset($_SESSION["user"]["name"]) ? $_SESSION["user"]["name"] : "";
 
@@ -15,11 +23,17 @@ $userName = isset($_SESSION["user"]["name"]) ? $_SESSION["user"]["name"] : "";
 $activeScholarshipSql = table_has_column($pdo, "scholarship", "is_active")
         ? " AND is_active = 1"
         : "";
-$schs = $pdo->query("SELECT id, NAME, DEADLINE, AMOUNT 
-        FROM scholarship 
-        WHERE start_date <= CURDATE() AND DEADLINE >= CURDATE()" . $activeScholarshipSql . "
-        ORDER BY DEADLINE ASC")
-        ->fetchAll(PDO::FETCH_ASSOC);
+$studentPlaceholders = implode(",", array_fill(0, count($studentIds), "?"));
+$scholarshipStmt = $pdo->prepare("SELECT s.id, s.NAME, s.DEADLINE, s.AMOUNT
+        FROM scholarship s
+        WHERE s.start_date <= CURDATE() AND s.DEADLINE >= CURDATE()" . $activeScholarshipSql . "
+          AND NOT EXISTS (
+              SELECT 1 FROM application a
+              WHERE a.SCID = s.id AND a.STID IN (" . $studentPlaceholders . ")
+          )
+        ORDER BY s.DEADLINE ASC");
+$scholarshipStmt->execute($studentIds);
+$schs = $scholarshipStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $old = isset($_SESSION["application_old"]) && is_array($_SESSION["application_old"])
         ? $_SESSION["application_old"]
@@ -99,6 +113,7 @@ require __DIR__ . "/../header.php";
 
 <form class="card p-4" id="application-form" action="/scholarship/student/apply_submit.php" method="post" enctype="multipart/form-data">
     <input type="hidden" name="STID" value="<?= htmlspecialchars($stId) ?>">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION["application_csrf_token"]) ?>">
 
     <!-- 1. 選擇獎學金 -->
     <div class="mb-4">
@@ -153,7 +168,7 @@ require __DIR__ . "/../header.php";
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-semibold">班排/系排</label>
-                <input class="form-control" name="RANK" maxlength="50"
+                <input class="form-control" name="RANK" maxlength="11"
                        value="<?= htmlspecialchars(application_old_value($old, "RANK")) ?>" placeholder="例如：班排 3/45">
             </div>
         </div>
@@ -230,7 +245,7 @@ require __DIR__ . "/../header.php";
     ?>
 
     <div class="form-check mt-4">
-        <input class="form-check-input" type="checkbox" value="1" id="agree" required>
+        <input class="form-check-input" type="checkbox" name="agree" value="1" id="agree" required>
         <label class="form-check-label text-secondary" for="agree">
             本人保證以上資料及文件皆屬實。<span class="text-danger" aria-label="必填">*</span>
         </label>

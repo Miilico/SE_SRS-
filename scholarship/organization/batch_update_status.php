@@ -5,6 +5,8 @@ require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/scholarship_access.php";
 require_once __DIR__ . "/../mail_helpers.php"; // 引入寄信引擎
 require_once __DIR__ . "/../file_helpers.php";
+require_once __DIR__ . "/../application_helpers.php";
+require_once __DIR__ . "/../supplement_note_helpers.php";
 
 organization_require_scholarship_manager();
 
@@ -15,6 +17,11 @@ $batch_reason = isset($_POST['batch_reason']) ? trim($_POST['batch_reason']) : '
 
 if (!$scholarship_id || !$new_status || trim($student_ids_raw) === '') {
     header("Location: view_applicants.php?scholarship_id=" . urlencode($scholarship_id) . "&error=" . urlencode("請填寫完整的批次處理資料"));
+    exit;
+}
+
+if (!application_status_is_allowed($new_status)) {
+    header("Location: view_applicants.php?scholarship_id=" . urlencode($scholarship_id) . "&error=" . urlencode("不允許的申請狀態"));
     exit;
 }
 
@@ -51,12 +58,15 @@ $stmt_update = $pdo->prepare($update_sql);
 
 $info_sql = "SELECT EMAIL, NAME AS student_name FROM users WHERE ID = ?";
 $stmt_info = $pdo->prepare($info_sql);
+$stmt_application = $pdo->prepare("SELECT APNO FROM application WHERE SCID = ? AND STID = ? LIMIT 1");
 
 // 4. 執行批次更新與寄信
 try {
     $pdo->beginTransaction();
     
     foreach ($student_ids as $stid) {
+        $stmt_application->execute(array($scholarship_id, $stid));
+        $applicationId = (int)$stmt_application->fetchColumn();
         // 執行更新
         $updateParams = array($new_status);
         if ($hasSupplementNote) {
@@ -69,6 +79,9 @@ try {
         // 若有確實更新到資料 (代表該學生有申請此獎學金且狀態改變)
         if ($stmt_update->rowCount() > 0) {
             $success_count++;
+            if (!$hasSupplementNote && $applicationId > 0) {
+                supplement_note_save($pdo, $applicationId, $new_status === '需補件' ? $batch_reason : "");
+            }
             
             // 撈取該生 Email 發送通知
             $stmt_info->execute([$stid]);

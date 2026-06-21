@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . "/../config.php";
 require_once __DIR__ . "/../auth.php";
+require_once __DIR__ . "/../file_helpers.php";
+require_once __DIR__ . "/../supplement_note_helpers.php";
 require_role(1);
 
 function h($value)
@@ -10,6 +12,10 @@ function h($value)
 
 $user = isset($_SESSION["user"]) ? $_SESSION["user"] : array();
 $studentId = !empty($user["stid"]) ? $user["stid"] : (!empty($user["id"]) ? $user["id"] : "");
+$studentIds = array_values(array_unique(array_filter(array(
+    !empty($user["stid"]) ? (string)$user["stid"] : "",
+    !empty($user["id"]) ? (string)$user["id"] : "",
+))));
 $apno = isset($_GET["apno"]) ? (int)$_GET["apno"] : 0;
 
 if ($studentId === "" || $apno <= 0) {
@@ -17,20 +23,25 @@ if ($studentId === "" || $apno <= 0) {
     exit;
 }
 
+$supplementNoteSelect = table_has_column($pdo, "application", "SUPPLEMENT_NOTE")
+    ? ", a.SUPPLEMENT_NOTE"
+    : ", NULL AS SUPPLEMENT_NOTE";
+$studentPlaceholders = implode(",", array_fill(0, count($studentIds), "?"));
 $stmt = $pdo->prepare("
-    SELECT a.APNO, a.RESULT, a.SCNAME, s.NAME AS scholarship_name
+    SELECT a.APNO, a.RESULT, a.SCNAME" . $supplementNoteSelect . ", s.NAME AS scholarship_name
     FROM application a
     LEFT JOIN scholarship s ON a.SCID = s.id
-    WHERE a.APNO = ? AND a.STID = ?
+    WHERE a.APNO = ? AND a.STID IN (" . $studentPlaceholders . ")
     LIMIT 1
 ");
-$stmt->execute(array($apno, $studentId));
+$stmt->execute(array_merge(array($apno), $studentIds));
 $application = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$application) {
     http_response_code(404);
     exit("找不到申請資料，或你沒有補件權限。");
 }
+$supplementNote = supplement_note_get($pdo, $apno, isset($application["SUPPLEMENT_NOTE"]) ? $application["SUPPLEMENT_NOTE"] : null);
 
 if ($application["RESULT"] !== "需補件") {
     header("Location: /scholarship/student/application_detail.php?apno=" . urlencode($apno) . "&err=" . urlencode("此申請目前不在可補件狀態。"));
@@ -47,8 +58,8 @@ $fileStmt = $pdo->prepare("
 $fileStmt->execute(array($apno));
 $supplementFiles = $fileStmt->fetchAll(PDO::FETCH_ASSOC);
 
-if (empty($_SESSION["csrf_token"])) {
-    $_SESSION["csrf_token"] = bin2hex(random_bytes(32));
+if (empty($_SESSION["supplement_csrf_token"])) {
+    $_SESSION["supplement_csrf_token"] = bin2hex(random_bytes(32));
 }
 
 $pageTitle = "上傳補件";
@@ -74,6 +85,13 @@ require __DIR__ . "/../header.php";
       <dd class="col-sm-9"><?= site_status_badge($application["RESULT"]) ?></dd>
     </dl>
 
+    <?php if ($supplementNote !== ""): ?>
+      <div class="alert alert-warning mb-4">
+        <div class="fw-semibold mb-1">補件原因</div>
+        <div><?= nl2br(h($supplementNote)) ?></div>
+      </div>
+    <?php endif; ?>
+
     <?php if (!empty($supplementFiles)): ?>
       <h2 class="h5 fw-bold">已上傳的補件</h2>
       <?php
@@ -89,7 +107,7 @@ require __DIR__ . "/../header.php";
           enctype="multipart/form-data"
           class="mt-4">
       <input type="hidden" name="apno" value="<?= h($apno) ?>">
-      <input type="hidden" name="csrf_token" value="<?= h($_SESSION["csrf_token"]) ?>">
+      <input type="hidden" name="csrf_token" value="<?= h($_SESSION["supplement_csrf_token"]) ?>">
 
       <label class="form-label fw-semibold" for="supplement-files">選擇補件檔案</label>
       <input class="form-control"

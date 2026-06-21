@@ -4,6 +4,7 @@ require_once __DIR__ . "/../auth.php";
 require_once __DIR__ . "/../file_helpers.php";
 require_once __DIR__ . "/../custom_form_helpers.php";
 require_once __DIR__ . "/../application_helpers.php";
+require_once __DIR__ . "/../mail_helpers.php";
 require_role(1);
 
 function back_to_edit($apno, $message) {
@@ -30,8 +31,8 @@ $recRel = isset($_POST["rec_rel"]) ? trim($_POST["rec_rel"]) : "";
 $csrfToken = isset($_POST["csrf_token"]) ? $_POST["csrf_token"] : "";
 
 if (
-    empty($_SESSION["csrf_token"]) ||
-    !hash_equals($_SESSION["csrf_token"], $csrfToken)
+    empty($_SESSION["edit_application_csrf_token"]) ||
+    !hash_equals($_SESSION["edit_application_csrf_token"], $csrfToken)
 ) {
     back_to_edit($apno, "表單驗證失敗，請重新操作。");
 }
@@ -49,6 +50,7 @@ if ($teacherEmail !== "" && !filter_var($teacherEmail, FILTER_VALIDATE_EMAIL)) {
 }
 
 try {
+    $recommendationToNotify = null;
     $pdo->beginTransaction();
 
     $stmt = $pdo->prepare("
@@ -80,16 +82,47 @@ try {
         ":stid" => $stId
     ));
 
-    $stmt = $pdo->prepare("
-        UPDATE recommendations
-        SET teacher_email = :email, rec_rel = :rec_rel
+    $recStmt = $pdo->prepare("
+        SELECT id, teacher_name, teacher_email, rec_rel, token, status, content
+        FROM recommendations
         WHERE application_id = :apno
+        LIMIT 1
+        FOR UPDATE
     ");
-    $stmt->execute(array(
-        ":email" => $teacherEmail,
-        ":rec_rel" => ($recRel === "" ? null : $recRel),
-        ":apno" => $apno
-    ));
+    $recStmt->execute(array(":apno" => $apno));
+    $recommendation = $recStmt->fetch(PDO::FETCH_ASSOC);
+    if ($recommendation) {
+        $recommendationLocked = $recommendation["status"] === "submitted"
+            || $recommendation["status"] === "rejected"
+            || trim((string)$recommendation["content"]) !== "";
+        $emailChanged = strcasecmp(trim((string)$recommendation["teacher_email"]), $teacherEmail) !== 0;
+        $relationChanged = trim((string)$recommendation["rec_rel"]) !== $recRel;
+
+        if ($recommendationLocked && ($emailChanged || $relationChanged)) {
+            throw new RuntimeException("推薦信已提交或駁回，不能再修改推薦人資料。");
+        }
+
+        if (!$recommendationLocked) {
+            $stmt = $pdo->prepare("
+                UPDATE recommendations
+                SET teacher_email = :email, rec_rel = :rec_rel
+                WHERE id = :id
+            ");
+            $stmt->execute(array(
+                ":email" => $teacherEmail,
+                ":rec_rel" => ($recRel === "" ? null : $recRel),
+                ":id" => $recommendation["id"]
+            ));
+
+            if ($emailChanged && $teacherEmail !== "") {
+                $recommendationToNotify = array(
+                    "email" => $teacherEmail,
+                    "name" => (string)$recommendation["teacher_name"],
+                    "token" => (string)$recommendation["token"],
+                );
+            }
+        }
+    }
 
     $customFields = custom_form_fields_for_scholarship($pdo, $application["SCID"]);
     $replacedCustomFileIds = custom_form_save_answers(
@@ -102,13 +135,31 @@ try {
     );
 
     $pdo->commit();
-    unset($_SESSION["csrf_token"]);
+    commit_uploaded_request_files();
+    unset($_SESSION["edit_application_csrf_token"]);
 
     foreach ($replacedCustomFileIds as $replacedFileId) {
         try {
             delete_uploaded_file_record($pdo, $replacedFileId);
         } catch (Throwable $cleanupError) {
             error_log("Unable to remove replaced custom file #" . $replacedFileId . ": " . $cleanupError->getMessage());
+        }
+    }
+
+    if ($recommendationToNotify) {
+        $link = scholarship_public_url("/professor/recommendation.php?token=" . urlencode($recommendationToNotify["token"]));
+        $safeLink = htmlspecialchars($link, ENT_QUOTES, "UTF-8");
+        $mailSent = scholarship_send_mail(
+            $recommendationToNotify["email"],
+            $recommendationToNotify["name"],
+            "獎助學金推薦信填寫通知",
+            scholarship_mail_html(array(
+                "學生已更新推薦人 Email，請使用以下連結填寫推薦信：",
+                "<a href=\"{$safeLink}\">{$safeLink}</a>"
+            ))
+        );
+        if (!$mailSent) {
+            site_flash_add("推薦人資料已更新，但 Email 寄送失敗，請手動提供推薦連結。", "warning");
         }
     }
 
@@ -121,6 +172,7 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+    rollback_uploaded_request_files();
 
     back_to_edit($apno, $e->getMessage());
 }

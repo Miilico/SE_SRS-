@@ -110,6 +110,7 @@ require __DIR__ . "/../header.php";
                             <div id="custom-fields-container" class="vstack gap-3">
                                 <?php foreach ($custom_fields as $index => $field): ?>
                                     <div class="custom-field-row row g-2 align-items-center bg-white p-3 rounded border position-relative" id="custom-field-row-<?= $index ?>">
+                                        <input type="hidden" name="custom_field_ids[]" value="<?= (int)$field['id'] ?>">
                                         <div class="col-md-5">
                                             <label class="form-label small text-secondary fw-semibold">項目名稱</label>
                                             <input type="text" name="custom_labels[]" class="form-control" value="<?= htmlspecialchars($field['field_label']) ?>" required>
