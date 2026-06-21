@@ -19,6 +19,10 @@ $default_title = isset($_GET['title']) ? $_GET['title'] : '';
 $default_content = isset($_GET['content']) ? $_GET['content'] : '';
 $default_cat = isset($_GET['cat']) ? (int)$_GET['cat'] : 0;
 
+$stmtSc = $pdo->query("SELECT id, NAME FROM scholarship ORDER BY id DESC");
+$scholarships = $stmtSc->fetchAll(PDO::FETCH_ASSOC);
+$default_scholarship_id = ''; // 預設不綁定
+
 // 如果有 ID，進入修改模式並抓取舊資料
 if ($id) {
     $stmt = $pdo->prepare("SELECT * FROM announcement WHERE ID = ?");
@@ -30,6 +34,7 @@ if ($id) {
         $default_content = $post['CONTENT'];
         // 假設資料庫已新增 CATEGORY 欄位，若無則預設為 0
         $default_cat = isset($post['CATEGORY']) ? $post['CATEGORY'] : 0;
+        $default_scholarship_id = isset($post['scholarship_id']) ? $post['scholarship_id'] : '';
         $announcementId = isset($post["id"]) ? (int)$post["id"] : (int)$id;
         $files = fetch_uploaded_files($pdo, 1, "announcement_id", $announcementId);
     }
@@ -59,6 +64,20 @@ $activeNav = "post_management.php";
                     <option value="1" <?php echo $default_cat == 1 ? 'selected' : ''; ?>>獎學金審查結果</option>
                     <option value="2" <?php echo $default_cat == 2 ? 'selected' : ''; ?>>獎助單位訊息</option>
                 </select>
+
+                <div class="mb-3">
+                <label class="form-label fw-semibold">綁定相關獎助學金：</label>
+                <select class="form-select" name="scholarship_id">
+                    <option value="">-- 純公告 (不綁定任何表單) --</option>
+                    <?php foreach ($scholarships as $s): ?>
+                        <option value="<?= $s['id'] ?>" <?= ($default_scholarship_id == $s['id']) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($s['NAME']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <div class="form-text">若此為「審查結果公告」，綁定後學生在閱讀公告時可快速對照原獎學金資訊。</div>
+                </div>
+
                 <?php if($default_cat == 1): ?>
                     <div class="form-text text-danger">提醒：已自動帶入獲獎學生名單，發佈前請確認格式。</div>
                 <?php endif; ?>
