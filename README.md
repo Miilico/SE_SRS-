@@ -17,8 +17,8 @@
 
 ## 技術環境
 
-- 後端：PHP 8.3
-- 資料庫：MySQL / MariaDB 10.11
+- 後端：PHP 8.x
+- 資料庫：MySQL / MariaDB
 - 資料庫存取：PDO
 - 前端：HTML、CSS、Bootstrap CDN、少量 JavaScript
 - 郵件：PHPMailer，檔案放在 `scholarship/student/`
@@ -156,6 +156,16 @@ role=4 -> organization/org-dashboard.php
 - 使用者可在安全設定頁修改密碼。
 - 程式支援 Email 登入驗證碼與 TOTP 驗證器 App，但需資料庫先有對應欄位才會啟用。
 
+Email/TOTP 登入驗證所需欄位：
+
+```sql
+ALTER TABLE users
+  ADD COLUMN EMAIL_LOGIN_VERIFY_ENABLED TINYINT(1) NOT NULL DEFAULT 0,
+  ADD COLUMN EMAIL_LOGIN_CODE VARCHAR(10) NULL,
+  ADD COLUMN EMAIL_LOGIN_CODE_EXPIRES_AT DATETIME NULL,
+  ADD COLUMN TOTP_LOGIN_VERIFY_ENABLED TINYINT(1) NOT NULL DEFAULT 0,
+  ADD COLUMN TOTP_SECRET VARCHAR(64) NULL;
+```
 
 ### 學生端
 
@@ -406,14 +416,15 @@ location ^~ /scholarship/user_file/ {
 
 ## 已知限制與接手注意
 
-- `SCHOLARSHIP_BASE_URL` 應設定為正式網址，避免 Email 連結錯誤。``
+- 多處 URL 仍寫死 `/scholarship/...`，若部署路徑不同需同步調整。
+- `SCHOLARSHIP_BASE_URL` 應設定為正式網址，避免 Email 連結錯誤。
 - Email/TOTP 登入驗證已有程式支援，但 repository 尚未提供正式 migration。
 - `users.NAME` 仍是 UNIQUE，真實使用時可能不符合多人同名情境。
 - `students.SID` 是 `char(8)`，若未來學號長度超過 8 位需調整。
 - `application.RESULT` 仍是短字串欄位，狀態值增加後建議改為 `varchar` 或 enum。
 - 部分舊程式碼仍保留註解或早期路徑，例如 `/scholarship/uploads/...` 測試資料。
 - 大量寄信建議統一使用 `email_queue`，避免頁面等待 SMTP。
-- 正式環境需設定 HTTPS、SMTP、排程工具、檔案權限與備份策略。``
+- 正式環境需設定 HTTPS、SMTP、排程工具、檔案權限與備份策略。
 
 ## 建議驗收流程
 
