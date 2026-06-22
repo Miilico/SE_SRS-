@@ -6,13 +6,28 @@ function supplement_note_private_file()
 {
     $baseDir = defined("SCHOLARSHIP_PRIVATE_DATA_DIR") && SCHOLARSHIP_PRIVATE_DATA_DIR !== ""
         ? rtrim((string)SCHOLARSHIP_PRIVATE_DATA_DIR, "\\/")
-        : dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . "scholarship-private-data";
+        : dirname(__DIR__) . DIRECTORY_SEPARATOR . "scholarship-private-data";
 
-    if (!is_dir($baseDir) && !mkdir($baseDir, 0700, true) && !is_dir($baseDir)) {
+    if (!@is_dir($baseDir) && !@mkdir($baseDir, 0700, true) && !@is_dir($baseDir)) {
         throw new RuntimeException("無法建立補件原因私有儲存目錄。");
     }
 
+    supplement_note_protect_private_dir($baseDir);
+
     return $baseDir . DIRECTORY_SEPARATOR . "supplement_notes.json";
+}
+
+function supplement_note_protect_private_dir($baseDir)
+{
+    $htaccess = $baseDir . DIRECTORY_SEPARATOR . ".htaccess";
+    if (!is_file($htaccess)) {
+        @file_put_contents($htaccess, "Require all denied\nDeny from all\n");
+    }
+
+    $index = $baseDir . DIRECTORY_SEPARATOR . "index.html";
+    if (!is_file($index)) {
+        @file_put_contents($index, "");
+    }
 }
 
 function supplement_note_file_read_all()
@@ -73,7 +88,13 @@ function supplement_note_get($pdo, $applicationId, $databaseValue = null)
         return $databaseValue;
     }
 
-    $data = supplement_note_file_read_all();
+    try {
+        $data = supplement_note_file_read_all();
+    } catch (Throwable $e) {
+        error_log("Unable to read supplement note fallback: " . $e->getMessage());
+        return "";
+    }
+
     $key = (string)(int)$applicationId;
     return isset($data[$key]["note"]) ? (string)$data[$key]["note"] : "";
 }
